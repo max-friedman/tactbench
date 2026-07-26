@@ -1,0 +1,45 @@
+[project]
+name = "tactbench"
+version = "0.1.0"
+description = "A benchmark for whether an assistant should speak at all."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Max Friedman" }]
+keywords = ["benchmark", "evaluation", "llm", "proactive", "agents", "abstention"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "pydantic>=2.6",
+    "typer>=0.12",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+web = ["fastapi>=0.110", "uvicorn>=0.29"]
+llm = ["anthropic>=0.40", "google-genai>=0.3", "openai>=1.30"]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[project.scripts]
+tactbench = "tactbench.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tactbench"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
