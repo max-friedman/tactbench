@@ -509,6 +509,175 @@ class QuietHoursScenario(Scenario):
         )
 
 
+class HealthScenario(Scenario):
+    """Prescription pickup. Two people's refills trade which one is outstanding."""
+
+    family = "health"
+    intent = "refill_reminder"
+    positive_value = 2
+    window_s = 2400
+    positive_slices = ["low_stakes"]
+    near_slices = ["not_yours"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.IDLE,
+            device="phone",
+            last_interaction_s=rng.randint(5, 120),
+            local_hour=rng.randint(14, 18),
+        )
+
+    def body(self, rng):
+        mins = rng.choice([35, 40, 50, 55])
+        phrasing = rng.choice(
+            [
+                f"The pharmacy closes in {mins} minutes.",
+                f"Pharmacy counter shuts in {mins} minutes.",
+                f"{mins} minutes until the pharmacy closes.",
+            ]
+        )
+        return [Signal(source=Source.NOTIFICATION, age_s=180, content=phrasing)]
+
+    def deciders(self, rng):
+        variants = [
+            (
+                "Your refill is waiting for pickup; Sam's refill was collected "
+                "yesterday.",
+                "Sam's refill is waiting for pickup; your refill was collected "
+                "yesterday.",
+            ),
+            (
+                "Still at the counter: your prescription. Already picked up: Sam's "
+                "prescription.",
+                "Still at the counter: Sam's prescription. Already picked up: your "
+                "prescription.",
+            ),
+        ]
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(source=Source.APP_EVENT, age_s=240, content=pos_text),
+            Signal(source=Source.APP_EVENT, age_s=240, content=near_text),
+        )
+
+    def why(self):
+        return (
+            "The user's own prescription is still at the counter and the window "
+            "closes soon. Acting is cheap and the moment is idle.",
+            "The outstanding refill belongs to someone else and the user's was "
+            "already collected. Nothing here is theirs to act on.",
+        )
+
+
+class ChildcareScenario(Scenario):
+    """School pickup. Which parent is on the list, and which is away, swap."""
+
+    family = "childcare"
+    intent = "pickup_conflict"
+    positive_value = 3
+    window_s = 1800
+    positive_slices = ["time_critical", "breaks_focus"]
+    near_slices = ["not_yours", "breaks_focus"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.FOCUSED_WORK,
+            device="laptop",
+            last_interaction_s=rng.randint(0, 30),
+            local_hour=rng.randint(13, 15),
+        )
+
+    def body(self, rng):
+        t = rng.choice(["3:15", "3:30", "2:45"])
+        phrasing = rng.choice(
+            [
+                f"School pickup is at {t} today.",
+                f"Pickup time today is {t}.",
+                f"Today's pickup: {t}.",
+            ]
+        )
+        return [Signal(source=Source.CALENDAR, age_s=0, content=phrasing)]
+
+    def deciders(self, rng):
+        variants = [
+            (
+                "You are on the pickup list today; Dana is out of town.",
+                "Dana is on the pickup list today; you are out of town.",
+            ),
+            (
+                "Listed for pickup: you. Travelling today: Dana.",
+                "Listed for pickup: Dana. Travelling today: you.",
+            ),
+        ]
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(source=Source.MESSAGE, age_s=120, content=pos_text),
+            Signal(source=Source.MESSAGE, age_s=120, content=near_text),
+        )
+
+    def why(self):
+        return (
+            "The user is the listed parent, the other is away, and a child is "
+            "waiting. This clears the bar for breaking focus.",
+            "The other parent is listed and present. Same logistics, none of it "
+            "the user's to act on.",
+        )
+
+
+class FinanceScenario(Scenario):
+    """Autopay shortfall. The two accounts trade which one is short."""
+
+    family = "finance"
+    intent = "payment_shortfall"
+    positive_value = 3
+    window_s = 3600
+    positive_slices = ["time_critical"]
+    near_slices = ["already_handled"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.IDLE,
+            device="phone",
+            last_interaction_s=rng.randint(10, 200),
+            local_hour=rng.randint(19, 22),
+        )
+
+    def body(self, rng):
+        phrasing = rng.choice(
+            [
+                "Autopay for the credit card draws from checking tonight at 11pm.",
+                "Tonight at 11pm, autopay pulls the card balance from checking.",
+                "Card autopay hits checking at 11pm tonight.",
+            ]
+        )
+        return [Signal(source=Source.APP_EVENT, age_s=600, content=phrasing)]
+
+    def deciders(self, rng):
+        amt = rng.choice([180, 200, 240, 310])
+        variants = [
+            (
+                f"Checking is short ${amt}; savings covers the balance.",
+                f"Savings is short ${amt}; checking covers the balance.",
+            ),
+            (
+                f"Below the payment by ${amt}: checking. Above it: savings.",
+                f"Below the payment by ${amt}: savings. Above it: checking.",
+            ),
+        ]
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(source=Source.APP_EVENT, age_s=300, content=pos_text),
+            Signal(source=Source.APP_EVENT, age_s=300, content=near_text),
+        )
+
+    def why(self):
+        return (
+            "Autopay draws from checking and checking is short, so this overdrafts "
+            "tonight unless the user moves money. Recoverable only before 11pm.",
+            "The shortfall is in an account autopay does not touch; the account it "
+            "draws from covers the payment. Nothing will go wrong.",
+        )
+
+
 SCENARIOS: list[Scenario] = [
     TravelScenario(),
     DeadlineScenario(),
@@ -516,6 +685,9 @@ SCENARIOS: list[Scenario] = [
     QuietHoursScenario(),
     DrivingScenario(),
     MeetingPrepScenario(),
+    HealthScenario(),
+    ChildcareScenario(),
+    FinanceScenario(),
 ]
 
 

@@ -22,15 +22,15 @@ uv run tactbench demo
 
 ## Results
 
-Built-in policies on `v1/dev` (181 moments):
+Built-in policies on `v1/dev` (266 moments, 9 scenario families):
 
 | policy | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke |
 |---|---|---|---|---|---|---|---|
-| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 92/181 |
-| `never` *(the bar)* | 245.0 | 0.0 | — | 0.000 | 0.508 | 0 | 0/181 |
-| `heuristic` | 328.0 | −33.9 | 0.560 | 0.152 | 0.217 | 6 | 25/181 |
-| `random@0.5` | 500.0 | −104.1 | 0.505 | 0.554 | 0.003 | 23 | 101/181 |
-| `always` | 603.0 | −146.1 | 0.508 | 1.000 | 0.492 | 32 | 181/181 |
+| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 132/266 |
+| `never` *(the bar)* | 354.0 | 0.0 | — | 0.000 | 0.496 | 0 | 0/266 |
+| `heuristic` | 435.0 | −22.9 | 0.514 | 0.136 | 0.200 | 6 | 35/266 |
+| `random@0.5` | 495.0 | −39.8 | 0.560 | 0.598 | 0.068 | 17 | 141/266 |
+| `always` | 704.0 | −98.9 | 0.496 | 1.000 | 0.504 | 32 | 266/266 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
 single cue worth surfacing — and it is the worst policy on the board, scoring 146
@@ -79,15 +79,12 @@ carry nearly the same token multiset, so word statistics cannot separate them.
 
 | family | probe accuracy |
 |---|---|
-| `commerce` | 44.8% |
-| `driving` | 50.0% |
-| `meeting_prep` | 51.9% |
-| `travel` | 52.2% |
-| `deadline` | 57.2% |
-| `quiet_hours` | **91.4%** |
-| **overall** | **57.5%** |
+| `childcare` · `commerce` · `deadline` · `driving` | 50.0% |
+| `finance` · `health` · `meeting_prep` · `travel` | 50.0% |
+| `quiet_hours` | **100.0%** |
+| **overall** | **55.6%** |
 
-Five of six families sit at the chance floor. `quiet_hours` does not, and cannot: a
+Eight of nine families sit exactly at the chance floor. `quiet_hours` does not, and cannot: a
 medical emergency is not a rearrangement of a routine check-in, so severity there
 is irreducibly lexical. That residue is reported rather than hidden, and
 `test_lexical_leakage_stays_near_chance` fails the build if the overall figure
@@ -147,8 +144,8 @@ during deep work and the near-miss while idle, the state alone would give the
 answer away as surely as vocabulary did. State determines the **cost** of speaking;
 the signals determine **whether**.
 
-Six scenario families: `travel`, `deadline`, `commerce`, `quiet_hours`, `driving`,
-`meeting_prep`. Slice tags (`near_miss`, `already_handled`, `not_yours`,
+Nine scenario families: `travel`, `deadline`, `commerce`, `quiet_hours`, `driving`,
+`meeting_prep`, `health`, `childcare`, `finance`. Slice tags (`near_miss`, `already_handled`, `not_yours`,
 `too_late`, `protected_state`, `dnd_override`, `wrong_moment`) support stratified
 reporting, so you can ask *which kind* of judgment a system lacks.
 
@@ -234,11 +231,14 @@ otherwise would defeat the purpose of building a benchmark:
 - **Moments are synthetic and template-generated.** Each family has 2–3 phrasings
   per side. The permutation construction means low diversity no longer implies
   guessability (the audit measures this directly), but the scenarios remain a small,
-  hand-authored set — six families is six effective degrees of freedom, whatever the
-  item count.
-- **`quiet_hours` still leaks at 91.4%.** Severity is not permutable. Any system
-  scoring well on that family alone may be reading `admitting` vs `discharging`
-  rather than judging anything.
+  hand-authored set — nine families is nine effective degrees of freedom, whatever
+  the item count.
+- **`quiet_hours` leaks at 100%.** Severity is not permutable. Any system scoring
+  well on that family alone may be reading `admitting` vs `discharging` rather than
+  judging anything. Slice on it before believing a headline number.
+- **All nine families are one author's idea of a working life** — knowledge work,
+  a car, a pharmacy, school pickup. Interruption norms are culturally specific and
+  this captures one culture's.
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.

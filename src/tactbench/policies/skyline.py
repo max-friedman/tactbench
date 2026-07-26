@@ -58,6 +58,9 @@ class SkylinePolicy(Policy):
             "meeting_prep": "meeting_prep",
             "driving": "reroute_alert",
             "quiet_hours": "family_emergency",
+            "health": "refill_reminder",
+            "childcare": "pickup_conflict",
+            "finance": "payment_shortfall",
         }
         return Decision(
             moment_id=moment.id,
@@ -101,3 +104,24 @@ class SkylinePolicy(Policy):
     def _quiet_hours(self, text: str, low: str) -> bool:
         """Speak only if the news is an admission rather than a discharge."""
         return "admitt" in low
+
+    def _health(self, text: str, low: str) -> bool:
+        """Speak only if the refill still at the counter is the user's own."""
+        if "still at the counter:" in low:
+            tail = low.split("still at the counter:")[1].split(".")[0]
+            return "your" in tail
+        return "your refill is waiting" in low
+
+    def _childcare(self, text: str, low: str) -> bool:
+        """Speak only if the user is the parent listed for pickup."""
+        if "listed for pickup:" in low:
+            tail = low.split("listed for pickup:")[1].split(".")[0]
+            return "you" in tail
+        return "you are on the pickup list" in low
+
+    def _finance(self, text: str, low: str) -> bool:
+        """Speak only if the shortfall is in the account autopay actually draws from."""
+        if "below the payment by" in low:
+            tail = low.split("below the payment by")[1].split(".")[0]
+            return "checking" in tail
+        return "checking is short" in low

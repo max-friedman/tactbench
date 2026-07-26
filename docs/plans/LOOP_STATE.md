@@ -7,10 +7,10 @@ Context is lost between rounds; this file is not.
 
 ## Current status
 
-- **Round:** 2 complete
+- **Round:** 3 complete
 - **Gate:** green — 53 tests, ruff clean
-- **Dataset:** `v1` — 240 items (181 dev / 59 test), 6 families × 20 pairs
-- **Headline:** silence (ICS 245) is unbeaten by any baseline; skyline (ICS 0)
+- **Dataset:** `v1` — 360 items (266 dev / 94 test), 9 families × 20 pairs
+- **Headline:** silence (ICS 354) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable
 
 ---
@@ -75,14 +75,37 @@ the README, and nothing may until a run actually happens.
 
 ---
 
+## Round 3 — more degrees of freedom
+
+**Goal:** after R1, the top weakness was that six families is six effective degrees
+of freedom regardless of item count. Phrasing was no longer the weak point; scenario
+count was.
+
+**Shipped:** three new families, each built as a role permutation from the start
+rather than retrofitted — `health` (whose prescription is still at the counter),
+`childcare` (which parent is listed for pickup vs. travelling), `finance` (which
+account autopay actually draws from). Dataset 240 -> 360 items.
+
+**Caught by the audit before landing:** `health` probed at 82.5% on first pass. The
+decider ended `your prescription` on one side and `yours` on the other -- different
+tokens, so the probe latched on. Repeating the noun on both sides made it a true
+permutation and it dropped to 50.0%. This is exactly the check working as intended:
+the leak was invisible by eye and obvious to the probe.
+
+**Result:** 8 of 9 families now sit at exactly 0.500. Overall 57.5% -> 55.6% (adding
+clean families dilutes quiet_hours' share). Skyline still resolves all 9 families
+with zero disagreements, so the new labels are self-consistent.
+
+---
+
 ## Coverage map
 
 | area | last touched | probe / status |
 |---|---|---|
-| `dataset/generate.py` | R1 | 5/6 families at chance floor |
+| `dataset/generate.py` | R3 | 8/9 families at chance floor |
 | `metrics.py` | R0 | untouched since design; ICS constants unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
-| `policies/skyline.py` | R1 | new; ceiling marker |
+| `policies/skyline.py` | R3 | handles all 9 families; ICS 0 |
 | `audit.py` | R1 | new; gates the build |
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
 | `policies/llm.py` | R2 | built and tested; **never executed** — needs a key |
@@ -116,18 +139,16 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **More scenario families.** Now the top weakness: six families is six degrees of
-   freedom regardless of item count, and phrasing is no longer the weak point.
-   Candidates: health/medication, childcare logistics, financial deadlines, home
-   security. Each must be built as a role permutation and confirmed near 50% by
-   `tactbench audit` before it lands.
-2. **Base-rate reweighting** — a CLI flag to evaluate at a realistic 100:1
+1. **Base-rate reweighting** — a CLI flag to evaluate at a realistic 100:1
    quiet-to-loud prior, which makes silence far harder to beat and is the honest
    production intuition.
-3. **Show the skyline as a fraction.** Report each policy as % of achievable
+2. **Show the skyline as a fraction.** Report each policy as % of achievable
    performance now that a ceiling exists, not just raw ICS.
-4. **Fatigue modeling** — session-level items where interruption cost rises with
+3. **Fatigue modeling** — session-level items where interruption cost rises with
    recent interruption frequency. Needs a schema change.
+4. **More families still welcome** — nine is better than six but still one
+   author's idea of a working life. Candidates: home security, commute
+   disruption, pet care.
 5. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
@@ -138,7 +159,8 @@ halt the loop.**
 Encoded as tests. Do not weaken them to make a round pass — if one fails, the
 dataset or the policy is wrong, not the assertion.
 
-- Overall lexical probe stays **< 70%**; the five permutable families **< 60%**.
+- Overall lexical probe stays **< 70%**; every permutable family (all but
+  `quiet_hours`) **< 60%**. A new family must be added to the audit, not exempted.
 - Skyline beats silence with **zero** hard violations (task stays solvable).
 - Skyline never disagrees with a gold label (labels stay self-consistent).
 - The heuristic stays near chance (**0.5 ± 0.15** precision) and never solves the set.

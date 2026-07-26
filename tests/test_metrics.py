@@ -230,7 +230,9 @@ class TestShortcutResistance:
         irreducible and is reported rather than asserted away.
         """
         items = generate(n_pairs_per_scenario=10)
-        for family in ("travel", "deadline", "commerce", "driving", "meeting_prep"):
+        permutable = {i.moment.family for i in items} - {"quiet_hours"}
+        assert len(permutable) >= 8, "new families must be added to the audit"
+        for family in sorted(permutable):
             subset = [i for i in items if i.moment.family == family]
             accuracy = lexical_leakage(subset).accuracy
             assert accuracy < 0.60, f"{family} leaks at {accuracy:.1%}"
