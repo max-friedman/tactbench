@@ -168,9 +168,31 @@ Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
 ```bash
 uv run tactbench build                # generate the dataset splits
 uv run tactbench eval                 # score every built-in policy
+uv run tactbench audit                # probe the dataset for surface shortcuts
 uv run tactbench failures heuristic   # inspect the costliest mistakes
 uv run tactbench serve                # local viewer at :8000
 ```
+
+### Running an LLM
+
+```bash
+export ANTHROPIC_API_KEY=...          # or GEMINI_API_KEY / OPENAI_API_KEY
+uv run tactbench llm --variant rubric --limit 20
+```
+
+Two variants exist to separate two different explanations for failure. `naive` is
+asked only whether to surface, with no cost structure disclosed — it measures the
+model's untutored instinct. `rubric` is given the actual asymmetry, including that
+silence is a strong baseline. A large gap between them means the capability is
+there and the default disposition is wrong; a small gap means the judgment itself
+is missing.
+
+Decisions are cached per policy and split, so a paid run is never repeated. The
+prompt is kept verbatim in `policies/llm.py` and versioned, so any published number
+traces to the exact wording that produced it.
+
+**No LLM numbers appear in this README, because none have been run yet.** Publishing
+a figure for an experiment that was never executed would be worse than having none.
 
 Not yet on PyPI — the name is reserved and publishing waits until LLM baselines
 land, so the first release has the result that makes it worth installing.

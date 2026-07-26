@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -10,9 +11,10 @@ from rich.table import Table
 
 from .dataset.generate import generate
 from .dataset.loader import load, split_path, write_jsonl
-from .metrics import Scorecard
+from .metrics import Scorecard, score
 from .policies.builtin import registry
 from .runner import evaluate, silence_ics
+from .schema import Decision
 
 app = typer.Typer(
     add_completion=False,
@@ -103,6 +105,84 @@ def evaluate_cmd(
         "'vs silence' above 0 means the policy is worth shipping; "
         "below 0 means it is worse than saying nothing.[/dim]"
     )
+
+
+@app.command(name="llm")
+def llm_cmd(
+    provider: str = typer.Option("anthropic", help="anthropic | gemini | openai"),
+    variant: str = typer.Option("rubric", help="naive (no cost info) | rubric (cost disclosed)"),
+    model: str = typer.Option(None, help="Override the provider's default model."),
+    version: str = typer.Option("v1"),
+    split: str = typer.Option("dev"),
+    limit: int = typer.Option(0, help="Only run the first N moments. 0 runs all."),
+    fresh: bool = typer.Option(False, help="Ignore cached decisions and re-query."),
+) -> None:
+    """Score an LLM against a split. Requires an API key and costs money.
+
+    Decisions are cached per (policy, split) so re-scoring, slicing, and viewing
+    are free after the first run.
+    """
+    import json as _json
+
+    from .policies.llm import LLMPolicy, MissingCredential, available_providers
+
+    have = available_providers()
+    if not have.get(provider):
+        console.print(f"[red]No API key for {provider}.[/red]")
+        console.print(f"Providers with a key present: "
+                      f"{[p for p, ok in have.items() if ok] or 'none'}")
+        raise typer.Exit(1)
+
+    policy = LLMPolicy(provider=provider, model=model, variant=variant)
+    items = load(version, split)
+    if limit:
+        items = items[:limit]
+
+    cache_path = Path("runs") / f"{policy.name.replace(':', '_').replace('/', '_')}-{split}.jsonl"
+    cached: dict[str, Decision] = {}
+    if cache_path.exists() and not fresh:
+        for line in cache_path.read_text().splitlines():
+            if line.strip():
+                d = Decision.model_validate(_json.loads(line))
+                cached[d.moment_id] = d
+
+    todo = [i for i in items if i.moment.id not in cached]
+    console.print(
+        f"[bold]{policy.name}[/bold] on {split} — {len(items)} moments, "
+        f"{len(cached)} cached, [yellow]{len(todo)} to query[/yellow]"
+    )
+
+    if todo:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with cache_path.open("a") as f, console.status("querying...") as status:
+            for n, item in enumerate(todo, 1):
+                try:
+                    d = policy.decide(item.moment)
+                except MissingCredential as e:
+                    console.print(f"[red]{e}[/red]")
+                    raise typer.Exit(1) from e
+                except Exception as e:  # noqa: BLE001
+                    # One bad call must not discard an expensive run; a failed
+                    # decision scores as silence, same as unparseable output.
+                    console.print(f"[yellow]{item.moment.id}: {e}[/yellow]")
+                    d = Decision(moment_id=item.moment.id, surface=False,
+                                 rationale=f"call failed: {e}")
+                f.write(d.model_dump_json() + "\n")
+                f.flush()
+                cached[d.moment_id] = d
+                status.update(f"querying... {n}/{len(todo)}")
+
+    decisions = [cached[i.moment.id] for i in items if i.moment.id in cached]
+    silence = silence_ics(items)
+    card = score(items, decisions, policy.name, reference_ics=silence)
+
+    console.print(_table([card], silence))
+    verdict = (
+        "[green]beats silence[/green]" if card.ics < silence
+        else "[red]worse than saying nothing[/red]"
+    )
+    console.print(f"\n{policy.name} is {verdict} (silence ICS {silence:.1f}).")
+    console.print(f"[dim]cached at {cache_path}[/dim]")
 
 
 @app.command()

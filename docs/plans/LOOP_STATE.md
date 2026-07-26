@@ -7,8 +7,8 @@ Context is lost between rounds; this file is not.
 
 ## Current status
 
-- **Round:** 1 complete
-- **Gate:** green — 30 tests, ruff clean
+- **Round:** 2 complete
+- **Gate:** green — 53 tests, ruff clean
 - **Dataset:** `v1` — 240 items (181 dev / 59 test), 6 families × 20 pairs
 - **Headline:** silence (ICS 245) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable
@@ -47,6 +47,34 @@ of six families at the chance floor.
 
 ---
 
+## Round 2 — the decisive experiment, built but unrun
+
+**Goal:** with every shortcut gone and no baseline clearing silence, "can a frontier
+model beat saying nothing?" is the question the repo exists to answer. It is blocked
+on a credential. Build everything around the block.
+
+**Shipped:** `policies/llm.py` — provider-agnostic (Anthropic / Gemini / OpenAI),
+one moment per call (no batching, which would leak the 50/50 balance and let the
+model compare moments a real assistant can't), prompt kept verbatim in source and
+versioned, unparseable output scored as silence. `tactbench llm` CLI with per-run
+caching so a paid run is never repeated. 23 new tests, none needing a key.
+
+**Two variants, by design:** `naive` withholds the cost structure; `rubric`
+discloses it. The gap between them distinguishes *wrong disposition* (capability
+present, helpfulness bias dominating) from *missing judgment*.
+
+**Prompt-leak guard.** `render_moment` deliberately omits `family`, `slices`, and
+`moment.id`. `slices` literally contains `near_miss`; shipping it would hand over
+the label and silently invalidate every result. Four tests enforce this. Two of
+them initially failed on legitimate collisions — the activity value `driving` and
+the contact class `family` both belong in the prompt — so the assertions were
+narrowed to the labelled-field form rather than the code being changed.
+
+**Not done, deliberately:** no numbers. Nothing about LLM performance appears in
+the README, and nothing may until a run actually happens.
+
+---
+
 ## Coverage map
 
 | area | last touched | probe / status |
@@ -56,8 +84,8 @@ of six families at the chance floor.
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | R1 | new; ceiling marker |
 | `audit.py` | R1 | new; gates the build |
-| `web/server.py` | R0 | **not re-verified since the dataset rebuild** |
-| `policies/llm.py` | — | **does not exist** — blocked, see NEEDS-MAX |
+| `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
+| `policies/llm.py` | R2 | built and tested; **never executed** — needs a key |
 
 ---
 
@@ -66,12 +94,19 @@ of six families at the chance floor.
 Items that cannot proceed without a human. **Noted and skipped — never a reason to
 halt the loop.**
 
-1. **LLM baselines need an API key.** No `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` /
-   `OPENAI_API_KEY` in the environment and no local Ollama. The provider-agnostic
-   policy can be written and shipped unrun, but **no numbers may be published
-   without actually running it.** This is now the decisive experiment: with every
-   shortcut removed and no baseline clearing silence, "can a frontier model beat
-   saying nothing?" is the question the repo exists to answer.
+1. **Run the LLM baselines.** The harness is built, tested, and cached (R2). It has
+   never been executed because no `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` /
+   `OPENAI_API_KEY` is present and there is no local Ollama. One command unblocks
+   the headline result:
+
+   ```
+   export ANTHROPIC_API_KEY=...
+   uv run tactbench llm --variant rubric --limit 20   # smoke-test the spend first
+   uv run tactbench llm --variant naive
+   uv run tactbench llm --variant rubric
+   ```
+
+   **No numbers may be published without actually running it.**
 2. **Human label validation.** Labels remain by construction (`raters: 0`). Needs
    real raters and a reported κ.
 3. **PyPI release** — deliberately held until (1) lands, so the first release ships
@@ -81,18 +116,20 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **`policies/llm.py`** — provider-agnostic policy, prompt documented verbatim in
-   the repo, zero-shot and cost-rubric variants. Buildable now; runnable only with
-   a key. Ship it unrun and clearly marked.
-2. **Re-verify the web viewer** against the rebuilt dataset. Untouched since R0 and
-   the item shape changed underneath it.
-3. **More scenario families.** Six is the real diversity ceiling now that phrasing
-   is handled. Candidates: health/medication, childcare logistics, financial
-   deadlines, home security.
-4. **Base-rate reweighting** — a CLI flag to evaluate at a realistic 100:1
-   quiet-to-loud prior, which makes silence far harder to beat.
-5. **Fatigue modeling** — session-level items where interruption cost rises with
+1. **More scenario families.** Now the top weakness: six families is six degrees of
+   freedom regardless of item count, and phrasing is no longer the weak point.
+   Candidates: health/medication, childcare logistics, financial deadlines, home
+   security. Each must be built as a role permutation and confirmed near 50% by
+   `tactbench audit` before it lands.
+2. **Base-rate reweighting** — a CLI flag to evaluate at a realistic 100:1
+   quiet-to-loud prior, which makes silence far harder to beat and is the honest
+   production intuition.
+3. **Show the skyline as a fraction.** Report each policy as % of achievable
+   performance now that a ceiling exists, not just raw ICS.
+4. **Fatigue modeling** — session-level items where interruption cost rises with
    recent interruption frequency. Needs a schema change.
+5. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+   even if the raters are not.
 
 ---
 
