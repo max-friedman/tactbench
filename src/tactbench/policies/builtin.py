@@ -209,7 +209,14 @@ class HeuristicPolicy(Policy):
 
 
 def registry() -> dict[str, Policy]:
-    """Name -> policy, for the CLI."""
+    """Name -> policy, for the CLI.
+
+    ``skyline`` is included so the leaderboard shows the ceiling, but it is not a
+    baseline -- it is a template parser tuned to this generator. See
+    ``policies/skyline.py``.
+    """
+    from .skyline import SkylinePolicy
+
     return {
         p.name: p
         for p in (
@@ -217,5 +224,6 @@ def registry() -> dict[str, Policy]:
             AlwaysPolicy(),
             RandomPolicy(0.5, seed=7),
             HeuristicPolicy(),
+            SkylinePolicy(),
         )
     }

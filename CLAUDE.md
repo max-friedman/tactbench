@@ -1,5 +1,9 @@
 # Contributor & agent guide
 
+**Working the improvement loop? Read [`docs/plans/LOOP_STATE.md`](docs/plans/LOOP_STATE.md)
+first and write it last.** It holds the queue, the coverage map, the NEEDS-MAX list,
+and the standing invariants. Context is lost between rounds; that file is not.
+
 Read this before changing anything. TactBench is a benchmark, and benchmarks fail
 in a specific way: they quietly stop measuring what they claim to measure while
 the numbers keep looking fine. Most of the rules below exist to prevent that.
@@ -36,17 +40,29 @@ verbatim from the generator, and scored a perfect 1.000 precision / 1.000 recall
 that measured nothing except that one person wrote both files. `TestHeuristicIsHonest`
 now enforces single-word lexicons with a size cap. Do not weaken it.
 
-**2. Headroom must exist.**
+**2. Headroom must exist, and the task must stay solvable.**
 
-If any reference baseline scores perfectly, the benchmark has stopped measuring.
-`test_heuristic_does_not_solve_the_dataset` asserts this. When it fails, the fix
-is harder dataset items — never a weaker assertion.
+Two failure directions, both fatal. If a reference baseline scores perfectly the
+benchmark has stopped measuring; `test_heuristic_does_not_solve_the_dataset` catches
+that. If *nothing* can beat silence the benchmark is degenerate; `test_task_is_solvable`
+catches that by requiring the skyline to clear the bar. When either fails, the fix is
+the dataset — never a weaker assertion.
 
-**3. Every scenario emits a matched pair.**
+**3. Pairs are role permutations, not just matched families.**
 
-Positives and near-misses must share sources, vocabulary, and family, differing
-only in the deciding fact. A scenario that adds a positive without its near-miss
-opens a keyword-matching shortcut. Tests enforce that both halves exist per family.
+Both sides share a byte-identical body and an identical `UserState`. One decider
+signal differs, and it differs by **swapping which noun plays which role** — never by
+rewriting the sentence.
+
+This rule was learned the hard way. v1 emitted matched pairs and claimed they stopped
+keyword matching; the audit measured **93.5%** for a bag-of-words probe that never saw
+user state, because each side was written as different sentences. Structural pairing
+is not lexical pairing. When adding a scenario, run `tactbench audit` and confirm the
+new family lands near 50% — if it doesn't, you wrote two sentences instead of one
+permutation.
+
+`quiet_hours` is the standing exception (severity isn't permutable) and is excluded
+from the per-family assertion by name. Don't add more exceptions.
 
 **4. Hard violations are never averaged.**
 

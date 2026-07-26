@@ -106,6 +106,50 @@ def evaluate_cmd(
 
 
 @app.command()
+def audit(
+    version: str = typer.Option("v1"),
+    split: str = typer.Option("dev"),
+) -> None:
+    """Probe the dataset for surface shortcuts.
+
+    Trains a bag-of-words classifier on signal text alone -- no user state, no DND,
+    no slice tags -- and reports how well it separates speak from stay-quiet. Near
+    50% means the words carry no answer and a policy must actually judge. High
+    means the benchmark is measuring vocabulary instead of tact.
+    """
+    from .audit import lexical_leakage
+
+    items = load(version, split)
+    report = lexical_leakage(items)
+
+    t = Table(title="Shortcut audit — bag-of-words probe (chance = 50%)")
+    t.add_column("family", style="bold")
+    t.add_column("probe accuracy", justify="right")
+    t.add_column("verdict")
+
+    families = sorted({i.moment.family for i in items})
+    for family in families:
+        subset = [i for i in items if i.moment.family == family]
+        acc = lexical_leakage(subset).accuracy
+        ok = acc < 0.60
+        t.add_row(
+            family,
+            f"{acc:.1%}",
+            "[green]at chance[/green]" if ok else "[yellow]leaks[/yellow]",
+        )
+    t.add_row("[bold]overall[/bold]", f"[bold]{report.accuracy:.1%}[/bold]", "")
+    console.print(t)
+    console.print(f"\n{report.verdict()}")
+    console.print(
+        "\n[dim]Most speak-predictive tokens: "
+        + ", ".join(tok for tok, _ in report.top_speak[:6])
+        + "\nMost quiet-predictive tokens: "
+        + ", ".join(tok for tok, _ in report.top_quiet[:6])
+        + "[/dim]"
+    )
+
+
+@app.command()
 def demo() -> None:
     """Build the dataset if needed, then score every built-in policy."""
     path = split_path("v1", "dev")

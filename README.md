@@ -22,22 +22,76 @@ uv run tactbench demo
 
 ## Results
 
-Built-in baselines on `v1/dev` (171 moments):
+Built-in policies on `v1/dev` (181 moments):
 
 | policy | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke |
 |---|---|---|---|---|---|---|---|
-| `heuristic` | **55.0** | **+75.4** | 0.818 | 0.847 | 0.139 | 0 | 88/171 |
-| `never` | 224.0 | 0.0 | — | 0.000 | 0.497 | 0 | 0/171 |
-| `random@0.5` | 469.0 | −109.4 | 0.515 | 0.588 | 0.020 | 19 | 97/171 |
-| `always` | 595.0 | −165.6 | 0.497 | 1.000 | 0.503 | 29 | 171/171 |
+| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 92/181 |
+| `never` *(the bar)* | 245.0 | 0.0 | — | 0.000 | 0.508 | 0 | 0/181 |
+| `heuristic` | 328.0 | −33.9 | 0.560 | 0.152 | 0.217 | 6 | 25/181 |
+| `random@0.5` | 500.0 | −104.1 | 0.505 | 0.554 | 0.003 | 23 | 101/181 |
+| `always` | 603.0 | −146.1 | 0.508 | 1.000 | 0.492 | 32 | 181/181 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
-single cue worth surfacing — and it is the worst policy on the board by a wide
-margin, scoring 165 points *below saying nothing at all*. That gap is the entire
-argument for this benchmark. Optimize for helpfulness and you land on that row.
+single cue worth surfacing — and it is the worst policy on the board, scoring 146
+points *below saying nothing at all*. That gap is the argument for this benchmark.
+Optimize for helpfulness and you land on that row.
 
-`never` is the bar. **A proactive feature that scores worse than silence is a
-feature that should not ship.**
+Then read the `heuristic` row. A hand-written rule set with no comprehension lands
+at **0.560 precision — barely above a coin flip** — and also loses to silence. That
+is by design: every surface shortcut it used to exploit has been removed from the
+dataset (see [Shortcut resistance](#shortcut-resistance) below). Pattern matching
+gets no traction here.
+
+`skyline` proves the bar is clearable. It reads the same text, never sees a label,
+and resolves what each moment actually turns on — which gate you're standing at,
+whether the page names you or your colleague. It scores perfectly, so the headroom
+between silence and solved is real. It is **not** a baseline: it's a template
+parser tuned to this generator, included only to mark the ceiling.
+
+So the standing result is: **`never` is the bar, and nothing short of genuine
+comprehension has cleared it.** A proactive feature that scores worse than silence
+is a feature that should not ship.
+
+## Shortcut resistance
+
+The claim that matched pairs prevent keyword matching is worth exactly its
+evidence, so the benchmark measures it rather than asserting it:
+
+```bash
+uv run tactbench audit
+```
+
+This trains a bag-of-words classifier on **signal text alone** — no user state, no
+DND flag, no slice tags — and reports how well it separates *speak* from *stay
+quiet*. Chance is 50%.
+
+**v1 failed this badly: the probe hit 93.5%.** Each scenario had one fixed phrasing
+per side, so whole sentences differed and tokens like `hallway`, `inflight`, and
+`closes` appeared on exactly one side. The pairing was real in structure and
+useless in practice.
+
+The fix was a construction principle: **make each pair as close to a token
+permutation as the scenario allows.** Swap roles instead of rewriting sentences —
+primary and secondary on-call trade places, the two boxes trade which one is still
+sealed, the two meetings trade which is ahead and which has passed. Both sides then
+carry nearly the same token multiset, so word statistics cannot separate them.
+
+| family | probe accuracy |
+|---|---|
+| `commerce` | 44.8% |
+| `driving` | 50.0% |
+| `meeting_prep` | 51.9% |
+| `travel` | 52.2% |
+| `deadline` | 57.2% |
+| `quiet_hours` | **91.4%** |
+| **overall** | **57.5%** |
+
+Five of six families sit at the chance floor. `quiet_hours` does not, and cannot: a
+medical emergency is not a rearrangement of a routine check-in, so severity there
+is irreducibly lexical. That residue is reported rather than hidden, and
+`test_lexical_leakage_stays_near_chance` fails the build if the overall figure
+drifts back above 70%.
 
 ## The metric
 
@@ -73,19 +127,25 @@ Every moment is a frozen context slice — signals from screen, calendar, messag
 email, location, app events, sensors — plus a user-state snapshot (activity, DND,
 local hour, time since last interaction).
 
-**Moments are generated in matched pairs.** This is the central design decision.
-A benchmark of "should you speak?" is trivially gameable if the items warranting
-speech look different on the surface from the ones that don't — any policy could
-match keywords like *delayed*, *expires*, *overdue* and score well without having
-judged anything. So each scenario emits a positive **and** a near-miss sharing the
-same sources, the same vocabulary, and the same family, differing only in the fact
-that actually settles it:
+**Moments are generated in matched pairs, built as role permutations.** Each
+scenario emits a positive and a near-miss that share a byte-identical body and an
+identical user state; only one *decider* signal differs, and it differs by swapping
+which noun plays which role rather than by rewriting the sentence:
 
-> **Positive** — gate changed to B31, boarding in 35 minutes, user is reading news,
-> 8 minute walk away. → **Speak.**
+> **Positive** — gate moved B12 → B31, boarding in 35 minutes. *Boarding pass reads
+> B31; you are seated at B12.* → **Speak** — you're at the old gate.
 >
-> **Near-miss** — same gate change, same 35 minutes, but the user is already seated
-> at B31 with the updated boarding pass on screen. → **Say nothing.**
+> **Near-miss** — same gate change, same 35 minutes. *Boarding pass reads B12; you
+> are seated at B31.* → **Say nothing** — you're already there.
+
+Same words, swapped positions. A classifier counting tokens sees the same evidence
+in both and has to actually resolve *which gate boarding moved away from* against
+*which gate you're standing at*.
+
+User state is held identical across a pair on purpose. If the positive were set
+during deep work and the near-miss while idle, the state alone would give the
+answer away as surely as vocabulary did. State determines the **cost** of speaking;
+the signals determine **whether**.
 
 Six scenario families: `travel`, `deadline`, `commerce`, `quiet_hours`, `driving`,
 `meeting_prep`. Slice tags (`near_miss`, `already_handled`, `not_yours`,
@@ -149,9 +209,14 @@ otherwise would defeat the purpose of building a benchmark:
   than labeled by humans afterward. That makes them internally consistent but
   unvalidated against what people actually want. A human-agreement subset with
   reported inter-rater κ is the next priority.
-- **Moments are synthetic and template-generated.** Phrasing diversity is low
-  enough that a sufficiently determined string matcher could still overfit,
-  despite the paired design. Paraphrase variation is the first planned expansion.
+- **Moments are synthetic and template-generated.** Each family has 2–3 phrasings
+  per side. The permutation construction means low diversity no longer implies
+  guessability (the audit measures this directly), but the scenarios remain a small,
+  hand-authored set — six families is six effective degrees of freedom, whatever the
+  item count.
+- **`quiet_hours` still leaks at 91.4%.** Severity is not permutable. Any system
+  scoring well on that family alone may be reading `admitting` vs `discharging`
+  rather than judging anything.
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
@@ -166,9 +231,12 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
 
 ## Roadmap
 
-1. LLM baselines across providers, zero-shot and with an explicit cost rubric.
+1. **LLM baselines** across providers, zero-shot and with an explicit cost rubric.
+   With every shortcut removed and no baseline clearing silence, this is now the
+   decisive experiment: can a frontier model beat saying nothing?
 2. Human-labeled subset with reported agreement.
-3. Paraphrase and distractor expansion.
+3. More scenario families — six is the real ceiling on dataset diversity now that
+   phrasing has stopped being the weak point.
 4. Held-out test split with hidden labels behind a submission script.
 
 ## License

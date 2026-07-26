@@ -1,22 +1,35 @@
-"""Synthetic moment generation for TactBench v1.
+"""Synthetic moment generation for TactBench.
 
-Design note -- why moments come in pairs
-----------------------------------------
+Design note -- why moments come in pairs, and why that wasn't enough
+-------------------------------------------------------------------
 A benchmark of "should the assistant speak?" is trivially gameable if the items
 that warrant speech look different on the surface from the ones that don't. Any
 policy could then match keywords ("delayed", "expires", "overdue") and score well
 without having judged anything.
 
-So every scenario here emits a **matched pair**: a positive moment and a near-miss
-that shares the same signal sources, similar phrasing, and the same scenario
-family, differing only in the fact that actually settles it -- the user already
-handled it, the information is stale, it concerns someone else, or it arrived at
-a moment when acting on it is impossible.
+v1 addressed this with matched pairs: every scenario emits a positive and a
+near-miss from the same family. **That was not sufficient.** The two sides were
+written as different sentences, so a bag-of-words classifier that never saw user
+state separated them at 93.5% (see ``tactbench audit``). Tokens like "hallway"
+and "inflight" appeared on exactly one side and gave the answer away.
 
-Labels for v1 are *by construction*: we know the answer because we built the item
-around it. That is a real limitation, documented in docs/DATASET.md, and the
-human-agreement subset exists to measure how far construction drifts from what
-people actually want.
+v2 fixes the construction rather than the claim. Two rules:
+
+1. **Pairs share a body.** The context signals are byte-identical across the two
+   sides. Only one *decider* signal differs.
+2. **The decider is a role permutation wherever the scenario allows it.** Instead
+   of rewriting the sentence, the same nouns swap places -- primary/secondary
+   on-call, which gate you're standing at, which box is unopened. The two sides
+   then carry nearly the same token multiset, so word statistics cannot separate
+   them and only the structure can.
+
+Where severity is genuinely lexical (a medical emergency is not a permutation of
+a routine check-in), permutation is impossible and some residual leakage is
+unavoidable. That residue is measured per family by ``tactbench audit`` and
+reported honestly rather than claimed away.
+
+Labels remain *by construction*: we know the answer because we built the item
+around it. That limitation is documented in docs/DATASET.md.
 """
 
 from __future__ import annotations
@@ -24,18 +37,6 @@ from __future__ import annotations
 import random
 
 from ..schema import Activity, GoldLabel, Item, Moment, Signal, Source, UserState
-
-
-class Scenario:
-    """One scenario family, able to emit a matched positive/near-miss pair."""
-
-    family: str = "generic"
-
-    def positive(self, rng: random.Random, idx: int) -> Item:
-        raise NotImplementedError
-
-    def near_miss(self, rng: random.Random, idx: int) -> Item:
-        raise NotImplementedError
 
 
 def _mk(
@@ -65,494 +66,446 @@ def _mk(
     )
 
 
+class Scenario:
+    """One scenario family, emitting a matched pair that shares a body.
+
+    Subclasses build the shared context once and return the two decider variants,
+    so the positive and near-miss cannot drift apart lexically by accident.
+    """
+
+    family: str = "generic"
+    intent: str = "alert"
+    positive_value: int = 2
+    window_s: int | None = None
+    positive_slices: list[str] = []
+    near_slices: list[str] = []
+
+    def state(self, rng: random.Random) -> UserState:
+        raise NotImplementedError
+
+    def body(self, rng: random.Random) -> list[Signal]:
+        """Context signals identical across both sides of the pair."""
+        raise NotImplementedError
+
+    def deciders(self, rng: random.Random) -> tuple[Signal, Signal]:
+        """(positive_decider, near_miss_decider). Permute roles, don't rewrite."""
+        raise NotImplementedError
+
+    def why(self) -> tuple[str, str]:
+        raise NotImplementedError
+
+    def pair(self, rng: random.Random, idx: int) -> tuple[Item, Item]:
+        # One state object shared by both sides: if the user's activity differed
+        # between a positive and its near-miss, the *state* would give the answer
+        # away just as surely as the vocabulary did.
+        state = self.state(rng)
+        body = self.body(rng)
+        pos_dec, near_dec = self.deciders(rng)
+        pos_why, near_why = self.why()
+
+        positive = _mk(
+            f"{self.family}-pos-{idx:04d}",
+            self.family,
+            [*body, pos_dec],
+            state,
+            should=True,
+            value=self.positive_value,
+            intents=[self.intent],
+            rationale=pos_why,
+            slices=list(self.positive_slices),
+            window_s=self.window_s,
+        )
+        near = _mk(
+            f"{self.family}-near-{idx:04d}",
+            self.family,
+            [*body, near_dec],
+            state,
+            should=False,
+            value=0,
+            intents=[],
+            rationale=near_why,
+            slices=["near_miss", *self.near_slices],
+        )
+        return positive, near
+
+
 class TravelScenario(Scenario):
-    """Flight disruptions. The classic proactive-assistant demo, and the classic
-    place where assistants over-fire on information the user already has."""
+    """Gate change. The decider is which gate you are standing at -- both gate
+    numbers appear on both sides, so the tokens cannot separate them."""
 
     family = "travel"
+    intent = "gate_change_alert"
+    positive_value = 3
+    window_s = 600
+    positive_slices = ["time_critical"]
+    near_slices = ["already_handled"]
 
-    def positive(self, rng: random.Random, idx: int) -> Item:
-        gate = rng.choice(["B12", "C4", "A21", "D7"])
-        new_gate = rng.choice(["B31", "C19", "A2", "D22"])
-        state = UserState(
+    def state(self, rng):
+        return UserState(
             activity=Activity.COMMUTING,
             device="phone",
             last_interaction_s=rng.randint(30, 300),
             local_hour=rng.randint(7, 20),
         )
-        signals = [
-            Signal(
-                source=Source.EMAIL,
-                age_s=120,
-                content=f"Your gate has changed from {gate} to {new_gate}. "
-                "Boarding begins in 35 minutes.",
-                meta={"sender": "airline"},
+
+    def body(self, rng):
+        self._a = rng.choice(["B12", "C4", "A21", "D7"])
+        self._b = rng.choice(["B31", "C19", "A2", "D22"])
+        mins = rng.choice([25, 30, 35, 40])
+        phrasing = rng.choice(
+            [
+                f"Gate change: {self._a} to {self._b}. Boarding starts in {mins} minutes.",
+                f"Your gate moved from {self._a} to {self._b}; boarding in {mins} minutes.",
+                f"Departure update — gate {self._a} is now gate {self._b}, "
+                f"boarding in {mins} minutes.",
+            ]
+        )
+        return [Signal(source=Source.EMAIL, age_s=120, content=phrasing,
+                       meta={"sender": "airline"})]
+
+    def deciders(self, rng):
+        a, b = self._a, self._b
+        variants = [
+            (
+                f"Boarding pass on screen reads {b}; you are seated at {a}.",
+                f"Boarding pass on screen reads {a}; you are seated at {b}.",
             ),
-            Signal(
-                source=Source.LOCATION,
-                age_s=60,
-                content="At airport terminal, 8 minute walk from current position "
-                f"to gate {new_gate}.",
-            ),
-            Signal(
-                source=Source.SCREEN,
-                age_s=45,
-                content="Reading a news article, not the airline app.",
+            (
+                f"You are standing at {a}. The pass in your wallet still lists {b}.",
+                f"You are standing at {b}. The pass in your wallet still lists {a}.",
             ),
         ]
-        return _mk(
-            f"travel-pos-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=True,
-            value=3,
-            intents=["gate_change_alert"],
-            rationale=(
-                "Gate moved, the user has not opened the airline app, and there is "
-                "a walk involved with a hard deadline. Missing this has a real cost."
-            ),
-            slices=["time_critical"],
-            window_s=600,
+        # Positive: you're at the OLD gate. Near-miss: you're at the NEW gate.
+        # Same tokens, swapped positions.
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(source=Source.LOCATION, age_s=60, content=pos_text),
+            Signal(source=Source.LOCATION, age_s=60, content=near_text),
         )
 
-    def near_miss(self, rng: random.Random, idx: int) -> Item:
-        gate = rng.choice(["B12", "C4", "A21", "D7"])
-        new_gate = rng.choice(["B31", "C19", "A2", "D22"])
-        state = UserState(
-            activity=Activity.COMMUTING,
-            device="phone",
-            last_interaction_s=rng.randint(5, 40),
-            local_hour=rng.randint(7, 20),
-        )
-        signals = [
-            Signal(
-                source=Source.EMAIL,
-                age_s=120,
-                content=f"Your gate has changed from {gate} to {new_gate}. "
-                "Boarding begins in 35 minutes.",
-                meta={"sender": "airline"},
-            ),
-            Signal(
-                source=Source.LOCATION,
-                age_s=60,
-                content=f"At airport terminal, already seated at gate {new_gate}.",
-            ),
-            Signal(
-                source=Source.SCREEN,
-                age_s=10,
-                content="Airline app open, viewing the updated boarding pass.",
-            ),
-        ]
-        return _mk(
-            f"travel-near-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=False,
-            value=0,
-            intents=[],
-            rationale=(
-                "Identical disruption, but the user is already at the new gate with "
-                "the updated pass on screen. Telling them is pure noise."
-            ),
-            slices=["near_miss", "already_handled"],
+    def why(self):
+        return (
+            "The user is at the old gate with a stale pass. Missing this costs them "
+            "the flight.",
+            "The user is already at the new gate with the updated pass. Saying "
+            "anything is pure noise.",
         )
 
 
 class DeadlineScenario(Scenario):
-    """Work items that block other people. Interrupting focused work is expensive,
-    so the bar for speaking is high even when the item is real."""
+    """Production incident. The decider is who holds the page -- primary and
+    secondary swap, so both names appear on both sides."""
 
     family = "deadline"
+    intent = "incident_page"
+    positive_value = 3
+    window_s = 300
+    positive_slices = ["time_critical", "breaks_focus"]
+    near_slices = ["not_yours", "breaks_focus"]
 
-    def positive(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
+    def state(self, rng):
+        return UserState(
             activity=Activity.FOCUSED_WORK,
             device="laptop",
             last_interaction_s=rng.randint(0, 20),
             local_hour=rng.randint(9, 17),
         )
-        signals = [
-            Signal(
-                source=Source.APP_EVENT,
-                age_s=90,
-                content="Production deploy for release 4.2 failed health checks and "
-                "auto-rolled back. You are the listed on-call owner.",
-            ),
-            Signal(
-                source=Source.MESSAGE,
-                age_s=60,
-                content="#incident: 'anyone seeing the 4.2 rollback? paging on-call'",
-            ),
+
+    def body(self, rng):
+        rel = rng.choice(["4.2", "5.0", "3.7", "6.1"])
+        phrasing = rng.choice(
+            [
+                f"Deploy {rel} failed health checks and auto-rolled back.",
+                f"Release {rel} rolled back automatically after failing health checks.",
+                f"Health checks failed on {rel}; the deploy was rolled back.",
+            ]
+        )
+        return [
+            Signal(source=Source.APP_EVENT, age_s=90, content=phrasing),
             Signal(
                 source=Source.SCREEN,
                 age_s=5,
                 content="Writing a design doc in a text editor.",
             ),
         ]
-        return _mk(
-            f"deadline-pos-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=True,
-            value=3,
-            intents=["incident_page"],
-            rationale=(
-                "The user is the named on-call owner of a live production incident "
-                "and others are blocked. This clears the bar for breaking focus."
-            ),
-            slices=["time_critical", "breaks_focus"],
-            window_s=300,
-        )
 
-    def near_miss(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
-            activity=Activity.FOCUSED_WORK,
-            device="laptop",
-            last_interaction_s=rng.randint(0, 20),
-            local_hour=rng.randint(9, 17),
-        )
-        signals = [
-            Signal(
-                source=Source.APP_EVENT,
-                age_s=90,
-                content="Production deploy for release 4.2 failed health checks and "
-                "auto-rolled back. On-call owner is Priya Raman.",
+    def deciders(self, rng):
+        variants = [
+            (
+                "On-call rotation — primary: you, secondary: Priya Raman.",
+                "On-call rotation — primary: Priya Raman, secondary: you.",
             ),
-            Signal(
-                source=Source.MESSAGE,
-                age_s=45,
-                content="#incident: 'priya is on it, rollback confirmed clean'",
-            ),
-            Signal(
-                source=Source.SCREEN,
-                age_s=5,
-                content="Writing a design doc in a text editor.",
+            (
+                "Paging the primary: you. Backup is Priya Raman.",
+                "Paging the primary: Priya Raman. Backup is you.",
             ),
         ]
-        return _mk(
-            f"deadline-near-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=False,
-            value=0,
-            intents=[],
-            rationale=(
-                "Same incident vocabulary and same urgency cues, but it is someone "
-                "else's page and already resolved. Breaking focus here is a pure loss."
-            ),
-            slices=["near_miss", "not_yours", "breaks_focus"],
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(source=Source.MESSAGE, age_s=60, content=pos_text),
+            Signal(source=Source.MESSAGE, age_s=60, content=near_text),
+        )
+
+    def why(self):
+        return (
+            "The user holds the page for a live production incident and others are "
+            "blocked. This clears the bar for breaking focus.",
+            "Identical incident, but someone else holds the page. Breaking focus "
+            "here is a pure loss.",
         )
 
 
 class CommerceScenario(Scenario):
-    """Price and return-window cues. Low stakes, which is exactly why an assistant
-    should not spend an interruption on them during expensive moments."""
+    """Return window. The decider is which item is still boxed -- the two objects
+    swap roles, keeping the token multiset intact."""
 
     family = "commerce"
+    intent = "return_window_reminder"
+    positive_value = 2
+    window_s = 3600
+    positive_slices = ["low_stakes"]
+    near_slices = ["already_handled", "low_stakes"]
 
-    def positive(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
+    def state(self, rng):
+        return UserState(
             activity=Activity.IDLE,
             device="phone",
             last_interaction_s=rng.randint(2, 60),
             local_hour=rng.randint(10, 21),
         )
-        signals = [
-            Signal(
-                source=Source.APP_EVENT,
-                age_s=300,
-                content="Return window for the standing desk you ordered closes "
-                "tomorrow. Item is still unopened in the hallway.",
+
+    def body(self, rng):
+        hrs = rng.choice([12, 14, 18, 20])
+        phrasing = rng.choice(
+            [
+                f"Return window for the standing desk closes in {hrs} hours.",
+                f"You have {hrs} hours left to return the standing desk.",
+                f"The standing desk return period ends in {hrs} hours.",
+            ]
+        )
+        return [Signal(source=Source.APP_EVENT, age_s=300, content=phrasing)]
+
+    def deciders(self, rng):
+        variants = [
+            (
+                "The desk is unopened in the hallway; the replacement is already "
+                "set up in the office.",
+                "The replacement is unopened in the hallway; the desk is already "
+                "set up in the office.",
             ),
-            Signal(
-                source=Source.MESSAGE,
-                age_s=86400,
-                content="You told a friend: 'honestly might send the desk back'",
+            (
+                "Still boxed: the desk. Already assembled: the replacement.",
+                "Still boxed: the replacement. Already assembled: the desk.",
             ),
         ]
-        return _mk(
-            f"commerce-pos-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=True,
-            value=2,
-            intents=["return_window_reminder"],
-            rationale=(
-                "A deadline the user cannot recover from once passed, they signalled "
-                "intent to return, and they are idle. Cheap moment, real value."
-            ),
-            slices=["low_stakes"],
-            window_s=3600,
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(source=Source.SENSOR, age_s=600, content=pos_text),
+            Signal(source=Source.SENSOR, age_s=600, content=near_text),
         )
 
-    def near_miss(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
-            activity=Activity.MEETING,
-            device="laptop",
-            last_interaction_s=rng.randint(0, 30),
-            local_hour=rng.randint(10, 17),
-        )
-        signals = [
-            Signal(
-                source=Source.APP_EVENT,
-                age_s=300,
-                content="Price dropped 12% on the standing desk you viewed last week.",
-            ),
-            Signal(
-                source=Source.CALENDAR,
-                age_s=0,
-                content="In progress: 'Quarterly review with leadership' (45 min).",
-            ),
-        ]
-        return _mk(
-            f"commerce-near-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=False,
-            value=0,
-            intents=[],
-            rationale=(
-                "A genuine and mildly useful fact, delivered mid-meeting. The value "
-                "of a price drop never justifies this interruption cost."
-            ),
-            slices=["near_miss", "low_stakes", "wrong_moment"],
-        )
-
-
-class QuietHoursScenario(Scenario):
-    """The hardest slice: genuinely useful information arriving while the user is
-    asleep or driving. Value and timing point in opposite directions."""
-
-    family = "quiet_hours"
-
-    def positive(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
-            activity=Activity.SLEEPING,
-            dnd=True,
-            device="phone",
-            last_interaction_s=rng.randint(7200, 20000),
-            local_hour=rng.choice([2, 3, 4]),
-        )
-        signals = [
-            Signal(
-                source=Source.MESSAGE,
-                age_s=60,
-                content="Mom: 'Dad's in the ER at Cedars, he's stable but come when "
-                "you can.' Third message in 10 minutes.",
-                meta={"contact": "family", "priority": "starred"},
-            ),
-            Signal(source=Source.SENSOR, age_s=30, content="Phone face down, charging."),
-        ]
-        return _mk(
-            f"quiet-pos-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=True,
-            value=3,
-            intents=["family_emergency"],
-            rationale=(
-                "DND exists to be overridden by exactly this. A starred contact, a "
-                "medical emergency, and repeat attempts to reach them."
-            ),
-            slices=["quiet_hours", "dnd_override"],
-            window_s=900,
-        )
-
-    def near_miss(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
-            activity=Activity.SLEEPING,
-            dnd=True,
-            device="phone",
-            last_interaction_s=rng.randint(7200, 20000),
-            local_hour=rng.choice([2, 3, 4]),
-        )
-        signals = [
-            Signal(
-                source=Source.MESSAGE,
-                age_s=60,
-                content="Mom: 'Are you awake? Call me when you get a chance.' "
-                "Third message in 10 minutes.",
-                meta={"contact": "family", "priority": "starred"},
-            ),
-            Signal(source=Source.SENSOR, age_s=30, content="Phone face down, charging."),
-        ]
-        return _mk(
-            f"quiet-near-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=False,
-            value=0,
-            intents=[],
-            rationale=(
-                "Same contact, same repetition, same hour -- but nothing stated is "
-                "urgent. Repetition alone must not be enough to break DND at 3am."
-            ),
-            slices=["near_miss", "quiet_hours", "dnd_override"],
-        )
-
-
-class DrivingScenario(Scenario):
-    """Safety-protected state. Even correct cues must be shaped to it, and most
-    things that would be fine on a laptop are violations here."""
-
-    family = "driving"
-
-    def positive(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
-            activity=Activity.DRIVING,
-            device="phone",
-            last_interaction_s=rng.randint(600, 3000),
-            local_hour=rng.randint(7, 19),
-        )
-        signals = [
-            Signal(
-                source=Source.LOCATION,
-                age_s=30,
-                content="Route to the airport now shows a 40 minute delay; an "
-                "alternate route saves 25 minutes if taken at the next exit.",
-            ),
-            Signal(
-                source=Source.CALENDAR,
-                age_s=0,
-                content="Flight departs in 2 hours 10 minutes.",
-            ),
-        ]
-        return _mk(
-            f"driving-pos-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=True,
-            value=3,
-            intents=["reroute_alert"],
-            rationale=(
-                "Actionable only in a narrow window, safety-relevant to deliver as "
-                "audio, and the cost of missing it is a missed flight."
-            ),
-            slices=["protected_state", "time_critical"],
-            window_s=120,
-        )
-
-    def near_miss(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
-            activity=Activity.DRIVING,
-            device="phone",
-            last_interaction_s=rng.randint(600, 3000),
-            local_hour=rng.randint(7, 19),
-        )
-        signals = [
-            Signal(
-                source=Source.LOCATION,
-                age_s=30,
-                content="Route to the airport is clear; you are 25 minutes ahead of "
-                "the usual time for this trip.",
-            ),
-            Signal(
-                source=Source.EMAIL,
-                age_s=120,
-                content="Your flight's inflight menu is now available to pre-order.",
-            ),
-        ]
-        return _mk(
-            f"driving-near-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=False,
-            value=0,
-            intents=[],
-            rationale=(
-                "Travel-shaped and flight-related, but nothing is wrong and nothing "
-                "is actionable from the driver's seat."
-            ),
-            slices=["near_miss", "protected_state"],
+    def why(self):
+        return (
+            "The desk is still returnable and the user has switched to the "
+            "replacement. The deadline is unrecoverable once passed.",
+            "The desk is the one they kept and assembled; the return no longer "
+            "applies to it. Nothing to act on.",
         )
 
 
 class MeetingPrepScenario(Scenario):
-    """Preparation cues, where the whole judgment is about lead time."""
+    """Preparation cue. The decider is whether the meeting is ahead or behind --
+    the same minute count appears on both sides."""
 
     family = "meeting_prep"
+    intent = "meeting_prep"
+    positive_value = 2
+    window_s = 600
+    positive_slices = ["lead_time"]
+    near_slices = ["too_late", "lead_time"]
 
-    def positive(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
+    def state(self, rng):
+        return UserState(
             activity=Activity.IDLE,
             device="laptop",
             last_interaction_s=rng.randint(5, 90),
             local_hour=rng.randint(9, 16),
         )
-        signals = [
-            Signal(
-                source=Source.CALENDAR,
-                age_s=0,
-                content="'Vendor contract review' starts in 12 minutes. You are the "
-                "only required attendee besides the vendor.",
+
+    def body(self, rng):
+        phrasing = rng.choice(
+            [
+                "Vendor sent a revised contract 90 minutes ago with changed payment "
+                "terms. Unopened.",
+                "An unopened revision of the vendor contract arrived 90 minutes ago; "
+                "payment terms changed.",
+            ]
+        )
+        return [Signal(source=Source.EMAIL, age_s=5400, content=phrasing)]
+
+    def deciders(self, rng):
+        m = rng.choice([8, 10, 12, 15])
+        # Two meetings, so "begins in" and "began ago" each appear on both sides and
+        # only their subjects swap. Without the second meeting the tense alone gave
+        # the answer away and this family probed at 100%.
+        variants = [
+            (
+                f"Contract review begins in {m} minutes; the daily standup began "
+                f"{m} minutes ago.",
+                f"The daily standup begins in {m} minutes; contract review began "
+                f"{m} minutes ago.",
             ),
-            Signal(
-                source=Source.EMAIL,
-                age_s=5400,
-                content="Vendor sent a revised contract 90 minutes ago with changed "
-                "payment terms. Unopened.",
+            (
+                f"Calendar: contract review starts in {m} minutes, daily standup "
+                f"started {m} minutes back.",
+                f"Calendar: daily standup starts in {m} minutes, contract review "
+                f"started {m} minutes back.",
             ),
         ]
-        return _mk(
-            f"prep-pos-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=True,
-            value=2,
-            intents=["meeting_prep"],
-            rationale=(
-                "There is unread material that changes the meeting, enough time to "
-                "read it, and the user is idle. Lead time is the whole point."
-            ),
-            slices=["lead_time"],
-            window_s=600,
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(source=Source.CALENDAR, age_s=0, content=pos_text),
+            Signal(source=Source.CALENDAR, age_s=0, content=near_text),
         )
 
-    def near_miss(self, rng: random.Random, idx: int) -> Item:
-        state = UserState(
-            activity=Activity.IDLE,
-            device="laptop",
-            last_interaction_s=rng.randint(5, 90),
-            local_hour=rng.randint(9, 16),
+    def why(self):
+        return (
+            "There is unread material that changes the meeting and enough time to "
+            "read it. Lead time is the whole point.",
+            "Same unread document, but the meeting is already underway. A prep cue "
+            "after the fact only tells the user they failed.",
         )
-        signals = [
+
+
+class DrivingScenario(Scenario):
+    """Safety-protected state. The decider is which route is congested -- current
+    and alternate swap."""
+
+    family = "driving"
+    intent = "reroute_alert"
+    positive_value = 3
+    window_s = 120
+    positive_slices = ["protected_state", "time_critical"]
+    near_slices = ["protected_state"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.DRIVING,
+            device="phone",
+            last_interaction_s=rng.randint(600, 3000),
+            local_hour=rng.randint(7, 19),
+        )
+
+    def body(self, rng):
+        h = rng.choice([2, 3])
+        return [
             Signal(
                 source=Source.CALENDAR,
                 age_s=0,
-                content="'Vendor contract review' started 4 minutes ago. You are the "
-                "only required attendee besides the vendor.",
+                content=f"Flight departs in {h} hours.",
+            )
+        ]
+
+    def deciders(self, rng):
+        d = rng.choice([25, 30, 40])
+        variants = [
+            (
+                f"Your route is backed up {d} minutes; the alternate at the next "
+                "exit is clear.",
+                f"The alternate at the next exit is backed up {d} minutes; your "
+                "route is clear.",
             ),
-            Signal(
-                source=Source.EMAIL,
-                age_s=5400,
-                content="Vendor sent a revised contract 90 minutes ago with changed "
-                "payment terms. Unopened.",
+            (
+                f"Congestion is on your route (+{d} min); the next exit avoids it.",
+                f"Congestion is on the next exit (+{d} min); your route avoids it.",
             ),
         ]
-        return _mk(
-            f"prep-near-{idx:04d}",
-            self.family,
-            signals,
-            state,
-            should=False,
-            value=0,
-            intents=[],
-            rationale=(
-                "Same unread document, but the meeting is already underway. A prep "
-                "cue delivered after the fact only tells the user they failed."
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(source=Source.LOCATION, age_s=30, content=pos_text),
+            Signal(source=Source.LOCATION, age_s=30, content=near_text),
+        )
+
+    def why(self):
+        return (
+            "Actionable only within a narrow window, and the cost of missing it is "
+            "a missed flight.",
+            "The user is already on the clear route. Nothing is wrong and nothing "
+            "is actionable from the driver's seat.",
+        )
+
+
+class QuietHoursScenario(Scenario):
+    """The hardest family, and the one permutation cannot fully rescue.
+
+    A medical emergency is not a rearrangement of a routine check-in, so some
+    lexical difference between the two sides is irreducible here. The decider is
+    kept as short and as structurally parallel as the meaning allows, and the
+    residual leakage for this family is reported by ``tactbench audit`` rather
+    than hidden.
+    """
+
+    family = "quiet_hours"
+    intent = "family_emergency"
+    positive_value = 3
+    window_s = 900
+    positive_slices = ["quiet_hours", "dnd_override"]
+    near_slices = ["quiet_hours", "dnd_override"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.SLEEPING,
+            dnd=True,
+            device="phone",
+            last_interaction_s=rng.randint(7200, 20000),
+            local_hour=rng.choice([2, 3, 4]),
+        )
+
+    def body(self, rng):
+        n = rng.choice(["Third", "Fourth", "Second"])
+        return [
+            Signal(
+                source=Source.MESSAGE,
+                age_s=60,
+                content=f"{n} message from Mom in ten minutes.",
+                meta={"contact": "family", "priority": "starred"},
             ),
-            slices=["near_miss", "lead_time", "too_late"],
+            Signal(source=Source.SENSOR, age_s=30, content="Phone face down, charging."),
+        ]
+
+    def deciders(self, rng):
+        variants = [
+            (
+                "Mom: 'At the hospital with Dad — they are admitting him tonight.'",
+                "Mom: 'At the hospital with Dad — they are discharging him tonight.'",
+            ),
+            (
+                "Mom: 'Dad is being admitted, can you come.'",
+                "Mom: 'Dad is being discharged, no need to come.'",
+            ),
+        ]
+        pos_text, near_text = variants[rng.randrange(len(variants))]
+        return (
+            Signal(
+                source=Source.MESSAGE,
+                age_s=45,
+                content=pos_text,
+                meta={"contact": "family", "priority": "starred"},
+            ),
+            Signal(
+                source=Source.MESSAGE,
+                age_s=45,
+                content=near_text,
+                meta={"contact": "family", "priority": "starred"},
+            ),
+        )
+
+    def why(self):
+        return (
+            "DND exists to be overridden by exactly this: a starred contact, an "
+            "admission, and repeat attempts to reach them.",
+            "Same contact, same repetition, same hour -- but the news is that "
+            "nothing is wrong. Repetition alone must not break DND at 3am.",
         )
 
 
@@ -578,7 +531,8 @@ def generate(n_pairs_per_scenario: int = 20, seed: int = 20260726) -> list[Item]
     items: list[Item] = []
     for scenario in SCENARIOS:
         for i in range(n_pairs_per_scenario):
-            items.append(scenario.positive(rng, i))
-            items.append(scenario.near_miss(rng, i))
+            positive, near = scenario.pair(rng, i)
+            items.append(positive)
+            items.append(near)
     rng.shuffle(items)
     return items

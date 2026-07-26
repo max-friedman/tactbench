@@ -28,24 +28,51 @@ that warrant speech look different on the surface from the ones that don't. Any
 policy could match keywords — *delayed*, *expires*, *overdue*, *failed* — and post
 a strong score without having judged anything at all.
 
-So every scenario emits a **matched pair**. The positive and the near-miss share
-signal sources, vocabulary, scenario family, and usually user state. They differ
-only in the fact that actually settles the question:
+### Pairing alone was not enough
 
-| family | positive | near-miss | what differs |
-|---|---|---|---|
-| `travel` | gate changed, user reading news, 8 min walk away | gate changed, user already seated at the new gate with updated pass on screen | already handled |
-| `deadline` | prod deploy failed, **you** are on-call, others blocked | prod deploy failed, **Priya** is on-call and has confirmed it clean | not yours, resolved |
-| `commerce` | return window closes tomorrow, user idle, signalled intent to return | price dropped 12%, user is mid-quarterly-review | value vs. moment cost |
-| `quiet_hours` | 3am, starred contact, *"Dad's in the ER, he's stable"* | 3am, starred contact, *"Are you awake? Call me sometime"* | severity |
-| `driving` | route delayed 40 min, alternate saves 25, flight in 2h | route clear, inflight menu available to pre-order | actionability |
-| `meeting_prep` | contract review in 12 min, revised terms unread | contract review started 4 min ago, revised terms unread | lead time |
+v1 emitted matched pairs and claimed they prevented keyword matching. **The claim
+was false and the audit proved it:** a bag-of-words classifier that never saw user
+state separated the two sides at **93.5%**. The pairs shared a *family*, but each
+side was written as different sentences, so tokens like `hallway`, `inflight`, and
+`closes` appeared on exactly one of them and handed over the answer.
 
-The `quiet_hours` pair is the sharpest. Same contact, same repetition, same hour,
-same DND state — and opposite correct answers. Repetition alone must never be
-enough to break DND at 3am, but a medical emergency from a starred contact must
-get through. A policy that keys on "starred contact messaged repeatedly" gets one
-of the two right and pays full price for the other.
+Structural pairing is not the same as lexical pairing. The fix is a construction
+rule:
+
+> **Both sides share a byte-identical body and an identical user state. Only one
+> decider signal differs, and it differs by permuting which noun plays which role
+> — never by rewriting the sentence.**
+
+| family | shared body | decider (positive → near-miss) |
+|---|---|---|
+| `travel` | gate moved A → B, boarding in *n* min | pass reads **B**, you're seated at **A** → pass reads **A**, you're seated at **B** |
+| `deadline` | deploy failed, auto-rolled back | primary: **you**, backup: **Priya** → primary: **Priya**, backup: **you** |
+| `commerce` | return window closes in *n* hours | **desk** boxed, **replacement** assembled → **replacement** boxed, **desk** assembled |
+| `meeting_prep` | revised contract unread, 90 min old | **review** begins in *n*, **standup** began *n* ago → **standup** begins in *n*, **review** began *n* ago |
+| `driving` | flight departs in *n* hours | **your route** backed up, **alternate** clear → **alternate** backed up, **your route** clear |
+| `quiet_hours` | *n*th message from Mom in ten minutes | Dad is being **admitted** → Dad is being **discharged** |
+
+The first five are token permutations: both sides contain the same words, arranged
+differently. Each probes at the 50% chance floor.
+
+`quiet_hours` is the exception and always will be. A medical emergency is not a
+rearrangement of a routine check-in, so severity there is irreducibly lexical and
+the family probes at **91.4%**. It is kept because the judgment it poses is real —
+DND exists to be overridden by exactly this, and repetition alone must never be
+enough at 3am — but any system scoring well on that family alone may just be
+reading `admitting` versus `discharging`.
+
+### User state is held constant across a pair
+
+If the positive were set during deep work and its near-miss while idle, state would
+give the answer away as surely as vocabulary did. So both sides of a pair carry the
+identical `UserState`.
+
+This has a consequence worth stating plainly: **state carries no information about
+`should_surface`.** It determines the *cost* of being wrong, not the answer. A
+policy that reasons only about activity and DND can avoid hard violations but
+cannot do better than chance on whether to speak — which is why every non-skyline
+baseline now scores worse than silence.
 
 ## How labels are assigned
 
@@ -100,9 +127,11 @@ enforces the invariants that make the benchmark meaningful:
 
 ## Known weaknesses
 
-- **Low phrasing diversity.** Templates vary entities (gate numbers, hours) but not
-  sentence structure. A determined string matcher could still overfit despite the
-  paired design. Paraphrase expansion is planned.
+- **Six families is six degrees of freedom.** Phrasing is no longer the weak point —
+  the audit confirms word statistics don't carry the answer — but the *scenarios*
+  are still a small hand-authored set. Item count overstates diversity. More
+  families is the highest-value expansion.
+- **`quiet_hours` leaks at 91.4%** and structurally cannot be fixed by permutation.
 - **Independent moments.** Real interruption cost depends on how recently the user
   was last interrupted. Modeling fatigue requires session-level items.
 - **Western, knowledge-worker, English-only.** The scenarios assume a particular

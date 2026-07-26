@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import pytest
 
+from tactbench.audit import lexical_leakage
 from tactbench.dataset.generate import generate
 from tactbench.metrics import score, score_item
 from tactbench.policies.builtin import AlwaysPolicy, HeuristicPolicy, NeverPolicy
+from tactbench.policies.skyline import SkylinePolicy
 from tactbench.runner import evaluate, run_policy, silence_ics
 from tactbench.schema import (
     Activity,
@@ -144,13 +146,35 @@ class TestBaselines:
         card = evaluate(NeverPolicy(), items)
         assert card.ics_normalized == pytest.approx(0.0)
 
-    def test_heuristic_beats_silence(self):
-        """If the trivial rule set cannot beat saying nothing, the dataset has no
-        headroom and the benchmark measures nothing."""
+    def test_task_is_solvable(self):
+        """The benchmark must not be degenerate.
+
+        Once lexical shortcuts were removed, every reference baseline scored worse
+        than silence -- which invites the objection that "beat silence" is an
+        impossible bar. The skyline answers it: perfect comprehension of the same
+        text, with no access to labels, clears silence by a wide margin. If this
+        ever fails, the dataset has become unsolvable rather than merely hard.
+        """
         items = generate(n_pairs_per_scenario=5)
         ref = silence_ics(items)
-        card = evaluate(HeuristicPolicy(), items, reference=ref)
-        assert card.ics < ref, "heuristic should clear the silence bar"
+        card = evaluate(SkylinePolicy(), items, reference=ref)
+        assert card.ics < ref, "skyline must clear the silence bar"
+        assert card.hard_violations == 0
+
+    def test_skyline_labels_are_self_consistent(self):
+        """The skyline resolves each family's deciding relation from text alone. If
+        it disagrees with a gold label, the dataset contradicts its own stated
+        semantics -- which is how an inverted travel pair was caught."""
+        items = generate(n_pairs_per_scenario=5)
+        card = evaluate(SkylinePolicy(), items)
+        assert card.counts["fp"] == 0 and card.counts["fn"] == 0
+
+    def test_lexical_heuristic_is_near_chance(self):
+        """A rules baseline with no comprehension should get no traction. Scoring
+        well here would mean the shortcuts are back."""
+        items = generate(n_pairs_per_scenario=10)
+        card = evaluate(HeuristicPolicy(), items)
+        assert card.precision_at_interrupt == pytest.approx(0.5, abs=0.15)
 
 
 class TestHeuristicIsHonest:
@@ -178,6 +202,50 @@ class TestHeuristicIsHonest:
         items = generate(n_pairs_per_scenario=10)
         card = evaluate(HeuristicPolicy(), items)
         assert card.ics > 0, "heuristic scores perfectly; dataset has no headroom"
+
+
+class TestShortcutResistance:
+    """The benchmark's central claim is that surface patterns cannot answer it.
+    That claim is only worth its evidence, so it is measured, not asserted.
+
+    v1 failed this badly: a bag-of-words probe that never saw user state hit 93.5%,
+    because each scenario had one fixed phrasing per side and tokens like "hallway"
+    appeared on exactly one of them. The pair construction was rebuilt around role
+    permutation, which brought five of six families to the chance floor.
+    """
+
+    def test_lexical_leakage_stays_near_chance(self):
+        items = generate(n_pairs_per_scenario=10)
+        report = lexical_leakage(items)
+        assert report.accuracy < 0.70, (
+            f"bag-of-words probe reaches {report.accuracy:.1%} without seeing user "
+            "state; the pairing has stopped forcing a judgment"
+        )
+
+    def test_permutable_families_sit_at_the_chance_floor(self):
+        """Five families are built as token permutations and must probe at chance.
+
+        quiet_hours is excluded on purpose: a medical emergency is not a
+        rearrangement of a routine check-in, so its residual leakage is
+        irreducible and is reported rather than asserted away.
+        """
+        items = generate(n_pairs_per_scenario=10)
+        for family in ("travel", "deadline", "commerce", "driving", "meeting_prep"):
+            subset = [i for i in items if i.moment.family == family]
+            accuracy = lexical_leakage(subset).accuracy
+            assert accuracy < 0.60, f"{family} leaks at {accuracy:.1%}"
+
+    def test_pairs_share_an_identical_user_state(self):
+        """If state differed across a pair it would give the answer away as surely
+        as vocabulary did. State determines the *cost* of speaking, not whether."""
+        items = generate(n_pairs_per_scenario=5)
+        by_pair: dict[str, list] = {}
+        for item in items:
+            parts = item.moment.id.split("-")
+            by_pair.setdefault(f"{parts[0]}-{parts[-1]}", []).append(item)
+        for key, pair in by_pair.items():
+            if len(pair) == 2:
+                assert pair[0].moment.user_state == pair[1].moment.user_state, key
 
 
 class TestDataset:
