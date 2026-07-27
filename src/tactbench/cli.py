@@ -98,6 +98,14 @@ def evaluate_cmd(
         help="Quiet:loud ratio of the deployment. 1 = the balanced split; 100 = a "
         "realistic production prior, where false positives dominate.",
     ),
+    by_family: bool = typer.Option(
+        False,
+        "--by-family",
+        help="Break cost down per scenario family. Read this rather than trying to "
+        "collapse a score into one 'comprehension' number -- ICS weights by "
+        "consequence, so a single figure conflates how much a system understands "
+        "with which parts it understands.",
+    ),
 ) -> None:
     """Score one or all built-in policies against a split."""
     items = load(version, split)
@@ -118,6 +126,23 @@ def evaluate_cmd(
             f"[dim]Weighted at {base_rate:g}:1 quiet:loud — every stay-quiet moment "
             f"stands in for {base_rate:g} real ones, so precision is what it would "
             "be in production.[/dim]"
+        )
+
+    if by_family:
+        families = sorted({i.moment.family for i in items})
+        t = Table(title="Mean cost per family (lower is better)", title_style="bold")
+        t.add_column("family", style="bold")
+        for c in cards:
+            t.add_column(c.policy, justify="right")
+        for fam in families:
+            t.add_row(fam, *[f"{c.by_family.get(fam, 0.0):.2f}" for c in cards])
+        console.print()
+        console.print(t)
+        console.print(
+            "[dim]Where a system fails matters as much as how often. A policy strong "
+            "on cheap families and weak on quiet_hours scores very differently from "
+            "its mirror image at identical overall comprehension — see "
+            "experiments/implied_comprehension_probe.py.[/dim]"
         )
 
 

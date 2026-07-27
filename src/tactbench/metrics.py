@@ -78,6 +78,11 @@ class Scorecard:
     surfaced: int
     counts: dict[str, int] = field(default_factory=dict)
     by_slice: dict[str, float] = field(default_factory=dict)
+    #: Mean cost per scenario family. The honest alternative to reading a single
+    #: ICS back as a "comprehension fraction" -- ICS weights by consequence, so
+    #: one number conflates *how much* a system understands with *which parts*.
+    #: See experiments/implied_comprehension_probe.py.
+    by_family: dict[str, float] = field(default_factory=dict)
     outcomes: list[Outcome] = field(default_factory=list)
 
     def beats_silence(self, silence_ics: float) -> bool:
@@ -250,7 +255,13 @@ def score(
         ics_norm = 100.0 * (1.0 - total_cost / reference_ics)
 
     by_slice: dict[str, float] = {}
+    by_family: dict[str, float] = {}
     cost_by_id = {o.moment_id: o.cost for o in outcomes}
+    family_totals: dict[str, list[float]] = {}
+    for item in items:
+        family_totals.setdefault(item.moment.family, []).append(cost_by_id[item.moment.id])
+    for fam, costs in family_totals.items():
+        by_family[fam] = sum(costs) / len(costs)
     slice_totals: dict[str, list[float]] = {}
     for item in items:
         for s in item.moment.slices:
@@ -272,5 +283,6 @@ def score(
         surfaced=surfaced,
         counts=counts,
         by_slice=by_slice,
+        by_family=by_family,
         outcomes=outcomes,
     )

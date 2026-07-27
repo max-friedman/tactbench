@@ -392,3 +392,48 @@ class TestMetricDiscrimination:
     def test_partial_rejects_a_fraction_outside_the_unit_interval(self):
         with pytest.raises(ValueError):
             PartialSkylinePolicy(1.5)
+
+
+class TestPerFamilyReporting:
+    """Where a system fails matters as much as how often.
+
+    Round 8 measured whether an ICS score can be read back as a "comprehension
+    fraction" using round 7's curve. It cannot: three policies understanding the
+    same share of moments (true fractions within 0.015 of each other) landed at
+    implied fractions spanning 0.30, purely from *which* families they understood.
+
+    ICS weights by consequence, which is correct -- a system that handles the
+    expensive families really is better. But that makes a single number a
+    conflation of how much is understood with which parts, so the per-family
+    breakdown is the honest reporting unit.
+
+    See experiments/implied_comprehension_probe.py.
+    """
+
+    def test_every_family_is_reported(self):
+        items = generate(n_pairs_per_scenario=5)
+        card = evaluate(HeuristicPolicy(), items)
+        assert set(card.by_family) == {i.moment.family for i in items}
+
+    def test_a_perfect_policy_costs_nothing_in_any_family(self):
+        items = generate(n_pairs_per_scenario=5)
+        card = evaluate(SkylinePolicy(), items)
+        assert all(v == 0.0 for v in card.by_family.values())
+
+    def test_family_costs_reflect_the_asymmetry(self):
+        """quiet_hours pairs sleep with DND, so speaking wrongly there costs 10x
+        what it costs in a low-stakes family. A policy that always speaks must
+        show that, or the breakdown is not carrying consequence."""
+        items = generate(n_pairs_per_scenario=5)
+        card = evaluate(AlwaysPolicy(), items)
+        assert card.by_family["quiet_hours"] > card.by_family["commerce"]
+
+    def test_breakdown_distinguishes_policies_the_headline_ranks_adjacently(self):
+        """The point of the breakdown: two policies can sit near each other on ICS
+        while failing in completely different places."""
+        items = generate(n_pairs_per_scenario=10)
+        heuristic = evaluate(HeuristicPolicy(), items).by_family
+        always = evaluate(AlwaysPolicy(), items).by_family
+        assert any(abs(heuristic[f] - always[f]) > 1.0 for f in heuristic), (
+            "per-family costs are indistinguishable between very different policies"
+        )
