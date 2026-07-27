@@ -13,22 +13,27 @@ TactBench; it does not restate the method.
 
 Read before your first round:
 
-- **[The protocol](https://github.com/max-friedman/agentic-coding-loop/blob/main/docs/PROTOCOL.md)**
-  — the seven steps, and what "done" means.
+- **[`LOOP.md`](https://github.com/max-friedman/agentic-coding-loop/blob/main/LOOP.md)**
+  — self-contained: round steps, hard rules, ending states, the audit round, and
+  continuous operation. Nothing else needs fetching. Raw URL for an agent:
+  `https://raw.githubusercontent.com/max-friedman/agentic-coding-loop/main/LOOP.md`
 - **[The principles](https://github.com/max-friedman/agentic-coding-loop/blob/main/docs/PRINCIPLES.md)**
   — the rules the loop runs on. Principles 3 and 4 are the ones this project
   breaks first if you're not careful: *build the check before the thing*, and
   *invariants may not be weakened*.
-- **[The round prompt](https://github.com/max-friedman/agentic-coding-loop/blob/main/prompts/ROUND.md)**
-  — paste it verbatim into a fresh session to start a round.
 
-**Improvements to the method go upstream, not here.** If a round teaches something
-durable about running an agentic loop — as opposed to something about proactive
-assistance — it belongs in a PR to `agentic-coding-loop`, not buried in this
-repo's docs where no other project will ever find it. Note the candidate in
-`LOOP_STATE.md` under *Method findings* so it isn't lost, then send it up. A
-lesson recorded only in the project that discovered it is a lesson that will be
-re-learned.
+**Improvements to the method go upstream — as an issue, never as a pull request.**
+If a round teaches something durable about running an agentic loop — as opposed to
+something about proactive assistance — file it with the **Loop proposal** form on
+`agentic-coding-loop`, or run its `loop-feedback` skill. A maintainer writes the
+change; proposals themselves are inert. Do **not** open a PR editing the loop's
+docs, and do **not** patch the loop's instructions locally to compensate — a local
+fork is invisible to every other project running the loop and is overwritten on
+the next update.
+
+Note the candidate in `LOOP_STATE.md` under *Method findings* so it isn't lost,
+then send it up. A lesson recorded only in the project that discovered it is a
+lesson every other project will re-learn.
 
 Read the rest of this file before changing anything. TactBench is a benchmark, and benchmarks fail
 in a specific way: they quietly stop measuring what they claim to measure while
