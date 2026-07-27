@@ -7,8 +7,8 @@ Context is lost between rounds; this file is not.
 
 ## Current status
 
-- **Round:** 4 complete
-- **Gate:** green — 60 tests, ruff clean
+- **Round:** 5 complete
+- **Gate:** green — 60 tests, ruff clean, **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (266 dev / 94 test), 9 families × 20 pairs
 - **Headline:** silence (ICS 354) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable
@@ -126,6 +126,32 @@ would have been duplicate reporting. Revisit only if skyline stops being perfect
 
 ---
 
+## Round 5 — engineering hygiene
+
+**Goal:** the repo kept claiming a green gate that only existed on one laptop, and
+five rounds had gone straight to `main` with no branch or review.
+
+**Gaps found (one self-inflicted):**
+
+| gap | fix |
+|---|---|
+| No CI at all | `.github/workflows/ci.yml` — py3.11/3.12/3.13, pytest + ruff check + ruff format |
+| `data/` could drift from the generator unnoticed | `dataset-is-reproducible` job regenerates and diffs; published results stay traceable |
+| Audit numbers invisible outside the test suite | `shortcut-audit` job surfaces per-family leakage in the run log |
+| **`docs/METRICS.md` never learned about base rate** | R4 updated README + DATASET.md and missed the canonical metrics reference. Now covers base rate, skyline, and the audit |
+| README claimed CC BY 4.0 with no such file | `LICENSE-DATA` |
+| No contributor guidance | `CONTRIBUTING.md` leading with the permutation rule |
+| Everything committed to `main` | Branch + PR #1; formatting isolated in its own behavior-free commit |
+
+**Also:** `CHANGELOG.md`, PR template (checklist covers the audit and the
+no-unproduced-numbers rule), README badges.
+
+**Standing practice from here:** branch off `main`, open a PR, formatting-only
+changes get their own commit, and the README results table is re-run and updated
+whenever costs, the generator, or a policy change.
+
+---
+
 ## Coverage map
 
 | area | last touched | probe / status |
@@ -134,7 +160,8 @@ would have been duplicate reporting. Revisit only if skyline stops being perfect
 | `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | R3 | handles all 9 families; ICS 0 |
-| `audit.py` | R1 | new; gates the build |
+| `audit.py` | R1 | gates the build; also its own CI job |
+| `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
 | `policies/llm.py` | R2 | built and tested; **never executed** — needs a key |
 
@@ -172,7 +199,9 @@ halt the loop.**
 2. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-3. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+3. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+   schema surface settles.
+4. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
