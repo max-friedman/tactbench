@@ -4,9 +4,10 @@ The spine for the continuous-improvement loop. **Read this first, write it last.
 Context is lost between rounds; this file is not.
 
 Method: [agentic-coding-loop](https://github.com/max-friedman/agentic-coding-loop)
-([protocol](https://github.com/max-friedman/agentic-coding-loop/blob/main/docs/PROTOCOL.md) ·
+([LOOP.md](https://github.com/max-friedman/agentic-coding-loop/blob/main/LOOP.md) ·
 [principles](https://github.com/max-friedman/agentic-coding-loop/blob/main/docs/PRINCIPLES.md)).
-Findings about the *method* go upstream as a PR — see **Method findings** below.
+Findings about the *method* go upstream **as issues, not PRs** — see **Method
+findings** below.
 
 ---
 
@@ -267,7 +268,10 @@ land, so it goes to review rather than into this branch. See the queue.
 Durable lessons about running an agentic loop, as opposed to lessons about
 proactive assistance. These belong in
 [agentic-coding-loop](https://github.com/max-friedman/agentic-coding-loop), not
-here. Log them as they're found; clear a row once it lands upstream.
+here. File them with the upstream **Loop proposal** issue form (or the
+`loop-feedback` skill) — *not* as a pull request; proposals are inert until a
+maintainer writes the change. Log them as they're found; clear a row once the
+change ships upstream.
 
 | finding | evidence from this project | status |
 |---|---|---|
