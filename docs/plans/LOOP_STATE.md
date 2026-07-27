@@ -268,18 +268,18 @@ land, so it goes to review rather than into this branch. See the queue.
 Durable lessons about running an agentic loop, as opposed to lessons about
 proactive assistance. These belong in
 [agentic-coding-loop](https://github.com/max-friedman/agentic-coding-loop), not
-here. File them with the upstream **Loop proposal** issue form (or the
-`loop-feedback` skill) — *not* as a pull request; proposals are inert until a
-maintainer writes the change. Log them as they're found; clear a row once the
-change ships upstream.
+here. File them with the upstream **Loop proposal** issue form (or the `loop-feedback`
+skill) — *not* as a pull request; proposals are inert until a maintainer writes
+the change. **Check `LOOP.md` first**: three of the five below turned out to be
+already covered or out of scope, and filing them would have wasted triage.
 
-| finding | evidence from this project | status |
+| finding | evidence from this project | disposition |
 |---|---|---|
-| Enforce structure where it becomes impossible to add later — branch at the *start* of a round, not at ship time | R1–R4 went straight to `main` while the ship step said "open a PR" the whole time. The rule existed and was skipped because it was only stated at the end. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
-| "Local green" is not a gate; the gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installed, so the suite had been green on exactly one laptop for five rounds. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
-| Mechanical churn gets its own behavior-free commit | R5 reformatted 9 files; isolating it kept the reviewable diff clean and `git blame` pointing at real authorship. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
-| Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure for it appears anywhere in the repo. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
-| Docs drift is silent — grep the concept, don't recall which files mention it | R4 shipped base-rate scoring, updated README + DATASET.md, and missed `METRICS.md` entirely. Caught only by a later audit. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
+| The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
+| The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
+| Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |
+| Mechanical churn gets its own behavior-free commit | R5 reformatted 9 files; isolating it kept the diff reviewable and `git blame` honest. | **not filed** — generic git hygiene, not a loop concern. A 300-line protocol shouldn't absorb it. |
+| Docs drift — search for the concept, don't recall the filenames | R4 shipped base-rate scoring and missed `METRICS.md` entirely. | **not filed** — §5.4 covers documents *quoting a number you changed*; this was a **missing section**, so §5.4 wouldn't have caught it. Real but narrow; offered upstream, not filed, to avoid spending a triage slot on day one of the process. |
 
 ---
 
