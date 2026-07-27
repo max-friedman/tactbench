@@ -12,7 +12,7 @@ Findings about the *method* go upstream as a PR — see **Method findings** belo
 
 ## Current status
 
-- **Round:** 5 complete
+- **Round:** 6 complete
 - **Gate:** green — 60 tests, ruff clean, **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (266 dev / 94 test), 9 families × 20 pairs
 - **Headline:** silence (ICS 354) is unbeaten by any baseline; skyline (ICS 0)
@@ -199,8 +199,12 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Fatigue modeling** — session-level items where interruption cost rises with
-   recent interruption frequency. Needs a schema change.
+1. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
+   was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
+   Needs a ruling first: may a pair's two sides differ in `UserState` when the
+   state difference *is* the judgment under test? The invariant currently
+   forbids it. Refine with a named exception, as `quiet_hours` is named in the
+   audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
 2. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
@@ -208,6 +212,53 @@ halt the loop.**
    schema surface settles.
 4. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
+
+---
+
+## Round 6 — fatigue, measured and rejected
+
+**Question:** the queue's top item proposed scaling false-positive cost by how
+recently the user was last interrupted. Framed falsifiably: *does fatigue add a
+judgment this benchmark doesn't already test, or is it a rescale?*
+
+**Check built before the thing** (`experiments/fatigue_multiplier_probe.py`) —
+assigns each moment a deterministic fatigue level, rescales false-positive cost,
+and compares leaderboard ordering. No feature code required to answer it.
+
+**Finding — rejected.** The ordering is byte-identical at k=0, k=0.5 and k=2.0:
+
+```
+skyline < never < heuristic < random@0.5 < always
+```
+
+The reason is structural, not a quirk of these numbers. The multiplier only ever
+*increases* false-positive cost and applies identically regardless of which
+policy produced the error, so the transform is monotone in "how many false
+positives, weighted per-moment" — already what the ordering is determined by.
+Spreading scores apart is not new information. It would have cost a schema
+change, a scoring parameter, and docs, to change no decision any policy makes.
+
+**Shipped:** the probe, kept in-repo so the rejection carries its evidence and a
+future round re-runs it instead of re-arguing it. No production code changed.
+
+**Re-specified, not abandoned.** Fatigue is only interesting when it is
+*observable context that changes the correct answer* — a real assistant knows how
+often it just spoke, and the bar genuinely should rise. Two conditions make that
+a real test rather than a one-line rule:
+
+1. Fatigue must decide the label for **low-value cues only**; a family emergency
+   at high fatigue still gets through. Otherwise `fatigue >= 3 → stay quiet`
+   solves it outright and no judgment is exercised.
+2. Fatigue varies across *all* families, so a policy applying a global threshold
+   breaks the high-value ones. That is what makes it compositional: the policy
+   must judge cue value **and** read fatigue.
+
+**Blocked on an invariant decision, deliberately not made unilaterally.**
+Condition 1 requires a pair whose two sides differ in `UserState` — which the
+standing invariant forbids. That invariant exists to stop state being a
+*shortcut*; here state would be the *substance*. That may be a refinement rather
+than a weakening, but principle 4 says invariants are not weakened to let a round
+land, so it goes to review rather than into this branch. See the queue.
 
 ---
 
@@ -220,11 +271,11 @@ here. Log them as they're found; clear a row once it lands upstream.
 
 | finding | evidence from this project | status |
 |---|---|---|
-| Enforce structure where it becomes impossible to add later — branch at the *start* of a round, not at ship time | R1–R4 went straight to `main` while the ship step said "open a PR" the whole time. The rule existed and was skipped because it was only stated at the end. | **to send** |
-| "Local green" is not a gate; the gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installed, so the suite had been green on exactly one laptop for five rounds. | **to send** |
-| Mechanical churn gets its own behavior-free commit | R5 reformatted 9 files; isolating it kept the reviewable diff clean and `git blame` pointing at real authorship. | **to send** |
-| Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure for it appears anywhere in the repo. | **to send** |
-| Docs drift is silent — grep the concept, don't recall which files mention it | R4 shipped base-rate scoring, updated README + DATASET.md, and missed `METRICS.md` entirely. Caught only by a later audit. | **to send** |
+| Enforce structure where it becomes impossible to add later — branch at the *start* of a round, not at ship time | R1–R4 went straight to `main` while the ship step said "open a PR" the whole time. The rule existed and was skipped because it was only stated at the end. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
+| "Local green" is not a gate; the gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installed, so the suite had been green on exactly one laptop for five rounds. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
+| Mechanical churn gets its own behavior-free commit | R5 reformatted 9 files; isolating it kept the reviewable diff clean and `git blame` pointing at real authorship. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
+| Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure for it appears anywhere in the repo. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
+| Docs drift is silent — grep the concept, don't recall which files mention it | R4 shipped base-rate scoring, updated README + DATASET.md, and missed `METRICS.md` entirely. Caught only by a later audit. | in review ([PR #1](https://github.com/max-friedman/agentic-coding-loop/pull/1)) |
 
 ---
 
@@ -242,3 +293,5 @@ dataset or the policy is wrong, not the assertion.
 - Heuristic lexicons stay single words, ≤ 20 entries — no phrase-lifting.
 - Silence and skyline stay invariant to `base_rate` (neither can false-positive).
 - Hard violations are never reweighted by `base_rate`.
+
+- A round may reject its own queue item. The evidence stays in `experiments/`.
