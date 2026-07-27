@@ -3,6 +3,11 @@
 The spine for the continuous-improvement loop. **Read this first, write it last.**
 Context is lost between rounds; this file is not.
 
+Method: [agentic-coding-loop](https://github.com/max-friedman/agentic-coding-loop)
+([protocol](https://github.com/max-friedman/agentic-coding-loop/blob/main/docs/PROTOCOL.md) ·
+[principles](https://github.com/max-friedman/agentic-coding-loop/blob/main/docs/PRINCIPLES.md)).
+Findings about the *method* go upstream as a PR — see **Method findings** below.
+
 ---
 
 ## Current status
@@ -203,6 +208,23 @@ halt the loop.**
    schema surface settles.
 4. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
+
+---
+
+## Method findings — send upstream
+
+Durable lessons about running an agentic loop, as opposed to lessons about
+proactive assistance. These belong in
+[agentic-coding-loop](https://github.com/max-friedman/agentic-coding-loop), not
+here. Log them as they're found; clear a row once it lands upstream.
+
+| finding | evidence from this project | status |
+|---|---|---|
+| Enforce structure where it becomes impossible to add later — branch at the *start* of a round, not at ship time | R1–R4 went straight to `main` while the ship step said "open a PR" the whole time. The rule existed and was skipped because it was only stated at the end. | **to send** |
+| "Local green" is not a gate; the gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installed, so the suite had been green on exactly one laptop for five rounds. | **to send** |
+| Mechanical churn gets its own behavior-free commit | R5 reformatted 9 files; isolating it kept the reviewable diff clean and `git blame` pointing at real authorship. | **to send** |
+| Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure for it appears anywhere in the repo. | **to send** |
+| Docs drift is silent — grep the concept, don't recall which files mention it | R4 shipped base-rate scoring, updated README + DATASET.md, and missed `METRICS.md` entirely. Caught only by a later audit. | **to send** |
 
 ---
 
