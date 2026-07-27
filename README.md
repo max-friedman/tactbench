@@ -118,6 +118,32 @@ Reported alongside, never averaged in:
 
 Full definitions in [docs/METRICS.md](docs/METRICS.md).
 
+### Base rate — the number that decides whether to ship
+
+The dataset is balanced 50/50 so the near-miss contrast is legible. **Production is
+nothing like balanced.** A deployed assistant sees vastly more quiet moments than
+loud ones — plausibly 100:1 or worse. `--base-rate` importance-weights every
+stay-quiet moment accordingly:
+
+```bash
+uv run tactbench eval --base-rate 100
+```
+
+| policy | prec@int @ 1:1 | prec@int @ 100:1 |
+|---|---|---|
+| `skyline` | 1.000 | 1.000 |
+| `heuristic` | 0.514 | **0.010** |
+| `random@0.5` | 0.560 | **0.013** |
+| `always` | 0.496 | **0.010** |
+
+Precision collapses to roughly **1%** — ninety-nine of every hundred interruptions
+would be unwanted. Silence and the skyline are the only rows that don't move,
+because neither produces a false positive; everything else inflates around them.
+
+This is why `never` is the reference baseline rather than a curiosity. A policy
+that looks respectable on balanced data can be completely unshippable, and the
+balanced number will never tell you.
+
 ## The dataset
 
 Every moment is a frozen context slice — signals from screen, calendar, messages,

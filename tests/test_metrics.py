@@ -204,6 +204,64 @@ class TestHeuristicIsHonest:
         assert card.ics > 0, "heuristic scores perfectly; dataset has no headroom"
 
 
+class TestBaseRate:
+    """The split is balanced 50/50 so the near-miss contrast is legible. Production
+    is not: a deployed assistant sees vastly more quiet moments than loud ones.
+    Importance-weighting the quiet ones is what makes the numbers decision-relevant.
+    """
+
+    def test_base_rate_of_one_matches_the_default(self):
+        items = generate(n_pairs_per_scenario=5)
+        decisions = run_policy(AlwaysPolicy(), items)
+        assert score(items, decisions, "a").ics == score(
+            items, decisions, "a", base_rate=1.0
+        ).ics
+
+    def test_below_one_is_rejected(self):
+        items = generate(n_pairs_per_scenario=2)
+        with pytest.raises(ValueError):
+            score(items, run_policy(AlwaysPolicy(), items), "a", base_rate=0.5)
+
+    def test_a_realistic_prior_punishes_false_positives(self):
+        items = generate(n_pairs_per_scenario=5)
+        decisions = run_policy(AlwaysPolicy(), items)
+        cheap = score(items, decisions, "a", base_rate=1.0).ics
+        realistic = score(items, decisions, "a", base_rate=100.0).ics
+        assert realistic > 50 * cheap
+
+    def test_silence_is_unaffected_by_the_base_rate(self):
+        """Saying nothing produces no false positives, so reweighting the quiet
+        moments cannot change its cost. This is why silence gets so much harder to
+        beat as the prior gets realistic -- everything else inflates around it."""
+        items = generate(n_pairs_per_scenario=5)
+        assert silence_ics(items, base_rate=1.0) == silence_ics(items, base_rate=100.0)
+
+    def test_a_perfect_policy_is_also_unaffected(self):
+        items = generate(n_pairs_per_scenario=5)
+        decisions = run_policy(SkylinePolicy(), items)
+        assert score(items, decisions, "s", base_rate=100.0).ics == 0.0
+
+    def test_precision_collapses_at_a_realistic_prior(self):
+        """A policy that looks respectable on balanced data can be unshippable in
+        production. Half-decent precision at 1:1 becomes roughly 1% at 100:1."""
+        items = generate(n_pairs_per_scenario=10)
+        decisions = run_policy(HeuristicPolicy(), items)
+        balanced = score(items, decisions, "h", base_rate=1.0).precision_at_interrupt
+        realistic = score(items, decisions, "h", base_rate=100.0).precision_at_interrupt
+        assert balanced > 0.4
+        assert realistic < 0.05
+
+    def test_hard_violations_are_counted_not_reweighted(self):
+        """Violations are a count of distinct moments in the benchmark, not an
+        estimate of production volume. Reweighting them would conflate the two."""
+        items = generate(n_pairs_per_scenario=5)
+        decisions = run_policy(AlwaysPolicy(), items)
+        assert (
+            score(items, decisions, "a", base_rate=1.0).hard_violations
+            == score(items, decisions, "a", base_rate=100.0).hard_violations
+        )
+
+
 class TestShortcutResistance:
     """The benchmark's central claim is that surface patterns cannot answer it.
     That claim is only worth its evidence, so it is measured, not asserted.

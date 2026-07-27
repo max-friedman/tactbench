@@ -157,6 +157,7 @@ def score(
     decisions: list[Decision],
     policy_name: str,
     reference_ics: float | None = None,
+    base_rate: float = 1.0,
 ) -> Scorecard:
     """Score a full run.
 
@@ -164,7 +165,21 @@ def score(
     split. When provided, ``ics_normalized`` maps 0 cost to 100 and the silence
     baseline to 0 -- so a negative normalized score means the system is actively
     worse than shipping nothing.
+
+    ``base_rate`` is how many quiet moments a real deployment sees for each one
+    worth speaking on. The dataset is balanced 50/50 so the near-miss contrast is
+    legible, but production is nothing like balanced -- plausibly 100:1 or worse.
+    Passing ``base_rate=100`` importance-weights every stay-quiet moment by 100,
+    which is what the world actually looks like.
+
+    This is the single most decision-relevant knob in the benchmark. At a
+    realistic prior, false positives dominate everything and precision collapses,
+    because each unwanted interruption in the balanced set stands in for a hundred
+    of them. A policy that looks respectable at 1:1 can be unshippable at 100:1.
     """
+    if base_rate < 1.0:
+        raise ValueError("base_rate is a quiet:loud ratio and must be >= 1.0")
+
     by_id = {d.moment_id: d for d in decisions}
     outcomes: list[Outcome] = []
     used: list[Decision] = []
@@ -182,11 +197,22 @@ def score(
     for o in outcomes:
         counts[o.kind] += 1
 
-    total_cost = sum(o.cost for o in outcomes)
-    hard_violations = sum(1 for o in outcomes if o.hard_violation)
-    surfaced = counts["tp"] + counts["fp"]
+    # Each stay-quiet item stands in for ``base_rate`` real ones; speak items
+    # stand in for themselves.
+    def weight(item: Item) -> float:
+        return base_rate if not item.label.should_surface else 1.0
 
-    precision = counts["tp"] / surfaced if surfaced else None
+    total_cost = sum(weight(i) * o.cost for i, o in zip(items, outcomes, strict=True))
+    hard_violations = sum(1 for o in outcomes if o.hard_violation)
+
+    # Weighted, so precision reports what it would be in production rather than
+    # in the artificially balanced split.
+    weighted_tp = float(counts["tp"])
+    weighted_fp = base_rate * counts["fp"]
+    surfaced = counts["tp"] + counts["fp"]
+    precision = (
+        weighted_tp / (weighted_tp + weighted_fp) if (weighted_tp + weighted_fp) else None
+    )
 
     high_value = [i for i in items if i.label.should_surface and i.label.value >= 2]
     if high_value:

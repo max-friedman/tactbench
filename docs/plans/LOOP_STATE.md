@@ -7,8 +7,8 @@ Context is lost between rounds; this file is not.
 
 ## Current status
 
-- **Round:** 3 complete
-- **Gate:** green — 53 tests, ruff clean
+- **Round:** 4 complete
+- **Gate:** green — 60 tests, ruff clean
 - **Dataset:** `v1` — 360 items (266 dev / 94 test), 9 families × 20 pairs
 - **Headline:** silence (ICS 354) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable
@@ -98,12 +98,40 @@ with zero disagreements, so the new labels are self-consistent.
 
 ---
 
+## Round 4 — the base rate
+
+**Goal:** the balanced 50/50 split makes the near-miss contrast legible but is not
+what production looks like. Every number in the repo was implicitly claiming a 1:1
+prior, which no deployed assistant has ever seen.
+
+**Shipped:** `--base-rate` on `score`, `silence_ics`, `evaluate` and `tactbench
+eval`. Every stay-quiet item is importance-weighted by the quiet:loud ratio, so it
+stands in for the real moments it represents. Precision is weighted too and now
+reports the production figure. 7 new tests.
+
+**Result — the most decision-relevant number in the repo:** at 100:1, precision
+collapses from 0.514 to **0.010**. Ninety-nine of every hundred interruptions would
+be unwanted. Silence and skyline are the only rows that don't move, because neither
+produces a false positive; everything else inflates around them.
+
+**Design calls:** hard violations are *not* reweighted — they count distinct
+moments in the benchmark, not estimated production volume, and conflating those
+would make the number meaningless. `base_rate < 1` raises rather than silently
+inverting the intent.
+
+**Noted, not built:** "skyline as a fraction" turned out to be redundant.
+`ics_normalized` already maps silence to 0 and zero cost to 100, and skyline scores
+exactly 0, so the existing column *is* percent-of-achievable. Adding a second one
+would have been duplicate reporting. Revisit only if skyline stops being perfect.
+
+---
+
 ## Coverage map
 
 | area | last touched | probe / status |
 |---|---|---|
 | `dataset/generate.py` | R3 | 8/9 families at chance floor |
-| `metrics.py` | R0 | untouched since design; ICS constants unvalidated by humans |
+| `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | R3 | handles all 9 families; ICS 0 |
 | `audit.py` | R1 | new; gates the build |
@@ -139,17 +167,12 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Base-rate reweighting** — a CLI flag to evaluate at a realistic 100:1
-   quiet-to-loud prior, which makes silence far harder to beat and is the honest
-   production intuition.
-2. **Show the skyline as a fraction.** Report each policy as % of achievable
-   performance now that a ceiling exists, not just raw ICS.
-3. **Fatigue modeling** — session-level items where interruption cost rises with
+1. **Fatigue modeling** — session-level items where interruption cost rises with
    recent interruption frequency. Needs a schema change.
-4. **More families still welcome** — nine is better than six but still one
+2. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-5. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+3. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
@@ -166,3 +189,5 @@ dataset or the policy is wrong, not the assertion.
 - The heuristic stays near chance (**0.5 ± 0.15** precision) and never solves the set.
 - Both sides of every pair carry an identical `UserState`.
 - Heuristic lexicons stay single words, ≤ 20 entries — no phrase-lifting.
+- Silence and skyline stay invariant to `base_rate` (neither can false-positive).
+- Hard violations are never reweighted by `base_rate`.

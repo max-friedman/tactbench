@@ -97,11 +97,24 @@ This is not realistic. A deployed assistant sees vastly more quiet moments than
 loud ones — plausibly 100:1 or worse. Balance is chosen so the near-miss contrast
 is legible and so slice-level numbers aren't computed over a handful of items.
 
-To evaluate against a realistic prior, reweight false-positive cost by the ratio
-you expect. At a 100:1 quiet-to-loud base rate, multiply every false-positive cost
-by 100 before aggregating; the ordering of policies changes sharply, and `never`
-becomes much harder to beat. That is the correct intuition for production, and the
-reason `never` is the reference baseline rather than a curiosity.
+To evaluate against a realistic prior, pass `--base-rate`:
+
+```bash
+tactbench eval --base-rate 100
+```
+
+Every stay-quiet item is importance-weighted by the ratio, so it stands in for the
+hundred real quiet moments it represents. Precision is weighted too, and reports
+what it would be in production rather than in the artificial split — it collapses
+from roughly 0.5 to roughly 0.01.
+
+Silence and the skyline are unaffected, because neither produces a false positive.
+Everything else inflates around them, which is exactly why `never` is the reference
+baseline and not a curiosity.
+
+Hard violations are deliberately **not** reweighted: they count distinct moments in
+the benchmark, not an estimate of production volume, and conflating the two would
+make the number mean nothing.
 
 ## Splitting
 

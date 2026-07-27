@@ -90,14 +90,20 @@ def evaluate_cmd(
     policy: str = typer.Option("all", "--policy", "-p", help="Policy name, or 'all'."),
     version: str = typer.Option("v1"),
     split: str = typer.Option("dev"),
+    base_rate: float = typer.Option(
+        1.0,
+        "--base-rate",
+        help="Quiet:loud ratio of the deployment. 1 = the balanced split; 100 = a "
+        "realistic production prior, where false positives dominate.",
+    ),
 ) -> None:
     """Score one or all built-in policies against a split."""
     items = load(version, split)
-    silence = silence_ics(items)
+    silence = silence_ics(items, base_rate=base_rate)
     reg = registry()
 
     chosen = list(reg.values()) if policy == "all" else [reg[policy]]
-    cards = [evaluate(p, items, reference=silence) for p in chosen]
+    cards = [evaluate(p, items, reference=silence, base_rate=base_rate) for p in chosen]
 
     console.print(_table(cards, silence))
     console.print(
@@ -105,6 +111,12 @@ def evaluate_cmd(
         "'vs silence' above 0 means the policy is worth shipping; "
         "below 0 means it is worse than saying nothing.[/dim]"
     )
+    if base_rate > 1.0:
+        console.print(
+            f"[dim]Weighted at {base_rate:g}:1 quiet:loud — every stay-quiet moment "
+            f"stands in for {base_rate:g} real ones, so precision is what it would "
+            "be in production.[/dim]"
+        )
 
 
 @app.command(name="llm")
