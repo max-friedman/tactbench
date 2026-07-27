@@ -4,7 +4,33 @@
 first and write it last.** It holds the queue, the coverage map, the NEEDS-MAX list,
 and the standing invariants. Context is lost between rounds; that file is not.
 
-Read this before changing anything. TactBench is a benchmark, and benchmarks fail
+## Where the method lives
+
+This project is run with the **[agentic coding loop](https://github.com/max-friedman/agentic-coding-loop)**.
+That repo is the source of truth for *how* to make changes here — what a round is,
+how it ends, and the principles it runs on. This file covers what is specific to
+TactBench; it does not restate the method.
+
+Read before your first round:
+
+- **[The protocol](https://github.com/max-friedman/agentic-coding-loop/blob/main/docs/PROTOCOL.md)**
+  — the seven steps, and what "done" means.
+- **[The principles](https://github.com/max-friedman/agentic-coding-loop/blob/main/docs/PRINCIPLES.md)**
+  — the rules the loop runs on. Principles 3 and 4 are the ones this project
+  breaks first if you're not careful: *build the check before the thing*, and
+  *invariants may not be weakened*.
+- **[The round prompt](https://github.com/max-friedman/agentic-coding-loop/blob/main/prompts/ROUND.md)**
+  — paste it verbatim into a fresh session to start a round.
+
+**Improvements to the method go upstream, not here.** If a round teaches something
+durable about running an agentic loop — as opposed to something about proactive
+assistance — it belongs in a PR to `agentic-coding-loop`, not buried in this
+repo's docs where no other project will ever find it. Note the candidate in
+`LOOP_STATE.md` under *Method findings* so it isn't lost, then send it up. A
+lesson recorded only in the project that discovered it is a lesson that will be
+re-learned.
+
+Read the rest of this file before changing anything. TactBench is a benchmark, and benchmarks fail
 in a specific way: they quietly stop measuring what they claim to measure while
 the numbers keep looking fine. Most of the rules below exist to prevent that.
 

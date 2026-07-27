@@ -1,5 +1,9 @@
 # TactBench
 
+[![CI](https://github.com/max-friedman/tactbench/actions/workflows/ci.yml/badge.svg)](https://github.com/max-friedman/tactbench/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
+[![Dataset: CC BY 4.0](https://img.shields.io/badge/dataset-CC%20BY%204.0-lightgrey.svg)](LICENSE-DATA)
+
 **A benchmark for whether an assistant should speak at all.**
 
 Nearly every LLM evaluation asks *how good is the answer*. Proactive assistants —
@@ -236,11 +240,13 @@ from tactbench.schema import Decision, Moment
 from tactbench.dataset.loader import load
 from tactbench.runner import evaluate
 
+
 class MyPolicy(Policy):
     name = "mine"
 
     def decide(self, moment: Moment) -> Decision:
         return Decision(moment_id=moment.id, surface=..., confidence=...)
+
 
 print(evaluate(MyPolicy(), load("v1", "dev")))
 ```
@@ -287,6 +293,16 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    phrasing has stopped being the weak point.
 4. Held-out test split with hidden labels behind a submission script.
 
+## Contributing
+
+The most valuable contribution is usually a **near-miss pair nobody thought of**,
+or evidence that a claim in this README doesn't hold. See
+[CONTRIBUTING.md](CONTRIBUTING.md) — particularly the permutation rule for new
+scenario families, and the invariants that may not be weakened to make the gate
+pass.
+
+Change history is in [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
-MIT for the code, CC BY 4.0 for the dataset.
+Code is [MIT](LICENSE). Dataset content is [CC BY 4.0](LICENSE-DATA).

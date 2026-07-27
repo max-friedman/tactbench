@@ -47,8 +47,10 @@ def _table(cards: list[Scorecard], silence: float) -> Table:
 
     for c in sorted(cards, key=lambda c: c.ics):
         better = c.ics < silence
-        verdict = f"[green]+{c.ics_normalized:.1f}[/green]" if better else (
-            f"[red]{c.ics_normalized:.1f}[/red]"
+        verdict = (
+            f"[green]+{c.ics_normalized:.1f}[/green]"
+            if better
+            else (f"[red]{c.ics_normalized:.1f}[/red]")
         )
         viol = f"[red]{c.hard_violations}[/red]" if c.hard_violations else "0"
         t.add_row(
@@ -141,8 +143,9 @@ def llm_cmd(
     have = available_providers()
     if not have.get(provider):
         console.print(f"[red]No API key for {provider}.[/red]")
-        console.print(f"Providers with a key present: "
-                      f"{[p for p, ok in have.items() if ok] or 'none'}")
+        console.print(
+            f"Providers with a key present: {[p for p, ok in have.items() if ok] or 'none'}"
+        )
         raise typer.Exit(1)
 
     policy = LLMPolicy(provider=provider, model=model, variant=variant)
@@ -177,8 +180,9 @@ def llm_cmd(
                     # One bad call must not discard an expensive run; a failed
                     # decision scores as silence, same as unparseable output.
                     console.print(f"[yellow]{item.moment.id}: {e}[/yellow]")
-                    d = Decision(moment_id=item.moment.id, surface=False,
-                                 rationale=f"call failed: {e}")
+                    d = Decision(
+                        moment_id=item.moment.id, surface=False, rationale=f"call failed: {e}"
+                    )
                 f.write(d.model_dump_json() + "\n")
                 f.flush()
                 cached[d.moment_id] = d
@@ -190,7 +194,8 @@ def llm_cmd(
 
     console.print(_table([card], silence))
     verdict = (
-        "[green]beats silence[/green]" if card.ics < silence
+        "[green]beats silence[/green]"
+        if card.ics < silence
         else "[red]worse than saying nothing[/red]"
     )
     console.print(f"\n{policy.name} is {verdict} (silence ICS {silence:.1f}).")
@@ -263,9 +268,7 @@ def failures(
     by_id = {i.moment.id: i for i in items}
     card = evaluate(registry()[policy], items)
 
-    worst = sorted(
-        (o for o in card.outcomes if o.cost > 0), key=lambda o: -o.cost
-    )[:limit]
+    worst = sorted((o for o in card.outcomes if o.cost > 0), key=lambda o: -o.cost)[:limit]
     if not worst:
         console.print(f"[green]{policy} made no scored mistakes on {split}.[/green]")
         return
@@ -278,8 +281,10 @@ def failures(
             f"[{'red' if o.hard_violation else 'yellow'}]{head}"
             f"{' · HARD VIOLATION' if o.hard_violation else ''}[/]"
         )
-        console.print(f"  state: {item.moment.user_state.activity.value}"
-                      f"{', DND' if item.moment.user_state.dnd else ''}")
+        console.print(
+            f"  state: {item.moment.user_state.activity.value}"
+            f"{', DND' if item.moment.user_state.dnd else ''}"
+        )
         for s in item.moment.signals:
             console.print(f"  [dim]{s.source.value}:[/dim] {s.content}")
         console.print(f"  [dim]why:[/dim] {item.label.rationale}")

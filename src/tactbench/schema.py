@@ -41,9 +41,7 @@ class Activity(StrEnum):
 #: Activities where an unwanted interruption is not merely annoying but unsafe or
 #: trust-destroying. False positives here are counted as hard violations and are
 #: reported raw -- never averaged into an aggregate that could hide them.
-PROTECTED_ACTIVITIES: frozenset[Activity] = frozenset(
-    {Activity.DRIVING, Activity.SLEEPING}
-)
+PROTECTED_ACTIVITIES: frozenset[Activity] = frozenset({Activity.DRIVING, Activity.SLEEPING})
 
 
 class Signal(BaseModel):

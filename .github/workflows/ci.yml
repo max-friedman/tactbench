@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Run the gate
+        run: uv run --python ${{ matrix.python }} pytest -q
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  dataset-is-reproducible:
+    name: dataset is reproducible
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # The committed splits must be exactly what the generator produces. If they
+      # drift, published results stop being traceable to the code that made them
+      # -- someone could hand-edit an item and no test would notice.
+      - name: Regenerate and diff against the committed splits
+        run: |
+          uv run tactbench build
+          if ! git diff --exit-code --stat data/; then
+            echo "::error::data/ differs from a fresh 'tactbench build'."
+            echo "The committed dataset is not reproducible from the generator."
+            echo "Run 'uv run tactbench build' and commit the result."
+            exit 1
+          fi
+
+  shortcut-audit:
+    name: shortcut audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Surfaced as its own job so the per-family leakage numbers are visible in
+      # the run log, not just asserted inside the test suite.
+      - run: uv run tactbench audit
