@@ -28,6 +28,8 @@ Treat a submitted policy that looks like this one as overfitting, not progress.
 
 from __future__ import annotations
 
+import hashlib
+import random
 import re
 
 from ..schema import Decision, Moment
@@ -125,3 +127,47 @@ class SkylinePolicy(Policy):
             tail = low.split("below the payment by")[1].split(".")[0]
             return "checking" in tail
         return "checking is short" in low
+
+
+class PartialSkylinePolicy(Policy):
+    """A policy with a *dialled* amount of comprehension. Diagnostic, not a baseline.
+
+    Resolves the deciding relation on a deterministic fraction ``p`` of moments
+    and coin-flips on the rest, interpolating between ``random@0.5`` (p=0) and
+    the skyline (p=1).
+
+    It exists to test the **metric**, not a system. Six rounds of leaderboards
+    showed every real policy at chance precision and the skyline at 1.000, with
+    nothing in between -- so ICS had been shown to separate no comprehension from
+    perfect comprehension, and had never been shown to *rank the middle*, which is
+    where every real system lands. A metric that is flat across that range cannot
+    tell a mediocre assistant from a good one, however clean its endpoints look.
+
+    Which moments fall in the comprehending set is decided by a hash of the moment
+    id rather than by sampling, so the set is **nested**: raising ``p`` only ever
+    adds comprehended moments. Without that, a non-monotonic sweep could be an
+    artifact of resampling rather than a property of the metric.
+    """
+
+    def __init__(self, p: float, seed: int = 0):
+        if not 0.0 <= p <= 1.0:
+            raise ValueError("p is a comprehension fraction and must be in [0, 1]")
+        self.p = p
+        self.name = f"partial@{p:.1f}"
+        self._skyline = SkylinePolicy()
+        self._rng = random.Random(seed)
+
+    def comprehends(self, moment_id: str) -> bool:
+        return hashlib.sha256(moment_id.encode()).digest()[2] / 255.0 < self.p
+
+    def decide(self, moment: Moment) -> Decision:
+        if self.comprehends(moment.id):
+            return self._skyline.decide(moment)
+        surface = self._rng.random() < 0.5
+        return Decision(
+            moment_id=moment.id,
+            surface=surface,
+            confidence=0.5,
+            intent="alert" if surface else None,
+            rationale="guessed",
+        )

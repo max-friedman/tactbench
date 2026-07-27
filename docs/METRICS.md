@@ -166,6 +166,36 @@ overfitting, not progress.** Its second job is as a standing label-consistency
 check: if it ever disagrees with a gold label, the dataset contradicts its own
 stated semantics. That check caught an inverted `travel` pair.
 
+## Does the metric discriminate?
+
+A metric can look healthy at its endpoints and be useless in between. ICS
+separates chance-precision policies from a perfect one — but every real system
+lands in the middle, so the question that matters is whether ICS *ranks* partial
+comprehension.
+
+`PartialSkylinePolicy(p)` answers it by construction: it resolves the deciding
+relation on a deterministic fraction `p` of moments and coin-flips on the rest,
+interpolating between `random@0.5` and the skyline. The comprehending set is
+chosen by hash rather than sampled, so it is **nested** — raising `p` only adds
+moments. Without that, a non-monotonic sweep could be resampling noise rather than
+a property of the metric.
+
+Three properties, all holding, all now guarded by `TestMetricDiscrimination`:
+
+| property | meaning | why it matters |
+|---|---|---|
+| **Monotone** | ICS never rises as `p` rises | a reversal would mean more comprehension scoring worse |
+| **Anchored** | `p=1` → exactly 0; `p=0` loses to silence | the scale means what it claims at both ends |
+| **Responsive** | every step moves ICS > 2% of the range | rules out a metric that is flat through the middle while looking fine at the ends |
+
+**The number this produced:** a system needs roughly **30% comprehension to beat
+silence**. A policy at `p = 0.2` reaches 0.556 precision — which reads as
+better-than-a-coin-flip — and is still a net loss against saying nothing.
+
+`PartialSkylinePolicy` is a diagnostic, not a baseline, and is deliberately absent
+from the leaderboard registry. Full sweep:
+[`experiments/discrimination_sweep.py`](../experiments/discrimination_sweep.py).
+
 ## The shortcut audit
 
 `tactbench audit` trains a bag-of-words classifier on **signal text alone** — no

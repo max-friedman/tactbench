@@ -13,7 +13,7 @@ from tactbench.audit import lexical_leakage
 from tactbench.dataset.generate import generate
 from tactbench.metrics import score, score_item
 from tactbench.policies.builtin import AlwaysPolicy, HeuristicPolicy, NeverPolicy
-from tactbench.policies.skyline import SkylinePolicy
+from tactbench.policies.skyline import PartialSkylinePolicy, SkylinePolicy
 from tactbench.runner import evaluate, run_policy, silence_ics
 from tactbench.schema import (
     Activity,
@@ -337,3 +337,58 @@ class TestDataset:
             fam_items = [i for i in items if i.moment.family == fam]
             assert any(i.label.should_surface for i in fam_items)
             assert any(not i.label.should_surface for i in fam_items)
+
+
+class TestMetricDiscrimination:
+    """ICS must rank *partial* comprehension, not merely separate none from perfect.
+
+    Six rounds of leaderboards showed every real policy at chance precision and
+    the skyline at 1.000, with nothing measured in between. A metric that is flat
+    across that range cannot tell a mediocre assistant from a good one -- and the
+    middle is where every real system lands, so a flat metric would be broken for
+    exactly the systems the benchmark exists to score.
+
+    Full sweep and the reasoning: experiments/discrimination_sweep.py
+    """
+
+    SWEEP = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
+
+    def _ics(self, items, p, reference):
+        return evaluate(PartialSkylinePolicy(p), items, reference=reference).ics
+
+    def test_ics_decreases_monotonically_with_comprehension(self):
+        items = generate(n_pairs_per_scenario=10)
+        reference = silence_ics(items)
+        scores = [self._ics(items, p, reference) for p in self.SWEEP]
+        for a, b in zip(scores, scores[1:], strict=False):
+            assert a >= b, f"ICS rose as comprehension rose: {scores}"
+
+    def test_the_sweep_is_anchored_at_both_ends(self):
+        """p=1 must reproduce the skyline exactly; p=0 must lose to silence."""
+        items = generate(n_pairs_per_scenario=10)
+        reference = silence_ics(items)
+        assert self._ics(items, 1.0, reference) == 0.0
+        assert self._ics(items, 0.0, reference) > reference
+
+    def test_comprehension_gains_register_across_the_whole_range(self):
+        """Not just near the endpoints -- a metric flat through the middle would
+        pass the anchoring test above while discriminating nothing."""
+        items = generate(n_pairs_per_scenario=10)
+        reference = silence_ics(items)
+        scores = [self._ics(items, p, reference) for p in self.SWEEP]
+        span = scores[0] - scores[-1]
+        steps = [a - b for a, b in zip(scores, scores[1:], strict=False)]
+        assert min(steps) > 0.02 * span, f"a step barely moved ICS: {steps}"
+
+    def test_comprehension_set_is_nested(self):
+        """Raising p only ever ADDS comprehended moments. Without this, a
+        non-monotonic sweep could be resampling noise rather than a metric flaw."""
+        ids = [i.moment.id for i in generate(n_pairs_per_scenario=5)]
+        low, high = PartialSkylinePolicy(0.3), PartialSkylinePolicy(0.7)
+        for mid in ids:
+            if low.comprehends(mid):
+                assert high.comprehends(mid)
+
+    def test_partial_rejects_a_fraction_outside_the_unit_interval(self):
+        with pytest.raises(ValueError):
+            PartialSkylinePolicy(1.5)

@@ -12,8 +12,8 @@ Findings about the *method* go upstream as a PR — see **Method findings** belo
 
 ## Current status
 
-- **Round:** 6 complete
-- **Gate:** green — 60 tests, ruff clean, **enforced by CI** on py3.11-3.13
+- **Round:** 7 complete
+- **Gate:** green — 65 tests, ruff clean, **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (266 dev / 94 test), 9 families × 20 pairs
 - **Headline:** silence (ICS 354) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable
@@ -205,12 +205,17 @@ halt the loop.**
    state difference *is* the judgment under test? The invariant currently
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
-2. **More families still welcome** — nine is better than six but still one
+2. **Calibrate the LLM run against the sweep.** When a key arrives, the sweep
+   gives an interpretation frame the project didn't have before: an LLM's ICS
+   maps to an implied comprehension fraction, so the result reads as "this model
+   comprehends ~p of these moments" rather than a bare score. Costs nothing to
+   apply.
+3. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-3. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+4. **Type checking** — no mypy/pyright configured; worth adding to CI once the
    schema surface settles.
-4. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+5. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
@@ -262,6 +267,46 @@ land, so it goes to review rather than into this branch. See the queue.
 
 ---
 
+## Round 7 — does the metric discriminate?
+
+**Question:** six rounds of leaderboards show every real policy at 0.484-0.560
+precision and the skyline at 1.000, with nothing measured between. ICS has been
+shown to separate *no* comprehension from *perfect* comprehension. **It has never
+been shown to rank the middle** — which is where every real system lands. A metric
+flat across that range would be broken for exactly the systems the benchmark
+exists to score, and no dataset work would fix it.
+
+**Check built first:** `PartialSkylinePolicy(p)` resolves a deterministic fraction
+`p` of moments and coin-flips on the rest, interpolating between `random@0.5` and
+the skyline. The comprehending set is hash-chosen, therefore **nested** — raising
+`p` only adds moments, so a non-monotonic result can't be resampling noise.
+
+**Finding — the metric is sound, and it produced a new number.**
+
+| p | ICS | vs silence | prec@int |
+|---|---|---|---|
+| 0.0 | 507.0 | −43.2 | 0.484 |
+| 0.2 | 463.0 | −30.8 | 0.556 |
+| 0.4 | 245.0 | +30.8 | 0.705 |
+| 0.6 | 178.0 | +49.7 | 0.836 |
+| 0.8 | 105.0 | +70.3 | 0.880 |
+| 1.0 | 0.0 | +100.0 | 1.000 |
+
+Monotone, anchored at both ends, smallest step 2.8% of range. **A system needs
+roughly 30% comprehension before it beats silence at all** — and `p=0.2` reaches
+0.556 precision, which reads as better-than-chance and is still a net loss.
+
+**Shipped:** `PartialSkylinePolicy` (diagnostic, deliberately not in the
+leaderboard registry), five invariant tests in `TestMetricDiscrimination`, the
+sweep script, plus README and METRICS.md sections.
+
+**A bug in my own probe, worth recording:** the first run crashed on
+`zip(..., strict=True)` over an intentionally offset pairwise comparison. The
+check was wrong, not the metric — the data underneath was already clean. Cheap
+reminder that a failing check is a hypothesis about the code *and* about itself.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -295,3 +340,5 @@ dataset or the policy is wrong, not the assertion.
 - Hard violations are never reweighted by `base_rate`.
 
 - A round may reject its own queue item. The evidence stays in `experiments/`.
+- ICS stays monotone, anchored, and responsive in comprehension — the metric must
+  rank the middle, not only separate the ends.
