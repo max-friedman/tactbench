@@ -57,6 +57,35 @@ So the standing result is: **`never` is the bar, and nothing short of genuine
 comprehension has cleared it.** A proactive feature that scores worse than silence
 is a feature that should not ship.
 
+### How good does a system have to be?
+
+The leaderboard shows chance-precision policies losing to silence and a perfect
+one winning. That leaves the question every real system actually faces: *how much
+comprehension is enough?*
+
+Sweeping a policy that resolves a controlled fraction `p` of moments correctly and
+guesses on the rest:
+
+| comprehension `p` | ICS ↓ | vs silence | prec@int |
+|---|---|---|---|
+| 0.0 | 507.0 | −43.2 | 0.484 |
+| 0.2 | 463.0 | −30.8 | 0.556 |
+| **0.4** | **245.0** | **+30.8** | 0.705 |
+| 0.6 | 178.0 | +49.7 | 0.836 |
+| 0.8 | 105.0 | +70.3 | 0.880 |
+| 1.0 | 0.0 | +100.0 | 1.000 |
+
+**A system needs roughly 30% comprehension before it beats silence at all.** Below
+that it is worse than shipping nothing, however well-intentioned — and note that
+`p = 0.2` still reaches 0.556 precision, which reads as "better than a coin flip"
+and is still a net loss.
+
+The sweep also establishes that ICS is **monotone, anchored, and responsive across
+the whole range** — it ranks partial comprehension rather than merely separating
+none from perfect. That matters because the middle is where every real system
+lands. Guarded by `TestMetricDiscrimination`; full sweep in
+[`experiments/discrimination_sweep.py`](experiments/discrimination_sweep.py).
+
 ## Shortcut resistance
 
 The claim that matched pairs prevent keyword matching is worth exactly its
