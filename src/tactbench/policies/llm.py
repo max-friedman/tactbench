@@ -131,14 +131,18 @@ def parse_response(text: str, moment_id: str) -> Decision:
     match = _JSON_RE.search(text or "")
     if not match:
         return Decision(
-            moment_id=moment_id, surface=False, confidence=0.5,
+            moment_id=moment_id,
+            surface=False,
+            confidence=0.5,
             rationale="unparseable response; scored as silence",
         )
     try:
         data = json.loads(match.group(0))
     except json.JSONDecodeError:
         return Decision(
-            moment_id=moment_id, surface=False, confidence=0.5,
+            moment_id=moment_id,
+            surface=False,
+            confidence=0.5,
             rationale="invalid JSON; scored as silence",
         )
 

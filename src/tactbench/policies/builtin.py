@@ -37,9 +37,7 @@ class AlwaysPolicy(Policy):
     name = "always"
 
     def decide(self, moment: Moment) -> Decision:
-        return Decision(
-            moment_id=moment.id, surface=True, confidence=1.0, intent="alert"
-        )
+        return Decision(moment_id=moment.id, surface=True, confidence=1.0, intent="alert")
 
 
 class NeverPolicy(Policy):
@@ -165,8 +163,7 @@ class HeuristicPolicy(Policy):
         # speak. Detected structurally: a calendar or location signal fresh
         # enough that the situation has not already moved on.
         actionable_window = any(
-            s.source in (Source.CALENDAR, Source.LOCATION, Source.APP_EVENT)
-            and s.age_s <= 600
+            s.source in (Source.CALENDAR, Source.LOCATION, Source.APP_EVENT) and s.age_s <= 600
             for s in moment.signals
         )
 

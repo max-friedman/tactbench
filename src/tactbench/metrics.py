@@ -210,14 +210,15 @@ def score(
     weighted_tp = float(counts["tp"])
     weighted_fp = base_rate * counts["fp"]
     surfaced = counts["tp"] + counts["fp"]
-    precision = (
-        weighted_tp / (weighted_tp + weighted_fp) if (weighted_tp + weighted_fp) else None
-    )
+    precision = weighted_tp / (weighted_tp + weighted_fp) if (weighted_tp + weighted_fp) else None
 
     high_value = [i for i in items if i.label.should_surface and i.label.value >= 2]
     if high_value:
-        hit = sum(1 for i in high_value if by_id.get(i.moment.id, Decision(
-            moment_id=i.moment.id, surface=False)).surface)
+        hit = sum(
+            1
+            for i in high_value
+            if by_id.get(i.moment.id, Decision(moment_id=i.moment.id, surface=False)).surface
+        )
         recall_hv = hit / len(high_value)
     else:
         recall_hv = None
@@ -242,9 +243,7 @@ def score(
         for o in outcomes
         if o.kind == "tp" and by_id.get(o.moment_id) and by_id[o.moment_id].intent is not None
     ]
-    intent_accuracy = (
-        sum(1 for o in named if not o.wrong_intent) / len(named) if named else None
-    )
+    intent_accuracy = sum(1 for o in named if not o.wrong_intent) / len(named) if named else None
 
     ics_norm = 0.0
     if reference_ics is not None and reference_ics > 0:

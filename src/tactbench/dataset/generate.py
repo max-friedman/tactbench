@@ -52,9 +52,7 @@ def _mk(
     window_s: int | None = None,
 ) -> Item:
     return Item(
-        moment=Moment(
-            id=mid, signals=signals, user_state=state, family=family, slices=slices
-        ),
+        moment=Moment(id=mid, signals=signals, user_state=state, family=family, slices=slices),
         label=GoldLabel(
             moment_id=mid,
             should_surface=should,
@@ -160,8 +158,9 @@ class TravelScenario(Scenario):
                 f"boarding in {mins} minutes.",
             ]
         )
-        return [Signal(source=Source.EMAIL, age_s=120, content=phrasing,
-                       meta={"sender": "airline"})]
+        return [
+            Signal(source=Source.EMAIL, age_s=120, content=phrasing, meta={"sender": "airline"})
+        ]
 
     def deciders(self, rng):
         a, b = self._a, self._b
@@ -185,8 +184,7 @@ class TravelScenario(Scenario):
 
     def why(self):
         return (
-            "The user is at the old gate with a stale pass. Missing this costs them "
-            "the flight.",
+            "The user is at the old gate with a stale pass. Missing this costs them the flight.",
             "The user is already at the new gate with the updated pass. Saying "
             "anything is pure noise.",
         )
@@ -350,10 +348,8 @@ class MeetingPrepScenario(Scenario):
         # the answer away and this family probed at 100%.
         variants = [
             (
-                f"Contract review begins in {m} minutes; the daily standup began "
-                f"{m} minutes ago.",
-                f"The daily standup begins in {m} minutes; contract review began "
-                f"{m} minutes ago.",
+                f"Contract review begins in {m} minutes; the daily standup began {m} minutes ago.",
+                f"The daily standup begins in {m} minutes; contract review began {m} minutes ago.",
             ),
             (
                 f"Calendar: contract review starts in {m} minutes, daily standup "
@@ -410,10 +406,8 @@ class DrivingScenario(Scenario):
         d = rng.choice([25, 30, 40])
         variants = [
             (
-                f"Your route is backed up {d} minutes; the alternate at the next "
-                "exit is clear.",
-                f"The alternate at the next exit is backed up {d} minutes; your "
-                "route is clear.",
+                f"Your route is backed up {d} minutes; the alternate at the next exit is clear.",
+                f"The alternate at the next exit is backed up {d} minutes; your route is clear.",
             ),
             (
                 f"Congestion is on your route (+{d} min); the next exit avoids it.",
@@ -541,16 +535,12 @@ class HealthScenario(Scenario):
     def deciders(self, rng):
         variants = [
             (
-                "Your refill is waiting for pickup; Sam's refill was collected "
-                "yesterday.",
-                "Sam's refill is waiting for pickup; your refill was collected "
-                "yesterday.",
+                "Your refill is waiting for pickup; Sam's refill was collected yesterday.",
+                "Sam's refill is waiting for pickup; your refill was collected yesterday.",
             ),
             (
-                "Still at the counter: your prescription. Already picked up: Sam's "
-                "prescription.",
-                "Still at the counter: Sam's prescription. Already picked up: your "
-                "prescription.",
+                "Still at the counter: your prescription. Already picked up: Sam's prescription.",
+                "Still at the counter: Sam's prescription. Already picked up: your prescription.",
             ),
         ]
         pos_text, near_text = variants[rng.randrange(len(variants))]

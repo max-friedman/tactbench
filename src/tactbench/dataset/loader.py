@@ -34,7 +34,5 @@ def split_path(version: str, split: str) -> Path:
 def load(version: str = "v1", split: str = "dev") -> list[Item]:
     path = split_path(version, split)
     if not path.exists():
-        raise FileNotFoundError(
-            f"No dataset at {path}. Run `tactbench build` to generate it."
-        )
+        raise FileNotFoundError(f"No dataset at {path}. Run `tactbench build` to generate it.")
     return read_jsonl(path)

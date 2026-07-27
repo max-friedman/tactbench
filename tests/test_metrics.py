@@ -213,9 +213,7 @@ class TestBaseRate:
     def test_base_rate_of_one_matches_the_default(self):
         items = generate(n_pairs_per_scenario=5)
         decisions = run_policy(AlwaysPolicy(), items)
-        assert score(items, decisions, "a").ics == score(
-            items, decisions, "a", base_rate=1.0
-        ).ics
+        assert score(items, decisions, "a").ics == score(items, decisions, "a", base_rate=1.0).ics
 
     def test_below_one_is_rejected(self):
         items = generate(n_pairs_per_scenario=2)

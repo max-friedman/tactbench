@@ -236,11 +236,13 @@ from tactbench.schema import Decision, Moment
 from tactbench.dataset.loader import load
 from tactbench.runner import evaluate
 
+
 class MyPolicy(Policy):
     name = "mine"
 
     def decide(self, moment: Moment) -> Decision:
         return Decision(moment_id=moment.id, surface=..., confidence=...)
+
 
 print(evaluate(MyPolicy(), load("v1", "dev")))
 ```
