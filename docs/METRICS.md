@@ -75,6 +75,41 @@ A negative value means the system is worse than shipping nothing. This is the
 number to quote, because it answers the only question a PM actually has: *is this
 feature worth turning on?*
 
+It is also percent-of-achievable, because the `skyline` policy scores exactly 0
+cost — so 100 is not a theoretical ceiling, it is a reached one. See
+[The skyline](#the-skyline) below.
+
+### Base rate
+
+Every figure above is computed on a **balanced 50/50 split**. Production is not
+balanced: a deployed assistant sees vastly more quiet moments than loud ones,
+plausibly 100:1 or worse. `--base-rate` importance-weights each stay-quiet moment
+by that ratio, so it stands in for the real moments it represents:
+
+```bash
+tactbench eval --base-rate 100
+```
+
+`precision_at_interrupt` is weighted too, and reports the production figure rather
+than an artifact of the split. The effect is not subtle:
+
+| policy | prec@int @ 1:1 | prec@int @ 100:1 |
+|---|---|---|
+| `skyline` | 1.000 | 1.000 |
+| `heuristic` | 0.514 | **0.010** |
+| `always` | 0.496 | **0.010** |
+
+Two rows do not move — `never` and `skyline` — because neither produces a false
+positive. Everything else inflates around them, which is the concrete reason
+silence is the reference baseline rather than a curiosity.
+
+Two deliberate choices:
+
+- **Hard violations are never reweighted.** They count distinct moments in the
+  benchmark, not estimated production volume. Blending the two would leave the
+  number meaning neither.
+- **`base_rate < 1` raises** rather than silently inverting the caller's intent.
+
 ## Hard violations
 
 A raw count of unwanted interruptions that occurred while the user was asleep or
@@ -110,6 +145,40 @@ scored `—` rather than penalized.
 
 **timeliness** — of correctly-surfaced cues carrying a `window_s`, the fraction
 delivered inside it. A reroute alert is worthless one exit later.
+
+## The skyline
+
+`skyline` is reported on the leaderboard but is **not a baseline**. It reads the
+same signal text every other policy sees, never touches a gold label, and resolves
+the semantic relation each moment turns on — which gate boarding moved away from
+versus which gate you're standing at; whether the page names you as primary or as
+backup.
+
+It exists to answer an objection. Once the dataset's lexical shortcuts were
+removed, every reference baseline scored *worse than silence*, which invites the
+reading that "beat silence" is an impossible bar and the benchmark is degenerate.
+The skyline scores ICS 0 with zero hard violations, so the headroom between
+silence and solved is real and the task is solvable.
+
+It is a template parser tuned to this generator and collapses on moments phrased
+even slightly differently. **Treat a submitted policy that looks like it as
+overfitting, not progress.** Its second job is as a standing label-consistency
+check: if it ever disagrees with a gold label, the dataset contradicts its own
+stated semantics. That check caught an inverted `travel` pair.
+
+## The shortcut audit
+
+`tactbench audit` trains a bag-of-words classifier on **signal text alone** — no
+user state, no DND flag, no slice tags — and reports how well it separates speak
+from stay-quiet. Chance is 50%.
+
+This is not a diagnostic; it gates the build. `test_lexical_leakage_stays_near_chance`
+fails if the overall figure drifts above 70%, and every permutable family must stay
+under 60%.
+
+The audit exists because the claim it measures was once false. v1 asserted that
+matched pairs prevented keyword matching; the probe hit **93.5%**. Full history in
+[DATASET.md](DATASET.md).
 
 ## Slice reporting
 
