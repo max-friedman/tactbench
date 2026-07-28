@@ -203,11 +203,18 @@ user state, no DND flag, no slice tags — and reports how well it separates spe
 from stay-quiet. Chance is 50%.
 
 This is not a diagnostic; it gates the build. `test_lexical_leakage_stays_near_chance`
-fails if the overall figure drifts above 70%, and every permutable family must stay
-under 60%.
+fails if the overall figure drifts above 70%, and **every** family must stay under
+60% — there are no exemptions.
 
 The audit exists because the claim it measures was once false. v1 asserted that
-matched pairs prevented keyword matching; the probe hit **93.5%**. Full history in
+matched pairs prevented keyword matching; the probe hit **93.5%**.
+
+The exemption granted to `quiet_hours` was a second, subtler version of the same
+error. It probed at 100% and was excused as irreducible. Because that family also
+carries the highest false-positive cost — driving 82% of the `always`-vs-silence
+gap from 13% of moments — a policy matching two substrings and coin-flipping
+elsewhere beat silence while the honest heuristic did not. `TestNoKeywordExploit`
+now fails the build if any keyword policy clears the bar. Full history in
 [DATASET.md](DATASET.md).
 
 ## Per-family reporting, and why there is no single "comprehension" number

@@ -50,17 +50,26 @@ rule:
 | `commerce` | return window closes in *n* hours | **desk** boxed, **replacement** assembled → **replacement** boxed, **desk** assembled |
 | `meeting_prep` | revised contract unread, 90 min old | **review** begins in *n*, **standup** began *n* ago → **standup** begins in *n*, **review** began *n* ago |
 | `driving` | flight departs in *n* hours | **your route** backed up, **alternate** clear → **alternate** backed up, **your route** clear |
-| `quiet_hours` | *n*th message from Mom in ten minutes | Dad is being **admitted** → Dad is being **discharged** |
+| `quiet_hours` | *n*th message from Mom, **and the admission itself** | **you** are nearby / Mom is hours out → **Mom** is nearby / you are hours out |
 
-The first five are token permutations: both sides contain the same words, arranged
-differently. Each probes at the 50% chance floor.
+All nine are token permutations: both sides contain the same words, arranged
+differently. Every family probes at the 50% chance floor.
 
-`quiet_hours` is the exception and always will be. A medical emergency is not a
-rearrangement of a routine check-in, so severity there is irreducibly lexical and
-the family probes at **91.4%**. It is kept because the judgment it poses is real —
-DND exists to be overridden by exactly this, and repetition alone must never be
-enough at 3am — but any system scoring well on that family alone may just be
-reading `admitting` versus `discharging`.
+`quiet_hours` was not always in that list. It originally turned on severity —
+*admitted* versus *discharged* — and was declared irreducible on the reasoning
+that a medical emergency is not a rearrangement of a routine check-in. It probed
+at 100% and was exempted from the per-family assertion by name.
+
+**The exemption was the error, not the family.** Because `quiet_hours` carries the
+highest false-positive cost in the benchmark, it drove 82% of the gap between
+`always` and silence from 13% of the moments — so a policy matching `admitt` /
+`discharg` and coin-flipping on the other eight families beat silence, while the
+honest structural heuristic did not.
+
+The decider was simply on the wrong axis. Moving the admission into the shared
+body and asking *who can actually get there tonight* permutes cleanly and poses a
+harder question. If a family looks irreducible, look for a different decider
+before granting an exception.
 
 ### User state is held constant across a pair
 
@@ -140,11 +149,14 @@ enforces the invariants that make the benchmark meaningful:
 
 ## Known weaknesses
 
-- **Six families is six degrees of freedom.** Phrasing is no longer the weak point —
+- **Nine families is nine degrees of freedom.** Phrasing is no longer the weak point —
   the audit confirms word statistics don't carry the answer — but the *scenarios*
   are still a small hand-authored set. Item count overstates diversity. More
   families is the highest-value expansion.
-- **`quiet_hours` leaks at 91.4%** and structurally cannot be fixed by permutation.
+- **Cost is concentrated in `quiet_hours`** — 82% of the `always`-vs-silence gap
+  from 13% of moments, because a false positive while asleep under DND is the most
+  expensive error priced. Deliberate, but it makes the headline sensitive to how
+  that one family is written.
 - **Independent moments.** Real interruption cost depends on how recently the user
   was last interrupted. Modeling fatigue requires session-level items.
 - **Western, knowledge-worker, English-only.** The scenarios assume a particular

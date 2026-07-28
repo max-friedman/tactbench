@@ -430,13 +430,30 @@ class DrivingScenario(Scenario):
 
 
 class QuietHoursScenario(Scenario):
-    """The hardest family, and the one permutation cannot fully rescue.
+    """3am, asleep, DND on, a starred contact, and a real emergency.
 
-    A medical emergency is not a rearrangement of a routine check-in, so some
-    lexical difference between the two sides is irreducible here. The decider is
-    kept as short and as structurally parallel as the meaning allows, and the
-    residual leakage for this family is reported by ``tactbench audit`` rather
-    than hidden.
+    Round 1 declared this family irreducibly lexical -- a medical emergency is not
+    a rearrangement of a routine check-in -- and exempted it from the per-family
+    audit assertion. **That exemption was wrong, and round 9 measured its cost.**
+
+    Because severity decided the label, two substrings (``admitt`` / ``discharg``)
+    captured the family. And because it carries the highest false-positive cost in
+    the benchmark (sleeping, DND-doubled), it drove **82% of the gap** between
+    ``always`` and silence from 13% of the moments. A policy matching those two
+    tokens and coin-flipping on the other eight families beat silence at +28.0,
+    while the honest structural heuristic scored -22.9.
+
+    The fix was to stop making severity the decider. The emergency now sits in the
+    **shared body**, identical on both sides, and the judgment is whether the user
+    can actually do anything -- which permutes cleanly:
+
+        positive:  Mom is hours away, the user is the one nearby.
+        near-miss: The user is hours away, Mom is the one nearby.
+
+    Same tokens, swapped roles, opposite answers. Waking someone at 3am about a
+    crisis they cannot reach for six hours is not help; waking the one person who
+    can be there in fifteen minutes is. That is a harder and more honest judgment
+    than spotting the word "admitted", and it is not lexical.
     """
 
     family = "quiet_hours"
@@ -444,7 +461,7 @@ class QuietHoursScenario(Scenario):
     positive_value = 3
     window_s = 900
     positive_slices = ["quiet_hours", "dnd_override"]
-    near_slices = ["quiet_hours", "dnd_override"]
+    near_slices = ["quiet_hours", "dnd_override", "cannot_act"]
 
     def state(self, rng):
         return UserState(
@@ -457,6 +474,13 @@ class QuietHoursScenario(Scenario):
 
     def body(self, rng):
         n = rng.choice(["Third", "Fourth", "Second"])
+        crisis = rng.choice(
+            [
+                "Mom: 'Dad is at the hospital, they are admitting him tonight.'",
+                "Mom: 'They are admitting Dad - he is stable but staying in.'",
+                "Mom: 'Dad is being admitted. Nothing is decided until morning.'",
+            ]
+        )
         return [
             Signal(
                 source=Source.MESSAGE,
@@ -464,18 +488,25 @@ class QuietHoursScenario(Scenario):
                 content=f"{n} message from Mom in ten minutes.",
                 meta={"contact": "family", "priority": "starred"},
             ),
+            Signal(
+                source=Source.MESSAGE,
+                age_s=50,
+                content=crisis,
+                meta={"contact": "family", "priority": "starred"},
+            ),
             Signal(source=Source.SENSOR, age_s=30, content="Phone face down, charging."),
         ]
 
     def deciders(self, rng):
+        hrs = rng.choice([5, 6, 7])
         variants = [
             (
-                "Mom: 'At the hospital with Dad — they are admitting him tonight.'",
-                "Mom: 'At the hospital with Dad — they are discharging him tonight.'",
+                f"Mom: 'Right now I am {hrs} hours out; you are the one nearby.'",
+                f"Mom: 'Right now you are {hrs} hours out; I am the one nearby.'",
             ),
             (
-                "Mom: 'Dad is being admitted, can you come.'",
-                "Mom: 'Dad is being discharged, no need to come.'",
+                f"Nearby: you. {hrs} hours away, still driving: Mom.",
+                f"Nearby: Mom. {hrs} hours away, still driving: you.",
             ),
         ]
         pos_text, near_text = variants[rng.randrange(len(variants))]
@@ -496,10 +527,11 @@ class QuietHoursScenario(Scenario):
 
     def why(self):
         return (
-            "DND exists to be overridden by exactly this: a starred contact, an "
-            "admission, and repeat attempts to reach them.",
-            "Same contact, same repetition, same hour -- but the news is that "
-            "nothing is wrong. Repetition alone must not break DND at 3am.",
+            "A real admission, and the user is the only person who can be there "
+            "tonight. This is what DND exists to be overridden for.",
+            "The same admission, but someone closer is already handling it and the "
+            "user is hours away. Waking them at 3am buys nothing they can act on "
+            "before morning.",
         )
 
 

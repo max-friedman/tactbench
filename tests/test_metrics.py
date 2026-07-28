@@ -7,11 +7,14 @@ away, and that the silence baseline is a meaningful bar.
 
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 
 from tactbench.audit import lexical_leakage
 from tactbench.dataset.generate import generate
 from tactbench.metrics import score, score_item
+from tactbench.policies.base import Policy
 from tactbench.policies.builtin import AlwaysPolicy, HeuristicPolicy, NeverPolicy
 from tactbench.policies.skyline import PartialSkylinePolicy, SkylinePolicy
 from tactbench.runner import evaluate, run_policy, silence_ics
@@ -278,16 +281,25 @@ class TestShortcutResistance:
             "state; the pairing has stopped forcing a judgment"
         )
 
-    def test_permutable_families_sit_at_the_chance_floor(self):
-        """Five families are built as token permutations and must probe at chance.
+    def test_every_family_sits_at_the_chance_floor(self):
+        """**Every** family, with no exceptions.
 
-        quiet_hours is excluded on purpose: a medical emergency is not a
-        rearrangement of a routine check-in, so its residual leakage is
-        irreducible and is reported rather than asserted away.
+        Round 1 exempted quiet_hours, reasoning that a medical emergency is not a
+        rearrangement of a routine check-in so severity was irreducibly lexical.
+        Round 9 measured what that cost: two substrings captured the family, and
+        because it carries the highest false-positive cost it drove 82% of the
+        headline gap -- so a policy matching those two tokens and coin-flipping
+        elsewhere beat silence, while the honest heuristic did not.
+
+        The exemption was wrong, not irreducible. Moving the emergency into the
+        shared body and making the decider *who can actually get there* permutes
+        cleanly. There is no exempt family now, and adding one requires
+        demonstrating that no keyword policy can exploit it -- see
+        TestNoKeywordExploit.
         """
         items = generate(n_pairs_per_scenario=10)
-        permutable = {i.moment.family for i in items} - {"quiet_hours"}
-        assert len(permutable) >= 8, "new families must be added to the audit"
+        permutable = {i.moment.family for i in items}
+        assert len(permutable) >= 9, "new families must be added to the audit"
         for family in sorted(permutable):
             subset = [i for i in items if i.moment.family == family]
             accuracy = lexical_leakage(subset).accuracy
@@ -436,4 +448,56 @@ class TestPerFamilyReporting:
         always = evaluate(AlwaysPolicy(), items).by_family
         assert any(abs(heuristic[f] - always[f]) > 1.0 for f in heuristic), (
             "per-family costs are indistinguishable between very different policies"
+        )
+
+
+class TestNoKeywordExploit:
+    """No small set of keywords in one family may beat silence.
+
+    Round 9's finding. `quiet_hours` carries the highest false-positive cost in
+    the benchmark (asleep, DND-doubled), so it drove **82% of the gap** between
+    `always` and silence from 13% of the moments. That concentration is correct --
+    waking someone at 3am really is the most expensive error the cost model knows.
+
+    The bug was that the same family was the one exempted from the shortcut audit.
+    Concentration plus exploitability meant a policy matching two substrings and
+    coin-flipping on the other eight families **beat silence at +28.0**, while the
+    hand-written structural heuristic scored -22.9.
+
+    Concentration is fine. Concentration in an exploitable family is not.
+    """
+
+    class _KeywordPolicy(Policy):
+        """Matches a keyword set; coin-flips elsewhere, deterministically."""
+
+        name = "keyword-exploit"
+
+        def __init__(self, speak_on: set[str], quiet_on: set[str]):
+            self.speak_on, self.quiet_on = speak_on, quiet_on
+
+        def decide(self, moment):
+            text = " ".join(s.content for s in moment.signals).lower()
+            if any(k in text for k in self.speak_on):
+                return Decision(moment_id=moment.id, surface=True, intent="alert")
+            if any(k in text for k in self.quiet_on):
+                return Decision(moment_id=moment.id, surface=False)
+            flip = hashlib.sha256(moment.id.encode()).digest()[4] % 2 == 0
+            return Decision(moment_id=moment.id, surface=flip, intent="alert" if flip else None)
+
+    @pytest.mark.parametrize(
+        "speak_on,quiet_on",
+        [
+            ({"admitt"}, {"discharg"}),  # the original round 9 exploit
+            ({"hospital"}, {"home"}),
+            ({"nearby"}, set()),
+            ({"emergency", "er"}, {"routine"}),
+        ],
+    )
+    def test_a_keyword_policy_cannot_beat_silence(self, speak_on, quiet_on):
+        items = generate(n_pairs_per_scenario=10)
+        reference = silence_ics(items)
+        card = evaluate(self._KeywordPolicy(speak_on, quiet_on), items, reference=reference)
+        assert card.ics > reference, (
+            f"keywords {speak_on | quiet_on} beat silence "
+            f"({card.ics:.1f} vs {reference:.1f}) — a family is exploitable"
         )
