@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 7 complete
-- **Gate:** green — 65 tests, ruff clean, **enforced by CI** on py3.11-3.13
+- **Round:** 8 complete
+- **Gate:** green — 69 tests, ruff clean, **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (266 dev / 94 test), 9 families × 20 pairs
 - **Headline:** silence (ICS 354) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable
@@ -206,17 +206,12 @@ halt the loop.**
    state difference *is* the judgment under test? The invariant currently
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
-2. **Calibrate the LLM run against the sweep.** When a key arrives, the sweep
-   gives an interpretation frame the project didn't have before: an LLM's ICS
-   maps to an implied comprehension fraction, so the result reads as "this model
-   comprehends ~p of these moments" rather than a bare score. Costs nothing to
-   apply.
-3. **More families still welcome** — nine is better than six but still one
+2. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-4. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+3. **Type checking** — no mypy/pyright configured; worth adding to CI once the
    schema surface settles.
-5. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+4. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
@@ -308,6 +303,46 @@ reminder that a failing check is a hypothesis about the code *and* about itself.
 
 ---
 
+## Round 8 — implied comprehension, refuted
+
+**Question:** R7's sweep maps ICS to a comprehension fraction. The queue proposed
+applying it to the pending LLM run so a score reads as "this model comprehends
+~p of these moments." Before building it: *does implied-p survive structured
+errors, or does it mis-read exactly the systems it would interpret?*
+
+The curve was built from **uniformly random** errors. Real models fail
+systematically, and this dataset prices that heavily — a false positive costs
+10.0 in `quiet_hours` (asleep, DND-doubled) and 1.0 in `commerce`.
+
+**Check built first:** `FamilyPartialSkyline` comprehends whole families and
+guesses elsewhere, holding the fraction of moments comprehended roughly fixed
+while varying *which* moments those are.
+
+**Finding — refuted.**
+
+| comprehends | true fraction | ICS | implied p |
+|---|---|---|---|
+| cheap (`commerce`/`health`/`meeting_prep`) | 0.323 | 466.0 | 0.198 |
+| mixed (`travel`/`deadline`/`finance`) | 0.338 | 367.0 | 0.303 |
+| costly (`quiet_hours`/`driving`/`childcare`) | 0.338 | 199.0 | 0.495 |
+
+True fraction varies by 0.015; implied p varies by **0.298** — twenty times the
+true variation. Implied-p is not a real quantity.
+
+**The metric is not at fault.** ICS weights by consequence, and a system handling
+the expensive families really is better. The *label* was wrong: one number
+conflates how much a system understands with which parts.
+
+**Shipped the honest replacement:** `Scorecard.by_family` and
+`tactbench eval --by-family`. Two policies can sit adjacent on the headline and
+fail in completely different places — and for a proactive assistant, *where* it
+fails is as load-bearing as how often. Four tests, plus METRICS.md.
+
+**Consequence for the blocked LLM run:** report per-family costs, never a single
+implied comprehension figure. Recorded so a future round doesn't re-propose it.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -344,5 +379,8 @@ dataset or the policy is wrong, not the assertion.
 - Hard violations are never reweighted by `base_rate`.
 
 - A round may reject its own queue item. The evidence stays in `experiments/`.
+- **No single-number "comprehension" score.** Refuted in R8: ICS weights by
+  consequence, so one figure conflates how much a system understands with which
+  parts. Report `--by-family` instead.
 - ICS stays monotone, anchored, and responsive in comprehension — the metric must
   rank the middle, not only separate the ends.

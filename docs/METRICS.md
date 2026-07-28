@@ -210,6 +210,41 @@ The audit exists because the claim it measures was once false. v1 asserted that
 matched pairs prevented keyword matching; the probe hit **93.5%**. Full history in
 [DATASET.md](DATASET.md).
 
+## Per-family reporting, and why there is no single "comprehension" number
+
+Round 7's sweep produces a smooth ICS curve against comprehension, which invites
+an appealing shortcut: score a system, look its ICS up on the curve, report *"this
+model understands about 40% of these moments."*
+
+**That number is not real.** The curve was built from uniformly random errors;
+real systems fail systematically. Three policies understanding the same share of
+moments — true fractions within 0.015 of each other — land at implied fractions
+spanning **0.30**, purely from *which* families they understand:
+
+| comprehends | true fraction | ICS | implied p |
+|---|---|---|---|
+| cheap families (`commerce`, `health`, `meeting_prep`) | 0.323 | 466.0 | 0.198 |
+| mixed (`travel`, `deadline`, `finance`) | 0.338 | 367.0 | 0.303 |
+| costly (`quiet_hours`, `driving`, `childcare`) | 0.338 | 199.0 | 0.495 |
+
+The metric is not wrong here — ICS weights by consequence, and a system that
+handles `quiet_hours` correctly genuinely *is* better than one that only handles
+`commerce`. What is wrong is the **label**: a single figure conflates *how much* a
+system understands with *which parts*, so reporting it as a comprehension fraction
+would mislead about exactly the systems it would be used on.
+
+The honest unit is the per-family breakdown:
+
+```bash
+tactbench eval --by-family
+```
+
+`Scorecard.by_family` carries mean cost per scenario family. Read it alongside ICS:
+two policies can sit adjacent on the headline and fail in completely different
+places, and for a proactive assistant *where* it fails is as load-bearing as how
+often. Evidence:
+[`experiments/implied_comprehension_probe.py`](../experiments/implied_comprehension_probe.py).
+
 ## Slice reporting
 
 Mean cost per moment is also reported per slice tag, so you can ask *which kind* of
