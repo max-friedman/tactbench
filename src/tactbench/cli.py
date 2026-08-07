@@ -244,7 +244,9 @@ def audit(
 
     Trains a bag-of-words classifier on signal text alone -- no user state, no DND,
     no slice tags -- and reports how well it separates speak from stay-quiet. Near
-    50% means the words carry no answer and a policy must actually judge. High
+    50% on the UNIGRAM column means vocabulary carries no answer. It does not mean
+    the text carries no answer: a role permutation is invisible to a bag of words
+    by construction, so read the bigram column too. High
     means the benchmark is measuring vocabulary instead of tact.
     """
     from .audit import PER_FAMILY_THRESHOLD, lexical_leakage, ngram_leakage
@@ -301,8 +303,9 @@ def audit(
             f"\n[yellow]The unigram probe reports {report.accuracy:.1%} because it cannot "
             "see word order.[/yellow]\nA role permutation is only a reordering, so "
             "bag-of-words is structurally unable to\nseparate a pair. Bigrams reach "
-            f"{ngram_report.accuracy:.1%}. See docs/DATASET.md — each family has a single\n"
-            "decider template, so an n-gram memorises the role assignment."
+            f"{ngram_report.accuracy:.1%}. Root cause is decider scarcity: as few as 4\n"
+            "distinct decider sentences across a family's 40 items, so most held-out text\n"
+            "is published verbatim. See docs/DATASET.md."
         )
     console.print(
         "\n[dim]Most speak-predictive tokens: "

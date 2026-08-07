@@ -20,7 +20,7 @@ v2 fixes the construction rather than the claim. Two rules:
 2. **The decider is a role permutation wherever the scenario allows it.** Instead
    of rewriting the sentence, the same nouns swap places -- primary/secondary
    on-call, which gate you're standing at, which box is unopened. The two sides
-   then carry nearly the same token multiset, so word statistics cannot separate
+   then carry nearly the same token multiset, so unigram statistics cannot separate
    them and only the structure can.
 
 Where severity is genuinely lexical (a medical emergency is not a permutation of

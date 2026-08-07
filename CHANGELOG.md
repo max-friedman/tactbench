@@ -5,6 +5,30 @@ this project has not yet cut a release, so everything sits under Unreleased.
 
 ## [Unreleased]
 
+### Changed
+
+- **The shortcut audit reports a bigram column, and the verdict of whichever probe
+  is worse.** A bag of words cannot see word order, and the matched-pair design
+  makes both sides carry the same token multiset — so the unigram probe was
+  *structurally incapable* of separating a pair and reported 50.0% for ten rounds.
+  Bigrams reach **97.2%**. `audit.verbatim_overlap` additionally measures how much
+  held-out text is published verbatim in `dev`.
+
+### Known defect (open, recorded, not worked around)
+
+- **The dataset is currently solvable by surface pattern matching.** Decider
+  diversity is as low as **4 distinct sentences across a family's 40 items**, so
+  **91.2%** of held-out decider sentences appear byte-identically in the published
+  `dev` split and 49.1% of held-out items are wholly duplicate text. A **dict lookup
+  with no model** scores +90.9 versus silence; a bag-of-bigrams fit on `dev` scores
+  **+99.4** on held-out `test` (ICS 1.0 against a skyline of 0.0), at 0.983
+  precision. This is a near-duplicate leak, distinct from the pair-key split fixed
+  above: a split can be perfectly pair-whole and still publish its own answers.
+  Pinned by two `strict=True` xfails so repairing the dataset fails the build and
+  forces the assertions to be tightened. **The fix is paraphrase expansion, not a
+  weaker bound.** Until it lands, read every leaderboard number as measuring a task
+  a lookup table can mostly solve.
+
 ### Fixed
 
 - **The held-out split was published.** `tactbench build` bucketed dev/test on
@@ -29,7 +53,8 @@ this project has not yet cut a release, so everything sits under Unreleased.
 
 - **Engineering hygiene.** CI on Python 3.11–3.13 (tests, lint, format check, a
   dataset-reproducibility job that fails if `data/` drifts from the generator, and
-  a visible shortcut-audit run). `CONTRIBUTING.md`, this changelog, a PR template,
+  a visible shortcut-audit run; the audit job reports but does not yet gate on the
+  bigram probe — see the known defect above). `CONTRIBUTING.md`, this changelog, a PR template,
   and `LICENSE-DATA` for the CC BY 4.0 dataset terms the README already claimed.
 - **Base-rate reweighting** (`--base-rate`). Scores against a realistic
   quiet-to-loud prior instead of the balanced split. At 100:1, heuristic precision
@@ -42,7 +67,7 @@ this project has not yet cut a release, so everything sits under Unreleased.
   variants (`naive` withholds the cost structure, `rubric` discloses it). Plus
   `tactbench llm` with per-run caching. **Never executed** — no API key available,
   and no numbers are published for an unrun experiment.
-- **`audit.py`** and `tactbench audit` — a dependency-free bag-of-words probe that
+- **`audit.py`** and `tactbench audit` — a dependency-free bag-of-words probe (joined in Round 11 by a bigram probe) that
   measures whether signal text alone can answer the benchmark.
 - **`policies/skyline.py`** — the achievable ceiling, and a standing
   label-consistency check.

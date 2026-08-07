@@ -29,6 +29,13 @@ probe answers in two stages.
    cross-validated naive Bayes and the same pair-preserving folds as the audit.
    If these clear 60% where unigrams sit at 50%, the audit has a blind spot.
 
+1b. **How much is duplicate text rather than learning?** Added after review
+   pointed out the first draft reported the result as generalisation to unseen
+   pairs. The pairs are new; the sentences largely are not. Measure how much
+   held-out text is published verbatim in dev, and what a dict lookup alone gets.
+   Report the zero-model number *first*, because a finding that a model achieves
+   X is worth much less when a lookup table achieves most of X.
+
 2. **Exploitability — the part that decides whether it matters.** Train the
    order-aware model on the *dev* split, then score it as a real policy on the
    *held-out test* split with ICS, against the silence bar. This is the honest
@@ -43,7 +50,13 @@ Run::
 
 from __future__ import annotations
 
-from tactbench.audit import _NaiveBayes, _pair_key, item_tokens, lexical_leakage
+from tactbench.audit import (
+    _NaiveBayes,
+    _pair_key,
+    item_tokens,
+    lexical_leakage,
+    verbatim_overlap,
+)
 from tactbench.dataset.loader import load
 from tactbench.metrics import score
 from tactbench.runner import silence_ics
@@ -135,25 +148,46 @@ def main() -> None:
     families = sorted({i.moment.family for i in dev})
 
     feature_sets = [
-        ("unigram (shipped audit)", unigrams),
+        ("uni(audit)", unigrams),
         ("bigram", bigrams),
-        ("positional unigram", positional),
-        ("unigram + bigram", bigrams_plus_unigrams),
+        ("positional", positional),
+        ("uni+bigram", bigrams_plus_unigrams),
     ]
 
     print("1. SEPARABILITY -- cross-validated on dev, pairs kept whole\n")
-    header = f"{'family':<14} " + " ".join(f"{name.split()[0]:>10}" for name, _ in feature_sets)
+    # Full labels, not name.split()[0] -- that truncated both "unigram (shipped
+    # audit)" and "unigram + bigram" to "unigram", printing 50.0% and 97.2% under
+    # the same header in the round's own evidence artifact.
+    header = f"{'family':<14} " + " ".join(f"{name:>11}" for name, _ in feature_sets)
     print(header)
     print("-" * len(header))
     for family in families:
         subset = [i for i in dev if i.moment.family == family]
-        cells = " ".join(f"{cross_validated(subset, fn):>9.1%} " for _, fn in feature_sets)
+        cells = " ".join(f"{cross_validated(subset, fn):>10.1%} " for _, fn in feature_sets)
         print(f"{family:<14} {cells}")
     print("-" * len(header))
-    overall = " ".join(f"{cross_validated(dev, fn):>9.1%} " for _, fn in feature_sets)
+    overall = " ".join(f"{cross_validated(dev, fn):>10.1%} " for _, fn in feature_sets)
     print(f"{'overall':<14} {overall}")
 
     print(f"\n   (the shipped audit reports {lexical_leakage(dev).accuracy:.1%})")
+
+    # ------------------------------------------------------------------ #
+    overlap = verbatim_overlap(dev, test)
+    print("\n\n1b. HOW MUCH OF THIS IS DUPLICATE TEXT RATHER THAN LEARNING?\n")
+    print(f"   held-out deciders published verbatim in dev : {overlap['decider_published']:>6.1%}")
+    print(
+        f"   held-out items wholly published in dev      : {overlap['whole_item_published']:>6.1%}"
+    )
+    print(f"   accuracy of a dict lookup, no model at all  : {overlap['lookup_accuracy']:>6.1%}")
+    families_by_diversity = sorted(
+        (
+            (f, len({i.moment.signals[-1].content for i in dev + test if i.moment.family == f}))
+            for f in families
+        ),
+        key=lambda kv: kv[1],
+    )
+    print("\n   distinct decider sentences per family (40 items each):")
+    print("   " + ", ".join(f"{f}={n}" for f, n in families_by_diversity))
 
     print("\n\n2. EXPLOITABILITY -- fit on dev, graded on held-out test, scored by ICS\n")
     reference = silence_ics(test)

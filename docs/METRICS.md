@@ -198,9 +198,10 @@ from the leaderboard registry. Full sweep:
 
 ## The shortcut audit
 
-`tactbench audit` trains a bag-of-words classifier on **signal text alone** — no
-user state, no DND flag, no slice tags — and reports how well it separates speak
-from stay-quiet. Chance is 50%.
+`tactbench audit` trains classifiers on **signal text alone** — no user state, no
+DND flag, no slice tags — and reports how well they separate speak from stay-quiet.
+Chance is 50%. It reports a unigram and a bigram column, and prints the verdict of
+whichever is worse.
 
 This is not a diagnostic; it gates the build. `test_lexical_leakage_stays_near_chance`
 fails if the overall figure drifts above 70%, and **every** family must stay under
@@ -235,7 +236,12 @@ and prints the verdict of whichever probe is worse. On v1:
 
 Fit on `dev` and graded on held-out `test`, a bag-of-bigrams reaches ICS **1.0**
 against a skyline of 0.0 and a silence bar of 154.0 — **+99.4 versus silence**, at
-0.983 precision. The benchmark is currently solvable by surface pattern matching.
+0.983 precision.
+
+Most of that is duplicate text rather than generalisation: **91.2%** of held-out
+decider sentences are published verbatim in `dev`, and a **dict lookup with no
+model** already scores +90.9. `audit.verbatim_overlap` measures this directly. The
+benchmark is currently solvable by surface pattern matching.
 That is an open defect, pinned by a `strict=True` xfail in
 `TestOrderSensitiveShortcut` so repairing the dataset forces the assertion to be
 tightened rather than forgotten. The fix is paraphrase expansion, not a weaker

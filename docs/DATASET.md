@@ -56,10 +56,29 @@ All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
 audit** — which is exactly what a token permutation guarantees, since that probe
 cannot see arrangement. An order-aware probe reaches **97.2%**, and a bag-of-bigrams
-fit on `dev` scores **+99.4 versus silence on held-out `test`**. Each family has a
-single decider template, so an n-gram memorises the role assignment
-(`pickup_you` → speak, `pickup_dana` → stay quiet) instead of resolving it. See
-"Known weaknesses" below and `experiments/order_sensitive_probe.py`.
+fit on `dev` scores **+99.4 versus silence on held-out `test`**.
+
+The root cause is **decider scarcity**, not the permutation rule. Each family draws
+its decider from two variants, yielding as few as 4 distinct decider sentences
+across 40 items:
+
+| family | distinct decider sentences (of 40 items) |
+|---|---|
+| childcare, commerce, deadline, health | **4** |
+| quiet_hours | 10 |
+| driving | 12 |
+| finance | 14 |
+| meeting_prep | 16 |
+| travel | 32 |
+
+So **91.2%** of held-out decider sentences appear byte-identically in the published
+`dev` split, and 49.1% of held-out items are wholly duplicate text. A dict lookup
+on the decider string — no model — scores 95.6% and **+90.9 versus silence**.
+
+This is a **near-duplicate leak**, and it is a *different* defect from the pair-key
+split fixed in Round 10: that one divided pairs across the boundary, this one
+repeats text across it. A split can be perfectly pair-whole and still publish its
+own answers. See "Known weaknesses" and `experiments/order_sensitive_probe.py`.
 
 `quiet_hours` was not always in that list. It originally turned on severity —
 *admitted* versus *discharged* — and was declared irreducible on the reasoning

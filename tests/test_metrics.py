@@ -19,6 +19,7 @@ from tactbench.audit import (
     item_tokens,
     lexical_leakage,
     ngram_leakage,
+    verbatim_overlap,
 )
 from tactbench.cli import _bucket
 from tactbench.dataset.generate import generate
@@ -735,9 +736,10 @@ class TestOrderSensitiveShortcut:
     actually differs between them.
 
     It is currently violated, and the violation is recorded rather than softened.
-    Each family has a single decider template, so a bigram memorises the role
-    assignment outright (``pickup_you`` -> speak, ``pickup_dana`` -> quiet) and
-    transfers to held-out pairs. The fix is paraphrase expansion -- many surface
+    Decider diversity is as low as four distinct sentences across a family's 40
+    items, so 91.2% of held-out decider sentences appear byte-identically in the
+    published dev split -- a dict lookup with no model scores +90.9 vs silence,
+    and a bigram adds the rest. The fix is paraphrase expansion -- many surface
     realisations per family -- which is a dataset rebuild, not an assertion
     change. See ``experiments/order_sensitive_probe.py`` and the queue.
     """
@@ -760,8 +762,38 @@ class TestOrderSensitiveShortcut:
             speak = self.model.predict(item_bigrams(probe))
             return Decision(moment_id=moment.id, surface=speak, intent="alert" if speak else None)
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Round 11: OPEN DEFECT, same root cause as the ICS test below. "
+        "91% of held-out decider sentences appear byte-identically in the "
+        "published dev split and 49% of held-out items are wholly duplicate text, "
+        "so a zero-model dict lookup scores +90.9 vs silence. Paraphrase expansion "
+        "fixes this; strict=True makes the build fail when it lands.",
+    )
+    def test_the_held_out_split_is_not_published_verbatim(self):
+        """The dominant mechanism, measured separately from the model.
+
+        Round 11 first reported the bigram result as generalisation to unseen
+        pairs. Review showed most of it is not: the *pairs* are new, but the
+        *sentences* are not. This is a near-duplicate leak and it is a different
+        defect from Round 10's pair-key split -- a split can be perfectly
+        pair-whole and still publish its own answers.
+        """
+        overlap = verbatim_overlap(load("v1", "dev"), load("v1", "test"))
+        assert overlap["decider_published"] < 0.10, (
+            f"{overlap['decider_published']:.1%} of held-out decider sentences are "
+            f"published verbatim in dev; a dict lookup scores "
+            f"{overlap['lookup_accuracy']:.1%} with no model"
+        )
+
     def test_bigrams_transfer_to_held_out_pairs(self):
-        """The mechanism, pinned: it is memorisation of a template, not noise."""
+        """Pins the measured effect so a dataset change forces a re-measure.
+
+        Note this asserts the DEFECT exists. It is not an xfail because it is a
+        characterisation of the current data, not the invariant -- but it will go
+        red when paraphrase expansion lands, and that is intended. See the two
+        strict xfails in this class for the invariants themselves.
+        """
         dev, test = load("v1", "dev"), load("v1", "test")
         assert not ({pair_key(i.moment.id) for i in dev} & {pair_key(i.moment.id) for i in test}), (
             "this measurement is only meaningful against a genuinely held-out split"
@@ -777,12 +809,14 @@ class TestOrderSensitiveShortcut:
 
     @pytest.mark.xfail(
         strict=True,
-        reason="Round 11: OPEN DEFECT. One decider template per family means a "
-        "bigram model fit on dev scores +99.4 vs silence on held-out test "
-        "(ICS 1.0 against a skyline of 0.0). The benchmark is solvable by surface "
-        "statistics. Fixing it requires paraphrase expansion, not a weaker bound. "
-        "strict=True so this fails the build the moment the dataset is repaired, "
-        "forcing the assertion to be tightened rather than forgotten.",
+        reason="Round 11: OPEN DEFECT. Low decider diversity (as few as 4 distinct "
+        "decider sentences across a family's 40 items) means 91% of held-out "
+        "deciders are published verbatim in dev, so a bigram model fit on dev "
+        "scores +99.4 vs silence on held-out test (ICS 1.0 against a skyline of "
+        "0.0). The benchmark is solvable by surface statistics. Fixing it requires "
+        "paraphrase expansion, not a weaker bound. strict=True so this fails the "
+        "build the moment the dataset is repaired, forcing the assertion to be "
+        "tightened rather than forgotten.",
     )
     def test_a_surface_ngram_policy_cannot_beat_silence(self):
         dev, test = load("v1", "dev"), load("v1", "test")
