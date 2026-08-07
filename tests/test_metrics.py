@@ -8,11 +8,14 @@ away, and that the silence baseline is a meaningful bar.
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 
 import pytest
 
-from tactbench.audit import lexical_leakage
+from tactbench.audit import LeakageReport, lexical_leakage
+from tactbench.cli import _bucket
 from tactbench.dataset.generate import generate
+from tactbench.dataset.loader import load
 from tactbench.metrics import score, score_item
 from tactbench.policies.base import Policy
 from tactbench.policies.builtin import AlwaysPolicy, HeuristicPolicy, NeverPolicy
@@ -27,6 +30,7 @@ from tactbench.schema import (
     Signal,
     Source,
     UserState,
+    pair_key,
 )
 
 
@@ -274,12 +278,69 @@ class TestShortcutResistance:
     """
 
     def test_lexical_leakage_stays_near_chance(self):
+        """Two-sided, deliberately.
+
+        Round 10: this assertion was ``accuracy < 0.70`` — an upper bound only.
+        A probe that is reliably *wrong* passes it trivially while being exactly
+        as useful to a submitter, who negates it for free. Threshold on distance
+        from chance, never on accuracy.
+        """
         items = generate(n_pairs_per_scenario=10)
         report = lexical_leakage(items)
-        assert report.accuracy < 0.70, (
+        assert report.exploitable_accuracy < 0.70, (
             f"bag-of-words probe reaches {report.accuracy:.1%} without seeing user "
-            "state; the pairing has stopped forcing a judgment"
+            f"state — worth {report.exploitable_accuracy:.1%} once its polarity is "
+            "chosen; the pairing has stopped forcing a judgment"
         )
+
+    def test_the_probe_still_catches_a_real_tell(self):
+        """Guard against the audit going quiet for the wrong reason.
+
+        Every family now probes at exactly 50.0%, which is the design working: a
+        bag-of-words model cannot see word order, and a role permutation is only
+        a reordering. But "always 50.0%" and "broken and reporting 50.0%" look
+        identical from the outside, so pin that a genuine one-sided token still
+        registers.
+        """
+        items = generate(n_pairs_per_scenario=10)
+        for item in items:
+            tell = "aardvark" if item.label.should_surface else "zeppelin"
+            item.moment.signals[0].content += f" {tell}"
+
+        report = lexical_leakage(items)
+        assert report.accuracy > 0.70, "a one-sided token must still be detected"
+        assert "LEAKING" in report.verdict()
+
+    @pytest.mark.parametrize(
+        "accuracy, expect_leaking",
+        [
+            (0.50, False),
+            (0.62, False),  # within the 0.65 verdict threshold, either way
+            (0.38, False),
+            (0.72, True),  # reliably right
+            (0.28, True),  # reliably WRONG -- the case the old audit called clean
+        ],
+    )
+    def test_leakage_is_distance_from_chance_not_accuracy(self, accuracy, expect_leaking):
+        """The audit's verdict must be symmetric about chance.
+
+        Round 10: both assertions were upper bounds, so ``meeting_prep`` at 32.8%
+        printed as ``at chance``. It was not at chance — it was a 67.2% classifier
+        with a minus sign, and negating a classifier is free. A one-sided check
+        cannot see an inverted leak, which is the exact kind a broken pair split
+        produces.
+        """
+        report = LeakageReport(accuracy=accuracy, folds=[accuracy], n=100)
+
+        assert report.leakage == pytest.approx(abs(accuracy - 0.5))
+        assert report.exploitable_accuracy == pytest.approx(0.5 + abs(accuracy - 0.5))
+        assert ("LEAKING" in report.verdict()) is expect_leaking
+
+        mirrored = LeakageReport(accuracy=1 - accuracy, folds=[1 - accuracy], n=100)
+        assert mirrored.leakage == pytest.approx(report.leakage), (
+            "a probe and its negation leak identically; only the sign differs"
+        )
+        assert ("LEAKING" in mirrored.verdict()) is expect_leaking
 
     def test_every_family_sits_at_the_chance_floor(self):
         """**Every** family, with no exceptions.
@@ -302,8 +363,13 @@ class TestShortcutResistance:
         assert len(permutable) >= 9, "new families must be added to the audit"
         for family in sorted(permutable):
             subset = [i for i in items if i.moment.family == family]
-            accuracy = lexical_leakage(subset).accuracy
-            assert accuracy < 0.60, f"{family} leaks at {accuracy:.1%}"
+            report = lexical_leakage(subset)
+            # Two-sided. `meeting_prep` sat at 32.8% under the old one-sided bound
+            # and printed as "at chance"; negating that probe scores 67.2%.
+            assert report.exploitable_accuracy < 0.60, (
+                f"{family} leaks at {report.accuracy:.1%} "
+                f"(worth {report.exploitable_accuracy:.1%} after choosing polarity)"
+            )
 
     def test_pairs_share_an_identical_user_state(self):
         """If state differed across a pair it would give the answer away as surely
@@ -311,11 +377,135 @@ class TestShortcutResistance:
         items = generate(n_pairs_per_scenario=5)
         by_pair: dict[str, list] = {}
         for item in items:
-            parts = item.moment.id.split("-")
-            by_pair.setdefault(f"{parts[0]}-{parts[-1]}", []).append(item)
+            by_pair.setdefault(pair_key(item.moment.id), []).append(item)
+        # Every group must actually BE a pair. Guarding the assertion with
+        # `if len(pair) == 2` made it vacuous the moment grouping drifted --
+        # the same shape of hole this round found in the split itself.
+        assert by_pair, "no pairs generated"
         for key, pair in by_pair.items():
-            if len(pair) == 2:
-                assert pair[0].moment.user_state == pair[1].moment.user_state, key
+            assert len(pair) == 2, f"{key} grouped {len(pair)} items, not 2"
+            assert pair[0].moment.user_state == pair[1].moment.user_state, key
+
+    def test_the_two_sides_are_equal_but_not_the_same_objects(self):
+        """Byte-identical text, independent objects.
+
+        The shared body must compare equal across a pair. It must not *be* the
+        same ``Signal`` instance: that makes the halves silently coupled, so
+        editing one item's text edits its partner's. Found in Round 10 by a test
+        that appended a per-label tell to every item and produced a dataset where
+        both sides carried both tells. Any in-place augmentation or paraphrase
+        pass would have hit it the same way.
+        """
+        items = generate(n_pairs_per_scenario=5)
+        by_pair: dict[str, list[Item]] = {}
+        for item in items:
+            by_pair.setdefault(pair_key(item.moment.id), []).append(item)
+
+        for key, pair in by_pair.items():
+            if len(pair) != 2:
+                continue
+            a, b = pair
+            assert len(a.moment.signals) == len(b.moment.signals), f"{key}: length mismatch"
+            # The body is every signal but the last; the last one is the decider,
+            # which is exactly what differs. `any()` here would pass while a
+            # paraphrase pass rewrote all but one body signal -- and paraphrase
+            # expansion is a named priority in CLAUDE.md.
+            body = list(zip(a.moment.signals[:-1], b.moment.signals[:-1], strict=True))
+            assert body, f"{key}: no shared body to compare"
+            for x, y in body:
+                assert x.content == y.content, f"{key}: body differs -- not a permutation"
+                assert x is not y, f"{key}: pair sides share a mutable Signal instance"
+            assert a.moment.user_state is not b.moment.user_state, f"{key}: shared UserState"
+
+        # And prove the decoupling behaves: mutating one side leaves the other alone.
+        a, b = next(p for p in by_pair.values() if len(p) == 2)
+        before = b.moment.signals[0].content
+        a.moment.signals[0].content += " sentinel"
+        assert b.moment.signals[0].content == before
+
+
+class TestSplitIntegrity:
+    """A pair must never be divided by the dev/test split.
+
+    Round 10. ``cli.build`` bucketed on ``moment.id``, which names an *item*, so
+    the two halves of a pair were assigned independently and 72 of 180 pairs
+    landed on opposite sides. Because a pair shares a byte-identical body and
+    differs only in which noun plays which role, each orphaned test item was a
+    near-verbatim copy of a published dev item under the opposite label:
+
+    * 77% of the held-out split had its partner sitting in ``dev.jsonl``
+    * negating that partner's label answered **72 of 72** correctly
+    * 88.3% of the test split, by table lookup, with no model at all
+
+    The audit had always kept pairs whole across its own folds and said why. The
+    artifact it was auditing did not. These tests close that gap at the split,
+    where it originates, rather than at any one consumer of it.
+    """
+
+    def _splits(self, pairs: int = 20):
+        items = generate(n_pairs_per_scenario=pairs, seed=20260726)
+        dev = [i for i in items if _bucket(pair_key(i.moment.id)) < 60]
+        test = [i for i in items if _bucket(pair_key(i.moment.id)) >= 60]
+        return dev, test
+
+    def test_no_pair_spans_the_split(self):
+        dev, test = self._splits()
+        overlap = {pair_key(i.moment.id) for i in dev} & {pair_key(i.moment.id) for i in test}
+        assert not overlap, (
+            f"{len(overlap)} pairs are divided across dev and test; each one publishes "
+            "a near-verbatim copy of a held-out item under the opposite label"
+        )
+
+    def test_every_pair_is_whole_within_its_split(self):
+        for name, split in zip(("dev", "test"), self._splits(), strict=True):
+            counts = Counter(pair_key(i.moment.id) for i in split)
+            orphans = [k for k, n in counts.items() if n != 2]
+            assert not orphans, f"{name} holds {len(orphans)} half-pairs, e.g. {orphans[:3]}"
+
+    def test_the_shipped_splits_are_whole(self):
+        """Not just the generator — the files actually committed to ``data/``."""
+        for name in ("dev", "test"):
+            counts = Counter(pair_key(i.moment.id) for i in load("v1", name))
+            orphans = [k for k, n in counts.items() if n != 2]
+            assert not orphans, f"shipped {name}.jsonl holds {len(orphans)} half-pairs"
+
+        dev_keys = {pair_key(i.moment.id) for i in load("v1", "dev")}
+        test_keys = {pair_key(i.moment.id) for i in load("v1", "test")}
+        assert not (dev_keys & test_keys)
+
+    def test_the_shipped_files_are_what_the_generator_produces(self):
+        """Closes the round's own defect shape, one level up.
+
+        The other tests here check that the *committed* ``data/v1`` is pair-whole.
+        Nothing checked that it is still what ``tactbench build`` writes. Change a
+        threshold or a scenario's phrasing and forget to rebuild, and the shipped
+        files stay pair-whole, every assertion above stays green, and every number
+        in the README is computed on a dataset the generator no longer produces --
+        "the invariant enforced in the checker and violated in the artifact", again.
+        """
+        dev, test = self._splits()
+        for name, rebuilt in (("dev", dev), ("test", test)):
+            shipped = load("v1", name)
+            assert [i.model_dump_json() for i in shipped] == [
+                i.model_dump_json() for i in rebuilt
+            ], f"data/v1/{name}.jsonl is stale -- re-run `uv run tactbench build`"
+
+    def test_partner_lookup_cannot_answer_the_held_out_split(self):
+        """The zero-model exploit, as an executable assertion.
+
+        ``moment.id`` is public, so a test item's pair key is public, so its
+        partner in the *published* dev split is findable. A pair has one speak
+        side and one stay-quiet side, so the partner's label gives the answer by
+        negation. This must recover nothing.
+        """
+        dev, test = load("v1", "dev"), load("v1", "test")
+        label_by_pair = {pair_key(i.moment.id): i.label.should_surface for i in dev}
+
+        answerable = [i for i in test if pair_key(i.moment.id) in label_by_pair]
+        assert not answerable, (
+            f"{len(answerable)}/{len(test)} held-out items ({len(answerable) / len(test):.0%}) "
+            "can be answered by negating a label published in dev"
+        )
 
 
 class TestDataset:

@@ -93,7 +93,7 @@ class Scenario:
         raise NotImplementedError
 
     def pair(self, rng: random.Random, idx: int) -> tuple[Item, Item]:
-        # One state object shared by both sides: if the user's activity differed
+        # One state *value* shared by both sides: if the user's activity differed
         # between a positive and its near-miss, the *state* would give the answer
         # away just as surely as the vocabulary did.
         state = self.state(rng)
@@ -101,10 +101,21 @@ class Scenario:
         pos_dec, near_dec = self.deciders(rng)
         pos_why, near_why = self.why()
 
+        # Equal, not identical. The shared body must be byte-identical across the
+        # pair -- that is the whole construction -- but handing both sides the same
+        # mutable `Signal` objects makes the two halves silently coupled: editing
+        # one item's text edits its partner's. Round 10 hit this writing a test
+        # that appended a per-label tell to each item and got a dataset where both
+        # sides carried both tells. Nothing in the shipped code mutates an item,
+        # so it had never bitten; it is exactly the kind of latent aliasing that
+        # surfaces the first time somebody augments or paraphrases in place.
+        def body_for_side() -> list[Signal]:
+            return [s.model_copy(deep=True) for s in body]
+
         positive = _mk(
             f"{self.family}-pos-{idx:04d}",
             self.family,
-            [*body, pos_dec],
+            [*body_for_side(), pos_dec],
             state,
             should=True,
             value=self.positive_value,
@@ -116,8 +127,8 @@ class Scenario:
         near = _mk(
             f"{self.family}-near-{idx:04d}",
             self.family,
-            [*body, near_dec],
-            state,
+            [*body_for_side(), near_dec],
+            state.model_copy(deep=True),
             should=False,
             value=0,
             intents=[],

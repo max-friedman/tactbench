@@ -80,6 +80,31 @@ class Moment(BaseModel):
     slices: list[str] = Field(default_factory=list)
 
 
+def pair_key(moment_id: str) -> str:
+    """The identity of a matched pair, from either of its sides.
+
+    Ids look like ``travel-pos-0003`` / ``travel-near-0003``; the family and index
+    together name the pair, and the middle segment names the side.
+
+    **This is the one definition of "a pair" in the codebase, and everything that
+    partitions items must use it.** Round 10 found the cost of having two: the
+    shortcut audit kept pairs whole across its cross-validation folds (with a
+    comment explaining that splitting one "would let the probe memorize one half
+    and trivially answer the other"), while ``cli.build`` bucketed the dev/test
+    split on the *item* id. Independent buckets sent the two halves of 72 of 180
+    pairs to opposite sides of the split.
+
+    Because both sides of a pair share a byte-identical body and differ only in
+    which noun plays which role, an orphaned test item is a near-verbatim copy of
+    a published dev item carrying the opposite label. 77% of the held-out split
+    was answerable by reading the partner's label out of ``dev.jsonl`` and
+    negating it -- 88.3% overall, with no model. The invariant was enforced in the
+    checker and violated in the artifact the checker was checking.
+    """
+    parts = moment_id.split("-")
+    return f"{parts[0]}-{parts[-1]}" if len(parts) >= 3 else moment_id
+
+
 class GoldLabel(BaseModel):
     """Ground truth for a moment."""
 
