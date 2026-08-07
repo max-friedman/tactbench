@@ -13,10 +13,11 @@ findings** below.
 
 ## Current status
 
-- **Round:** 9 complete
-- **Gate:** green — 73 tests, ruff clean, **enforced by CI** on py3.11-3.13
-- **Dataset:** `v1` — 360 items (266 dev / 94 test), 9 families × 20 pairs
-- **Headline:** silence (ICS 354) is unbeaten by any baseline; skyline (ICS 0)
+- **Round:** 10 complete
+- **Gate:** green — 85 tests, ruff clean, **enforced by CI** on py3.11-3.13
+- **Dataset:** `v1` — 360 items (**246 dev / 114 test**), 9 families × 20 pairs,
+  split on the **pair key** so no pair is divided
+- **Headline:** silence (ICS 326) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable
 
 ---
@@ -166,7 +167,9 @@ whenever costs, the generator, or a policy change.
 | `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | R3 | handles all 9 families; ICS 0 |
-| `audit.py` | R1 | gates the build; also its own CI job |
+| `audit.py` | **R10** | two-sided (`exploitable_accuracy`); thresholds defined once |
+| `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
+| `schema.pair_key` | **R10** | the single definition of a pair |
 | `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
 | `policies/llm.py` | R2 | built and tested; **never executed** — needs a key |
@@ -206,12 +209,19 @@ halt the loop.**
    state difference *is* the judgment under test? The invariant currently
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
-2. **More families still welcome** — nine is better than six but still one
+2. **An order-sensitive shortcut probe (new, R10 — top of the queue).** Every
+   family now probes at exactly 50.0%, which is bag-of-words being structurally
+   blind to word order rather than evidence of safety: a role permutation is a
+   reordering, so the current probe *cannot* separate a well-formed pair. Add a
+   bigram/positional probe. If it also lands at chance, the permutation claim is
+   genuinely evidenced; if it separates families, the deciders leak in a way
+   nine rounds of auditing could not see. Either result is worth the round.
+3. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-3. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+4. **Type checking** — no mypy/pyright configured; worth adding to CI once the
    schema surface settles.
-4. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+5. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
@@ -400,6 +410,73 @@ CONTRIBUTING.md and CLAUDE.md — five documents asserted the exemption.
 
 ---
 
+## Round 10 — the held-out split was published
+
+**Question, arrived at sideways.** `tactbench audit` reported every family "at
+chance", but `meeting_prep` sat at **32.8%** — far *below* it. Both audit
+assertions were upper bounds (`< 0.70` overall, `< 0.60` per family), so that
+passed with room to spare. A probe wrong 67.2% of the time is not ignorant;
+negating it scores 67.2%, above the bar the audit claimed to enforce. **Is
+sub-chance accuracy a real leak the one-sided audit cannot see?**
+
+**It was a symptom. The disease was worse.** `cli.build` bucketed the split on
+`moment.id`, which names an *item*. A pair's two sides were assigned
+independently, so they landed on opposite sides of the split.
+
+| | v1 as shipped for nine rounds |
+|---|---|
+| pairs divided across dev and test | **72 of 180** |
+| held-out items whose partner was published in dev | **72 of 94 (77%)** |
+| of those, answered by negating the partner's label | **72 of 72** |
+| test-split accuracy by table lookup, no model | **88.3%** |
+
+Both sides of a pair share a byte-identical body, so an orphaned test item is a
+near-verbatim copy of a dev item **carrying the opposite label**. `moment.id` is
+public, so the pair key is public, so the partner is findable. The held-out split
+was not held out — 88.3% of it was answerable with a dictionary and no learning.
+
+**The shape of the bug is the lesson.** `audit.lexical_leakage` had always kept
+pairs whole across its own folds, with a comment explaining that splitting one
+"would let the probe memorize one half and trivially answer the other." The
+artifact it was auditing did not. **The invariant was enforced in the checker and
+violated in the thing being checked**, because each had its own private notion of
+a pair. `schema.pair_key` is now the single definition.
+
+**Shipped:** the pair-key split; `schema.pair_key`; two-sided leakage
+(`leakage`, `exploitable_accuracy`, `is_leaking`, and thresholds defined once);
+`TestSplitIntegrity` (5 tests); a pair-independence test; the two probes; every
+published number re-run.
+
+**Results:** partner lookup **88.3% → 50.0%**; zero orphaned items; every family
+back to exactly **50.0%** — the sub-chance families were *entirely* an artifact of
+the split. Qualitatively nothing moved: silence still unbeaten, skyline still
++100, every baseline still loses.
+
+**A second bug, found by a failing test of my own.** The two sides of a pair
+shared the *same* mutable `Signal` objects. A test that appended a per-label tell
+to every item produced a dataset where both sides carried both tells. Nothing in
+the shipped code mutates an item, so it had never bitten — but paraphrase
+expansion (priority 3) is exactly an in-place rewrite. Fixed with per-side deep
+copies.
+
+**Review caught three recurrences of this round's own defect.** A fresh-context
+reviewer found the two-sided threshold *still* one-sided in `tactbench audit`
+(the command contributors are told to run) while METRICS.md claimed otherwise;
+two tests weaker than their docstrings, one silently vacuous behind
+`if len(pair) == 2`; and no assertion that the shipped `data/v1` is what
+`tactbench build` writes — the same checker-vs-artifact gap, one level up. All
+fixed. **The maker could not see the pattern in its own work even immediately
+after naming it.**
+
+**Recorded honestly — the audit is now weaker than it looks.** With pairs whole
+and deciders written as true role permutations, every family probes at *exactly*
+50.0%, and it must: bag-of-words cannot see word order, and a permutation is only
+a reordering. The audit still catches deciders that are **not** permutations, but
+"50.0% everywhere" is close to a tautology given the construction. An
+order-sensitive probe is the next check, not a stronger claim.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -425,8 +502,17 @@ already covered or out of scope, and filing them would have wasted triage.
 Encoded as tests. Do not weaken them to make a round pass — if one fails, the
 dataset or the policy is wrong, not the assertion.
 
-- Overall lexical probe stays **< 70%**; every permutable family (all but
-  `quiet_hours`) **< 60%**. A new family must be added to the audit, not exempted.
+- Overall lexical probe stays **< 70%**; every family **< 60%** — measured as
+  **exploitable accuracy** (`0.5 + |acc − 0.5|`), never raw accuracy, because
+  negating a classifier is free. A new family must be added to the audit, not
+  exempted.
+- **No pair may be divided by the dev/test split**, and every split must contain
+  whole pairs only. Partner lookup against the published dev file must recover
+  nothing. Anything partitioning items uses `schema.pair_key` — one definition.
+- **The shipped `data/v1` must equal what `tactbench build` produces.** A
+  checker that validates a stale artifact is validating nothing.
+- The two sides of a pair are **equal but not identical objects** — no shared
+  mutable `Signal` or `UserState`.
 - Skyline beats silence with **zero** hard violations (task stays solvable).
 - Skyline never disagrees with a gold label (labels stay self-consistent).
 - The heuristic stays near chance (**0.5 ± 0.15** precision) and never solves the set.
