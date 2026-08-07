@@ -53,7 +53,13 @@ rule:
 | `quiet_hours` | *n*th message from Mom, **and the admission itself** | **you** are nearby / Mom is hours out → **Mom** is nearby / you are hours out |
 
 All nine are token permutations: both sides contain the same words, arranged
-differently. Every family probes at the 50% chance floor.
+differently. Every family probes at the 50% chance floor **for the bag-of-words
+audit** — which is exactly what a token permutation guarantees, since that probe
+cannot see arrangement. An order-aware probe reaches **97.2%**, and a bag-of-bigrams
+fit on `dev` scores **+99.4 versus silence on held-out `test`**. Each family has a
+single decider template, so an n-gram memorises the role assignment
+(`pickup_you` → speak, `pickup_dana` → stay quiet) instead of resolving it. See
+"Known weaknesses" below and `experiments/order_sensitive_probe.py`.
 
 `quiet_hours` was not always in that list. It originally turned on severity —
 *admitted* versus *discharged* — and was declared irreducible on the reasoning
@@ -184,7 +190,8 @@ enforces the invariants that make the benchmark meaningful:
 ## Known weaknesses
 
 - **Nine families is nine degrees of freedom.** Phrasing is no longer the weak point —
-  the audit confirms word statistics don't carry the answer — but the *scenarios*
+  the unigram audit confirms *vocabulary* doesn't carry the answer, though word
+  **order** does (see above) — but the *scenarios*
   are still a small hand-authored set. Item count overstates diversity. More
   families is the highest-value expansion.
 - **Cost is concentrated in `quiet_hours`** — 87% of the `always`-vs-silence gap

@@ -12,7 +12,14 @@ from collections import Counter
 
 import pytest
 
-from tactbench.audit import LeakageReport, lexical_leakage
+from tactbench.audit import (
+    LeakageReport,
+    _NaiveBayes,
+    item_bigrams,
+    item_tokens,
+    lexical_leakage,
+    ngram_leakage,
+)
 from tactbench.cli import _bucket
 from tactbench.dataset.generate import generate
 from tactbench.dataset.loader import load
@@ -291,6 +298,31 @@ class TestShortcutResistance:
             f"bag-of-words probe reaches {report.accuracy:.1%} without seeing user "
             f"state — worth {report.exploitable_accuracy:.1%} once its polarity is "
             "chosen; the pairing has stopped forcing a judgment"
+        )
+
+    def test_the_unigram_probe_is_blind_to_role_permutation(self):
+        """Documents *why* the unigram number is 50.0%, so it is not misread again.
+
+        Both sides of a pair carry the same token multiset by construction, so a
+        bag-of-words model cannot separate them even in principle. The 50.0% the
+        audit reports is the probe's blind spot, not the dataset's resistance --
+        an order-aware probe sees the difference immediately.
+        """
+        items = generate(n_pairs_per_scenario=10)
+        by_pair: dict[str, list[Item]] = {}
+        for item in items:
+            by_pair.setdefault(pair_key(item.moment.id), []).append(item)
+
+        for key, pair in by_pair.items():
+            a, b = pair
+            assert Counter(item_tokens(a)) == Counter(item_tokens(b)), (
+                f"{key}: sides differ in token multiset — not a pure permutation"
+            )
+
+        assert lexical_leakage(items).accuracy == pytest.approx(0.5, abs=0.01)
+        assert ngram_leakage(items).accuracy > 0.90, (
+            "bigrams must separate what unigrams cannot; if this drops, the "
+            "dataset changed and the recorded finding needs re-measuring"
         )
 
     def test_the_probe_still_catches_a_real_tell(self):
@@ -690,4 +722,74 @@ class TestNoKeywordExploit:
         assert card.ics > reference, (
             f"keywords {speak_on | quiet_on} beat silence "
             f"({card.ics:.1f} vs {reference:.1f}) — a family is exploitable"
+        )
+
+
+class TestOrderSensitiveShortcut:
+    """Round 11. The standing rule is that no surface policy may beat silence.
+
+    ``TestNoKeywordExploit`` enforces it for substring matchers. This class
+    enforces it for the representation those tests could not express: **word
+    order**. Both sides of a pair carry an identical token multiset, so every
+    unigram check in this file is structurally blind to the one thing that
+    actually differs between them.
+
+    It is currently violated, and the violation is recorded rather than softened.
+    Each family has a single decider template, so a bigram memorises the role
+    assignment outright (``pickup_you`` -> speak, ``pickup_dana`` -> quiet) and
+    transfers to held-out pairs. The fix is paraphrase expansion -- many surface
+    realisations per family -- which is a dataset rebuild, not an assertion
+    change. See ``experiments/order_sensitive_probe.py`` and the queue.
+    """
+
+    class _NgramPolicy(Policy):
+        """A submitter's shortcut: fit bag-of-bigrams on the published dev split.
+
+        Sees only signal text -- no user state, no DND, no slices. Exactly the
+        information the benchmark claims is insufficient.
+        """
+
+        name = "ngram-exploit"
+
+        def __init__(self, train: list[Item]):
+            self.model = _NaiveBayes()
+            self.model.fit([(item_bigrams(i), i.label.should_surface) for i in train])
+
+        def decide(self, moment):
+            probe = Item.model_construct(moment=moment, label=None)
+            speak = self.model.predict(item_bigrams(probe))
+            return Decision(moment_id=moment.id, surface=speak, intent="alert" if speak else None)
+
+    def test_bigrams_transfer_to_held_out_pairs(self):
+        """The mechanism, pinned: it is memorisation of a template, not noise."""
+        dev, test = load("v1", "dev"), load("v1", "test")
+        assert not ({pair_key(i.moment.id) for i in dev} & {pair_key(i.moment.id) for i in test}), (
+            "this measurement is only meaningful against a genuinely held-out split"
+        )
+
+        model = _NaiveBayes()
+        model.fit([(item_bigrams(i), i.label.should_surface) for i in dev])
+        hits = sum(1 for i in test if model.predict(item_bigrams(i)) == i.label.should_surface)
+        assert hits / len(test) > 0.90, (
+            "a bigram model fit on dev should still transfer to held-out pairs; "
+            "if this drops, the templates were varied and the finding needs re-measuring"
+        )
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Round 11: OPEN DEFECT. One decider template per family means a "
+        "bigram model fit on dev scores +99.4 vs silence on held-out test "
+        "(ICS 1.0 against a skyline of 0.0). The benchmark is solvable by surface "
+        "statistics. Fixing it requires paraphrase expansion, not a weaker bound. "
+        "strict=True so this fails the build the moment the dataset is repaired, "
+        "forcing the assertion to be tightened rather than forgotten.",
+    )
+    def test_a_surface_ngram_policy_cannot_beat_silence(self):
+        dev, test = load("v1", "dev"), load("v1", "test")
+        reference = silence_ics(test)
+        card = evaluate(self._NgramPolicy(dev), test, reference=reference)
+        assert card.ics > reference, (
+            f"a bag-of-bigrams fit on dev beats silence on held-out test "
+            f"({card.ics:.1f} vs {reference:.1f}, {card.ics_normalized:+.1f}) — "
+            "the dataset is solvable by surface pattern matching"
         )

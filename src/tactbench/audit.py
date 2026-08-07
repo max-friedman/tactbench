@@ -179,9 +179,33 @@ def _pair_key(item: Item) -> str:
     return pair_key(item.moment.id)
 
 
-def lexical_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
-    """Cross-validated bag-of-words probe over signal text only."""
-    docs = [(item_tokens(i), i.label.should_surface) for i in items]
+def item_bigrams(item: Item) -> list[str]:
+    """Adjacent token pairs -- the minimum needed to see "A before B".
+
+    Round 11: the unigram probe cannot see word order, and a role permutation is
+    *only* a reordering::
+
+        SPEAK: Nearby: you. 7 hours away, still driving: Mom.
+        QUIET: Nearby: Mom. 7 hours away, still driving: you.
+
+    Identical token multiset. The bag-of-words probe is structurally incapable of
+    separating these and reports 50.0% -- which was read as resistance for ten
+    rounds. Bigrams separate them at 97.2%.
+    """
+    toks = item_tokens(item)
+    return [f"{a}_{b}" for a, b in zip(toks, toks[1:], strict=False)]
+
+
+def lexical_leakage(items: list[Item], folds: int = 5, features=item_tokens) -> LeakageReport:
+    """Cross-validated probe over signal text only.
+
+    ``features`` selects the representation. The default is the historical
+    bag-of-words; pass :func:`item_bigrams` for the order-aware probe. Both use
+    the same pair-preserving folds, so their numbers are directly comparable --
+    and the gap between them is the measure of how much the design relies on the
+    probe's blind spot rather than on the pairing.
+    """
+    docs = [(features(i), i.label.should_surface) for i in items]
     keys = sorted({_pair_key(i) for i in items})
     fold_of = {k: idx % folds for idx, k in enumerate(keys)}
 
@@ -207,3 +231,8 @@ def lexical_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
         top_speak=[(t, v) for t, v in reversed(odds[-12:])],
         top_quiet=odds[:12],
     )
+
+
+def ngram_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
+    """The order-aware probe. See :func:`item_bigrams` for why it exists."""
+    return lexical_leakage(items, folds=folds, features=item_bigrams)

@@ -219,13 +219,27 @@ the audit claimed to enforce. The anti-correlation came from the dev/test split
 breaking pairs apart (see [DATASET.md](DATASET.md#splitting)); a one-sided check
 is structurally unable to see the kind of leak a pairing design produces.
 
-**A caveat worth stating plainly.** With pairs whole and deciders written as true
-role permutations, every family now probes at *exactly* 50.0% — and it must, since
-bag-of-words cannot see word order and a permutation is only a reordering. So this
-audit no longer discriminates among well-formed permutations; it catches deciders
-that are **not** permutations (a one-sided token, as `quiet_hours` once had). That
-is still worth gating on, but "50.0% everywhere" should not be read as stronger
-evidence than it is. An order-sensitive probe is the natural next check.
+**That caveat was right, and Round 11 measured it.** With pairs whole and deciders
+written as true role permutations, every family probes at *exactly* 50.0% — and it
+must, since bag-of-words cannot see word order and a permutation is only a
+reordering. The unigram audit does not discriminate among well-formed
+permutations; it only catches deciders that are **not** permutations.
+
+`tactbench audit` therefore reports a **bigram** column alongside the unigram one,
+and prints the verdict of whichever probe is worse. On v1:
+
+| probe | overall | families ≥ 60% |
+|---|---|---|
+| unigram | 50.0% | 0 of 9 |
+| bigram | **97.2%** | **9 of 9** |
+
+Fit on `dev` and graded on held-out `test`, a bag-of-bigrams reaches ICS **1.0**
+against a skyline of 0.0 and a silence bar of 154.0 — **+99.4 versus silence**, at
+0.983 precision. The benchmark is currently solvable by surface pattern matching.
+That is an open defect, pinned by a `strict=True` xfail in
+`TestOrderSensitiveShortcut` so repairing the dataset forces the assertion to be
+tightened rather than forgotten. The fix is paraphrase expansion, not a weaker
+bound.
 
 The audit exists because the claim it measures was once false. v1 asserted that
 matched pairs prevented keyword matching; the probe hit **93.5%**.

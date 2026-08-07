@@ -96,9 +96,9 @@ evidence, so the benchmark measures it rather than asserting it:
 uv run tactbench audit
 ```
 
-This trains a bag-of-words classifier on **signal text alone** — no user state, no
-DND flag, no slice tags — and reports how well it separates *speak* from *stay
-quiet*. Chance is 50%.
+This trains classifiers on **signal text alone** — no user state, no DND flag, no
+slice tags — and reports how well they separate *speak* from *stay quiet*. Chance
+is 50%.
 
 **v1 failed this badly: the probe hit 93.5%.** Each scenario had one fixed phrasing
 per side, so whole sentences differed and tokens like `hallway`, `inflight`, and
@@ -111,7 +111,9 @@ primary and secondary on-call trade places, the two boxes trade which one is sti
 sealed, the two meetings trade which is ahead and which has passed. Both sides then
 carry nearly the same token multiset, so word statistics cannot separate them.
 
-**All nine families sit at the chance floor. Overall: 50.0%.**
+**All nine families sit at the chance floor for the bag-of-words probe. Overall:
+50.0%.** That number is real and it is also much weaker than it looks — see
+[the blind spot](#the-blind-spot-in-that-number) immediately below.
 
 That was not always true, and the exception is worth the telling. `quiet_hours`
 originally probed at **100%** and was declared irreducible — a medical emergency
@@ -139,6 +141,46 @@ against the honest heuristic's −40.8.
 
 There is no exempt family now. `TestNoKeywordExploit` fails the build if any
 keyword policy beats silence, and every family must probe under 60%.
+
+### The blind spot in that number
+
+**A bag of words cannot see word order, and a role permutation is only a
+reordering.** The construction above deliberately makes both sides of a pair carry
+the same token multiset — so the unigram probe is *structurally incapable* of
+separating them. It must report 50.0%. Ten rounds read that as resistance.
+
+Round 11 measured it with a probe that can see order:
+
+| probe | overall | families ≥ 60% |
+|---|---|---|
+| unigram (what the audit reported for ten rounds) | **50.0%** | 0 of 9 |
+| **bigram** | **97.2%** | **9 of 9** |
+
+And separability is not the damaging part. Fitting bag-of-bigrams on the published
+`dev` split and grading it on **held-out `test`**, as a submitter would:
+
+| policy | ICS ↓ | vs silence |
+|---|---|---|
+| `skyline` *(perfect comprehension)* | 0.0 | +100.0 |
+| **bag-of-bigrams, text only** | **1.0** | **+99.4** |
+| silence | 154.0 | 0.0 |
+
+A model that sees nothing but adjacent word pairs lands **one point off the
+skyline**, at 0.983 precision, on pairs it has never seen. The reason is visible in
+its own weights — `pickup_you` → speak, `pickup_dana` → stay quiet. Each family has
+**one decider template**, so an n-gram memorises the role assignment rather than
+resolving it.
+
+**So the honest statement of this benchmark's status is: the pairing defeats
+vocabulary, and does not yet defeat surface pattern matching.** The claim that
+survives is narrower than the one this section made for ten rounds.
+
+The fix is not a weaker threshold — it is [paraphrase
+expansion](#limitations): many surface realisations per family, so no fixed
+n-gram maps to a label. Until then the defect is pinned by a `strict=True`
+xfail in `TestOrderSensitiveShortcut`, which fails the build the moment the
+dataset is repaired, forcing the assertion to be tightened rather than quietly
+forgotten.
 
 ## The metric
 
@@ -302,15 +344,23 @@ print(evaluate(MyPolicy(), load("v1", "dev")))
 This is v1. The things that would make it stronger are not done yet, and pretending
 otherwise would defeat the purpose of building a benchmark:
 
+- **The dataset is solvable by surface pattern matching, and currently is.** One
+  decider template per family means a bag-of-bigrams fit on `dev` scores **+99.4
+  versus silence on held-out `test`** — one point off the perfect skyline, at 0.983
+  precision, having seen nothing but adjacent word pairs. The matched-pair
+  construction defeats *vocabulary*; it does not defeat *word order*, and the audit
+  did not look at word order until Round 11. **Treat every leaderboard number as
+  measuring a task a surface model can already solve** until paraphrase expansion
+  lands. Pinned by a `strict=True` xfail so it cannot be forgotten.
 - **Labels are by construction.** Each item was built around a known answer rather
   than labeled by humans afterward. That makes them internally consistent but
   unvalidated against what people actually want. A human-agreement subset with
   reported inter-rater κ is the next priority.
 - **Moments are synthetic and template-generated.** Each family has 2–3 phrasings
-  per side. The permutation construction means low diversity no longer implies
-  guessability (the audit measures this directly), but the scenarios remain a small,
-  hand-authored set — nine families is nine effective degrees of freedom, whatever
-  the item count.
+  per side and a *single* decider template. That last part is what the bullet above
+  exploits: the phrasing carrying the answer never varies, so an n-gram maps
+  straight onto a label. The scenarios also remain a small, hand-authored set —
+  nine families is nine effective degrees of freedom, whatever the item count.
 - **Cost is concentrated in `quiet_hours`** — 87% of the `always`-versus-silence
   gap from 11% of the moments, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and

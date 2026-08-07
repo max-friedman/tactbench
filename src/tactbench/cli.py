@@ -247,39 +247,63 @@ def audit(
     50% means the words carry no answer and a policy must actually judge. High
     means the benchmark is measuring vocabulary instead of tact.
     """
-    from .audit import PER_FAMILY_THRESHOLD, lexical_leakage
+    from .audit import PER_FAMILY_THRESHOLD, lexical_leakage, ngram_leakage
 
     items = load(version, split)
     report = lexical_leakage(items)
+    ngram_report = ngram_leakage(items)
 
-    t = Table(title="Shortcut audit — bag-of-words probe (chance = 50%)")
+    t = Table(title="Shortcut audit — text-only probes (chance = 50%)")
     t.add_column("family", style="bold")
-    t.add_column("probe accuracy", justify="right")
+    t.add_column("unigram", justify="right")
     # A probe that is reliably wrong is worth as much to a submitter as one that
     # is reliably right, so show what the words are actually worth once polarity
     # is chosen. Reporting only raw accuracy is how `meeting_prep` at 32.8% read
     # as "at chance" for nine rounds.
     t.add_column("exploitable", justify="right")
+    # The unigram column cannot see word order, so a role permutation is invisible
+    # to it by construction. Reporting it alone read as resistance for ten rounds.
+    t.add_column("bigram", justify="right")
     t.add_column("verdict")
 
     families = sorted({i.moment.family for i in items})
     for family in families:
-        subset_report = lexical_leakage([i for i in items if i.moment.family == family])
-        leaking = subset_report.is_leaking(PER_FAMILY_THRESHOLD)
+        subset = [i for i in items if i.moment.family == family]
+        uni = lexical_leakage(subset)
+        big = ngram_leakage(subset)
+        worst = max(uni.exploitable_accuracy, big.exploitable_accuracy)
         t.add_row(
             family,
-            f"{subset_report.accuracy:.1%}",
-            f"{subset_report.exploitable_accuracy:.1%}",
-            "[yellow]leaks[/yellow]" if leaking else "[green]at chance[/green]",
+            f"{uni.accuracy:.1%}",
+            f"{uni.exploitable_accuracy:.1%}",
+            f"[yellow]{big.accuracy:.1%}[/yellow]"
+            if big.is_leaking(PER_FAMILY_THRESHOLD)
+            else f"{big.accuracy:.1%}",
+            "[yellow]leaks[/yellow]"
+            if worst >= PER_FAMILY_THRESHOLD
+            else "[green]at chance[/green]",
         )
     t.add_row(
         "[bold]overall[/bold]",
         f"[bold]{report.accuracy:.1%}[/bold]",
         f"[bold]{report.exploitable_accuracy:.1%}[/bold]",
+        f"[bold]{ngram_report.accuracy:.1%}[/bold]",
         "",
     )
     console.print(t)
-    console.print(f"\n{report.verdict()}")
+    # Report the WORST probe, not the friendliest one. Printing only the unigram
+    # verdict under a table full of bigram leaks is how a benchmark keeps looking
+    # fine while it has stopped measuring what it claims to.
+    worst = max((report, ngram_report), key=lambda r: r.exploitable_accuracy)
+    console.print(f"\n{worst.verdict()}")
+    if ngram_report.is_leaking(PER_FAMILY_THRESHOLD):
+        console.print(
+            f"\n[yellow]The unigram probe reports {report.accuracy:.1%} because it cannot "
+            "see word order.[/yellow]\nA role permutation is only a reordering, so "
+            "bag-of-words is structurally unable to\nseparate a pair. Bigrams reach "
+            f"{ngram_report.accuracy:.1%}. See docs/DATASET.md — each family has a single\n"
+            "decider template, so an n-gram memorises the role assignment."
+        )
     console.print(
         "\n[dim]Most speak-predictive tokens: "
         + ", ".join(tok for tok, _ in report.top_speak[:6])
