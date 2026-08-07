@@ -13,12 +13,15 @@ findings** below.
 
 ## Current status
 
-- **Round:** 10 complete
-- **Gate:** green — 85 tests, ruff clean, **enforced by CI** on py3.11-3.13
+- **Round:** 11 complete
+- **Gate:** green — 87 passed + **2 strict xfails recording an open defect**, ruff
+  clean, **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (**246 dev / 114 test**), 9 families × 20 pairs,
   split on the **pair key** so no pair is divided
-- **Headline:** silence (ICS 326) is unbeaten by any baseline; skyline (ICS 0)
-  proves the bar is clearable
+- **Headline:** silence (ICS 326) is unbeaten by any *hand-written* baseline;
+  skyline (ICS 0) proves the bar is clearable. **But a bag-of-bigrams fit on `dev`
+  scores +99.4 vs silence on held-out `test` — the dataset is currently solvable by
+  surface pattern matching (R11). Read every leaderboard number with that caveat.**
 
 ---
 
@@ -167,7 +170,7 @@ whenever costs, the generator, or a policy change.
 | `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | R3 | handles all 9 families; ICS 0 |
-| `audit.py` | **R10** | two-sided (`exploitable_accuracy`); thresholds defined once |
+| `audit.py` | **R11** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict |
 | `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
 | `schema.pair_key` | **R10** | the single definition of a pair |
 | `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
@@ -203,25 +206,36 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
+1. **Paraphrase expansion — now the top item, and it is a benchmark-validity
+   blocker, not an enhancement.** R11 showed 91.2% of held-out deciders are
+   published verbatim and a dict lookup scores +90.9 vs silence. Every leaderboard
+   number is currently measuring a task a lookup table can mostly solve. Needs many
+   distinct surface realisations per family (today: as few as 4 across 40 items),
+   with `verbatim_overlap` driven under 10% and both strict xfails flipped to real
+   assertions. Re-run every published number afterwards.
+2. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
    state difference *is* the judgment under test? The invariant currently
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
-2. **An order-sensitive shortcut probe (new, R10 — top of the queue).** Every
+3. **An order-sensitive shortcut probe (R10) — DONE in R11.** Kept here only as a
+   pointer: the answer was that the audit had a structural blind spot.
+   Superseded by item 1.
+   <details><summary>original entry</summary> Every
    family now probes at exactly 50.0%, which is bag-of-words being structurally
    blind to word order rather than evidence of safety: a role permutation is a
    reordering, so the current probe *cannot* separate a well-formed pair. Add a
    bigram/positional probe. If it also lands at chance, the permutation claim is
    genuinely evidenced; if it separates families, the deciders leak in a way
    nine rounds of auditing could not see. Either result is worth the round.
-3. **More families still welcome** — nine is better than six but still one
+   </details>
+4. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-4. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+5. **Type checking** — no mypy/pyright configured; worth adding to CI once the
    schema surface settles.
-5. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+6. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
@@ -477,6 +491,65 @@ order-sensitive probe is the next check, not a stronger claim.
 
 ---
 
+## Round 11 — the pairing defeats vocabulary, not word order
+
+**Question, straight off R10's queue:** every family probed at exactly 50.0%.
+Is that evidence, or is it a tautology — bag-of-words cannot see word order, and
+a role permutation is *only* a reordering?
+
+**A tautology.**
+
+| probe | overall | families ≥ 60% |
+|---|---|---|
+| unigram (reported for ten rounds) | 50.0% | 0 of 9 |
+| **bigram** | **97.2%** | **9 of 9** |
+
+Fit on `dev`, graded on held-out `test`: bag-of-bigrams reaches **ICS 1.0, +99.4
+vs silence, 0.983 precision** — one point off the skyline.
+
+**Review corrected the mechanism, and the correction is the better finding.**
+My first draft said "one decider template per family" and called the result
+generalisation to unseen pairs. Both were wrong. Each family has *two* decider
+variants, and the dominant effect is not learning at all:
+
+| | |
+|---|---|
+| held-out deciders published byte-identically in `dev` | **91.2%** |
+| held-out items whose entire signal text is in `dev` | **49.1%** |
+| **dict lookup on the decider string, no model** | **95.6%, +90.9 vs silence** |
+| distinct decider sentences per family (40 items each) | as few as **4** |
+
+So a zero-model lookup already gets +90.9 and the bigram adds the rest. This is a
+**near-duplicate leak** — a *different* defect from R10's pair-key split. That one
+divided pairs across the boundary; this one repeats text across it. **A split can
+be perfectly pair-whole and still publish its own answers**, and R10's fix said
+nothing about that.
+
+**Shipped:** `item_bigrams`, `ngram_leakage`, `verbatim_overlap`; a bigram column
+in `tactbench audit`, which now prints the verdict of whichever probe is **worse**;
+`experiments/order_sensitive_probe.py`; a test pinning that pair sides are an exact
+token-multiset permutation, so the 50.0% is never misread again.
+
+**NOT shipped: a weaker threshold.** The rule that no surface policy may beat
+silence is violated and stays visibly violated — two `strict=True` xfails
+(verbatim overlap, ICS exploit) fail the build the moment the dataset is repaired,
+forcing the assertions to be tightened rather than forgotten.
+
+**Scope of the standing audit invariant, recorded explicitly** because it is now
+*deliberately* not enforced end-to-end: the `< 70%` / `< 60%` bounds are gated on
+the **unigram** probe only. The bigram probe is reported, and `tactbench audit`
+prints LEAKING for all nine families, but does **not** fail CI — because gating it
+would put the build red with no available fix. That is a knowing trade, not an
+oversight, and it reverses when paraphrase expansion lands.
+
+**Method note.** Review caught the maker overstating its own finding in the
+direction that made the round look better, and missing five files that still
+asserted the falsified claim — including `audit.py`'s own module docstring and a
+`CONTRIBUTING.md` step contributors could no longer follow. Second round running
+that the checker found the maker repeating the exact pattern the round was about.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -505,7 +578,17 @@ dataset or the policy is wrong, not the assertion.
 - Overall lexical probe stays **< 70%**; every family **< 60%** — measured as
   **exploitable accuracy** (`0.5 + |acc − 0.5|`), never raw accuracy, because
   negating a classifier is free. A new family must be added to the audit, not
-  exempted.
+  exempted. **Scoped to the unigram probe** as of R11: the bigram probe is
+  reported and currently reads ~100% for every family, and gating on it is
+  deliberately deferred until paraphrase expansion gives it a fix. Recorded so
+  this reads as a knowing trade rather than an unenforced rule.
+- **A clean audit bounds only the shortcuts you thought to test.** A probe scoring
+  at chance means *that probe* found nothing — not that the dataset forces a
+  judgment. R11: ten rounds of 50.0% were a bag of words being unable to see
+  arrangement. Report the worst probe, never the friendliest.
+- **The held-out split must not be published verbatim.** Pair-wholeness is not
+  sufficient: text can repeat across the boundary even when no pair does.
+  `verbatim_overlap` must stay under 10% (currently 91.2% — open defect).
 - **No pair may be divided by the dev/test split**, and every split must contain
   whole pairs only. Partner lookup against the published dev file must recover
   nothing. Anything partitioning items uses `schema.pair_key` — one definition.

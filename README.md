@@ -96,9 +96,9 @@ evidence, so the benchmark measures it rather than asserting it:
 uv run tactbench audit
 ```
 
-This trains a bag-of-words classifier on **signal text alone** — no user state, no
-DND flag, no slice tags — and reports how well it separates *speak* from *stay
-quiet*. Chance is 50%.
+This trains classifiers on **signal text alone** — no user state, no DND flag, no
+slice tags — and reports how well they separate *speak* from *stay quiet*. Chance
+is 50%.
 
 **v1 failed this badly: the probe hit 93.5%.** Each scenario had one fixed phrasing
 per side, so whole sentences differed and tokens like `hallway`, `inflight`, and
@@ -109,9 +109,12 @@ The fix was a construction principle: **make each pair as close to a token
 permutation as the scenario allows.** Swap roles instead of rewriting sentences —
 primary and secondary on-call trade places, the two boxes trade which one is still
 sealed, the two meetings trade which is ahead and which has passed. Both sides then
-carry nearly the same token multiset, so word statistics cannot separate them.
+carry nearly the same token multiset, so *vocabulary* cannot separate them.
+(Word **order** still can — see the blind spot below.)
 
-**All nine families sit at the chance floor. Overall: 50.0%.**
+**All nine families sit at the chance floor for the bag-of-words probe. Overall:
+50.0%.** That number is real and it is also much weaker than it looks — see
+[the blind spot](#the-blind-spot-in-that-number) immediately below.
 
 That was not always true, and the exception is worth the telling. `quiet_hours`
 originally probed at **100%** and was declared irreducible — a medical emergency
@@ -139,6 +142,60 @@ against the honest heuristic's −40.8.
 
 There is no exempt family now. `TestNoKeywordExploit` fails the build if any
 keyword policy beats silence, and every family must probe under 60%.
+
+### The blind spot in that number
+
+**A bag of words cannot see word order, and a role permutation is only a
+reordering.** The construction above deliberately makes both sides of a pair carry
+the same token multiset — so the unigram probe is *structurally incapable* of
+separating them. It must report 50.0%. Ten rounds read that as resistance.
+
+Round 11 measured it with a probe that can see order:
+
+| probe | overall | families ≥ 60% |
+|---|---|---|
+| unigram (what the audit reported for ten rounds) | **50.0%** | 0 of 9 |
+| **bigram** | **97.2%** | **9 of 9** |
+
+And separability is not the damaging part. Fitting bag-of-bigrams on the published
+`dev` split and grading it on **held-out `test`**, as a submitter would:
+
+| policy | ICS ↓ | vs silence |
+|---|---|---|
+| `skyline` *(perfect comprehension)* | 0.0 | +100.0 |
+| **bag-of-bigrams, text only** | **1.0** | **+99.4** |
+| silence | 154.0 | 0.0 |
+
+A model that sees nothing but adjacent word pairs lands **one point off the
+skyline**, at 0.983 precision.
+
+**But most of that is not generalisation — it is duplicate text.** The pairs are
+new; the sentences are not. Families carry as few as **4 distinct decider
+sentences across all 40 items**, so:
+
+| | |
+|---|---|
+| held-out deciders appearing byte-identically in `dev` | **91.2%** |
+| held-out items whose *entire* signal text appears in `dev` | **49.1%** |
+| accuracy of a **dict lookup** on the decider string, no model | **95.6%** (+90.9 vs silence) |
+
+So the honest decomposition is: a zero-model lookup already gets +90.9, and the
+bigram model adds the rest. This is a **near-duplicate leak** — and it is a
+different defect from Round 10's, which split *pairs* across the boundary. A split
+can be perfectly pair-whole and still publish its own answers.
+
+**So the honest statement of this benchmark's status is: the pairing defeats
+vocabulary, and does not yet defeat surface pattern matching.** The claim that
+survives is narrower than the one this section made for ten rounds.
+
+The fix is not a weaker threshold — it is [paraphrase
+expansion](#honest-limitations): many distinct surface realisations per family, so
+no fixed string or n-gram maps to a label. Until then the defect is pinned by two
+`strict=True` xfails in `TestOrderSensitiveShortcut` (one for the verbatim
+overlap, one for the ICS exploit), which fail the build the moment the dataset is
+repaired, forcing the assertions to be tightened rather than quietly forgotten. A
+third test characterises the current bigram transfer and will also go red then, by
+design.
 
 ## The metric
 
@@ -302,13 +359,23 @@ print(evaluate(MyPolicy(), load("v1", "dev")))
 This is v1. The things that would make it stronger are not done yet, and pretending
 otherwise would defeat the purpose of building a benchmark:
 
+- **The dataset is solvable by surface pattern matching, and currently is.** Low
+  decider diversity — as few as **4 distinct decider sentences across a family's 40
+  items** — means **91.2%** of held-out decider sentences are published verbatim in
+  `dev`. A dict lookup with no model scores **+90.9 versus silence**; a
+  bag-of-bigrams scores **+99.4**, one point off the perfect skyline. The
+  matched-pair construction defeats *vocabulary*; it does not defeat *word order*
+  or *repetition*, and the audit looked at neither until Round 11. **Treat every
+  leaderboard number as measuring a task a surface model can already solve** until
+  paraphrase expansion lands. Pinned by two `strict=True` xfails.
 - **Labels are by construction.** Each item was built around a known answer rather
   than labeled by humans afterward. That makes them internally consistent but
   unvalidated against what people actually want. A human-agreement subset with
   reported inter-rater κ is the next priority.
-- **Moments are synthetic and template-generated.** Each family has 2–3 phrasings
-  per side. The permutation construction means low diversity no longer implies
-  guessability (the audit measures this directly), but the scenarios remain a small,
+- **Moments are synthetic and template-generated.** Each family draws its decider
+  from **two variants**, which after entity substitution yields as few as 4 distinct
+  decider sentences across 40 items (`travel` is the most varied, at 32). That
+  scarcity is what the bullet above exploits. The scenarios also remain a small,
   hand-authored set — nine families is nine effective degrees of freedom, whatever
   the item count.
 - **Cost is concentrated in `quiet_hours`** — 87% of the `always`-versus-silence

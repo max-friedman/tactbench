@@ -89,7 +89,8 @@ This rule was learned the hard way. v1 emitted matched pairs and claimed they st
 keyword matching; the audit measured **93.5%** for a bag-of-words probe that never saw
 user state, because each side was written as different sentences. Structural pairing
 is not lexical pairing. When adding a scenario, run `tactbench audit` and confirm the
-new family lands near 50% — if it doesn't, you wrote two sentences instead of one
+new family lands near 50% on the unigram column — if it doesn't, you wrote two
+sentences instead of one
 permutation.
 
 **There are no exempt families.** `quiet_hours` was one, on the reasoning that

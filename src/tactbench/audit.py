@@ -4,14 +4,21 @@ TactBench's central claim is that its matched-pair design stops a policy from
 winning by surface pattern matching. That claim is worth exactly as much as the
 evidence for it, so this module tries to break it.
 
-The probe: train a bag-of-words classifier on nothing but the *text of the
+The probes: train a classifier on nothing but the *text of the
 signals* -- no user state, no DND flag, no slice tags, none of the structure a
 policy is supposed to reason over. If that classifier can separate "speak" from
 "stay quiet", then the words alone carry the answer and the pairing has failed.
 
-Chance is 0.5 on a balanced split. A probe scoring near chance means the dataset
-forces a judgment. A probe scoring high means it doesn't, and the headline
-results are measuring vocabulary rather than tact.
+Chance is 0.5 on a balanced split. A probe scoring high means the words carry the
+answer and the headline results are measuring vocabulary rather than tact.
+
+**A probe scoring near chance does not mean the dataset forces a judgment.** It
+means *that* probe found nothing. Round 11: the bag-of-words probe reported 50.0%
+on all nine families for ten rounds, because both sides of a pair carry the same
+token multiset by construction and a bag of words cannot see arrangement. The
+order-aware probe reaches 97.2% on the same data. Read the worst probe, never the
+friendliest, and remember that a clean audit bounds only the shortcuts you
+thought to test.
 
 This is a load-bearing test, not a diagnostic: ``test_lexical_leakage_stays_near_chance``
 fails the build if the dataset drifts back toward being guessable.
@@ -101,6 +108,9 @@ class LeakageReport:
         """
         return self.exploitable_accuracy >= threshold
 
+    #: What produced this report, for honest phrasing in the verdict.
+    probe: str = "bag-of-words"
+
     def verdict(self, threshold: float = 0.65) -> str:
         if self.is_leaking(threshold):
             direction = (
@@ -110,12 +120,12 @@ class LeakageReport:
                 "as exploitable as being reliably right)"
             )
             return (
-                f"LEAKING — a bag-of-words model reaches {self.accuracy:.1%}, worth "
+                f"LEAKING — a {self.probe} model reaches {self.accuracy:.1%}, worth "
                 f"{self.exploitable_accuracy:.1%} to a learner that picks its polarity"
                 f"{direction}. The pairing is not forcing a judgment."
             )
         return (
-            f"OK — text-only probe reaches {self.accuracy:.1%}, within "
+            f"OK — the {self.probe} probe reaches {self.accuracy:.1%}, within "
             f"{self.leakage:.1%} of the {0.5:.0%} chance floor. Signal text alone "
             "does not carry the answer."
         )
@@ -179,9 +189,39 @@ def _pair_key(item: Item) -> str:
     return pair_key(item.moment.id)
 
 
-def lexical_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
-    """Cross-validated bag-of-words probe over signal text only."""
-    docs = [(item_tokens(i), i.label.should_surface) for i in items]
+def item_bigrams(item: Item) -> list[str]:
+    """Adjacent token pairs -- the minimum needed to see "A before B".
+
+    Round 11: the unigram probe cannot see word order, and a role permutation is
+    *only* a reordering::
+
+        SPEAK: Nearby: you. 7 hours away, still driving: Mom.
+        QUIET: Nearby: Mom. 7 hours away, still driving: you.
+
+    Identical token multiset. The bag-of-words probe is structurally incapable of
+    separating these and reports 50.0% -- which was read as resistance for ten
+    rounds. Bigrams separate them at 97.2%.
+    """
+    toks = item_tokens(item)
+    if len(toks) < 2:
+        # A one-token signal has no adjacent pair, and an empty feature bag is
+        # classified by the class prior alone -- which would print as ~50% and
+        # read as "at chance". That is precisely the misreading this probe
+        # exists to prevent, so fall back to the unigram rather than go silent.
+        return list(toks)
+    return [f"{a}_{b}" for a, b in zip(toks, toks[1:], strict=False)]
+
+
+def lexical_leakage(items: list[Item], folds: int = 5, features=item_tokens) -> LeakageReport:
+    """Cross-validated probe over signal text only.
+
+    ``features`` selects the representation. The default is the historical
+    bag-of-words; pass :func:`item_bigrams` for the order-aware probe. Both use
+    the same pair-preserving folds, so their numbers are directly comparable --
+    and the gap between them is the measure of how much the design relies on the
+    probe's blind spot rather than on the pairing.
+    """
+    docs = [(features(i), i.label.should_surface) for i in items]
     keys = sorted({_pair_key(i) for i in items})
     fold_of = {k: idx % folds for idx, k in enumerate(keys)}
 
@@ -207,3 +247,49 @@ def lexical_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
         top_speak=[(t, v) for t, v in reversed(odds[-12:])],
         top_quiet=odds[:12],
     )
+
+
+def ngram_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
+    """The order-aware probe. See :func:`item_bigrams` for why it exists."""
+    report = lexical_leakage(items, folds=folds, features=item_bigrams)
+    report.probe = "bigram"
+    return report
+
+
+def verbatim_overlap(train: list[Item], held_out: list[Item]) -> dict[str, float]:
+    """How much of ``held_out`` is text the submitter already has, labelled?
+
+    Round 11 found the bigram probe scoring +99.4 versus silence on the held-out
+    split and initially reported it as generalisation. It is mostly not.
+    Template diversity is low enough that most held-out **decider sentences appear
+    byte-identically in the published split**, so the dominant effect is
+    memorisation of repeated strings rather than any model learning a relation.
+
+    This is a near-duplicate leak, and it is a different defect from Round 10's:
+    that one split *pairs* across dev and test; this one repeats *text* across
+    them. A split can be perfectly pair-whole and still publish its answers.
+
+    Returns fractions of ``held_out``, plus the accuracy of a zero-model lookup.
+    """
+    by_decider: dict[str, set[bool]] = {}
+    for i in train:
+        by_decider.setdefault(i.moment.signals[-1].content, set()).add(i.label.should_surface)
+    whole_train = {" ".join(s.content for s in i.moment.signals) for i in train}
+
+    n = len(held_out) or 1
+    decider_seen = [i for i in held_out if i.moment.signals[-1].content in by_decider]
+    unambiguous = [i for i in decider_seen if len(by_decider[i.moment.signals[-1].content]) == 1]
+    whole_seen = [
+        i for i in held_out if " ".join(s.content for s in i.moment.signals) in whole_train
+    ]
+    correct = sum(
+        1
+        for i in unambiguous
+        if next(iter(by_decider[i.moment.signals[-1].content])) == i.label.should_surface
+    )
+
+    return {
+        "decider_published": len(decider_seen) / n,
+        "whole_item_published": len(whole_seen) / n,
+        "lookup_accuracy": (correct + 0.5 * (len(held_out) - len(unambiguous))) / n,
+    }

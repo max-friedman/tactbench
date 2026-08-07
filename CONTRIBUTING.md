@@ -27,9 +27,12 @@ freedom no matter how many items the generator emits.
    carry nearly the same token multiset, differing by which noun plays which role.
    This is the rule the whole benchmark rests on — see below.
 3. Add a handler to `SkylinePolicy` so the ceiling still resolves your family.
-4. Run `uv run tactbench audit` and confirm your family lands near **50%**. If it
-   doesn't, you wrote two sentences instead of one permutation — fix the data, not
-   the threshold.
+4. Run `uv run tactbench audit` and confirm your family lands near **50% in the
+   unigram column**. If it doesn't, you wrote two sentences instead of one
+   permutation — fix the data, not the threshold.
+   **The bigram column currently reads ~100% for every family. That is a known,
+   recorded defect (Round 11), not something your family introduced** — see
+   "The limit of this rule" below. Do not try to fix it in a scenario PR.
 5. Run `uv run tactbench build` and commit the regenerated splits. CI verifies the
    committed data is reproducible from the generator.
 
@@ -47,8 +50,30 @@ positive:  On-call rotation — primary: you,   secondary: Priya Raman.
 near-miss: On-call rotation — primary: Priya Raman, secondary: you.
 ```
 
-Identical token multiset. Word statistics cannot separate them; only resolving
+Identical token multiset. *Vocabulary* cannot separate them; only resolving
 *who holds the page* can.
+
+### The limit of this rule
+
+A permutation defeats a bag of words **because a bag of words cannot see
+arrangement** — which also means the unigram audit is structurally unable to
+score a well-formed permutation at anything but 50%. Round 11 measured what that
+concealed:
+
+| probe | overall |
+|---|---|
+| unigram | 50.0% |
+| **bigram** | **97.2%** |
+
+The root cause is diversity, not the permutation rule. Families carry as few as
+**4 distinct decider sentences across all 40 items**, so 91% of held-out decider
+sentences appear byte-identically in the published `dev` split — a dict lookup
+scores +90.9 versus silence with no model at all.
+
+So keep writing permutations; the rule is right. But a family that reuses one
+decider sentence twenty times is still guessable, and the audit's unigram column
+will not tell you. Vary the phrasing as well as the roles. Paraphrase expansion
+across all nine families is the open work item.
 
 **There are no exempt families, and you should be very reluctant to propose one.**
 
