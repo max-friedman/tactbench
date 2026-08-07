@@ -14,7 +14,7 @@ from .dataset.loader import load, split_path, write_jsonl
 from .metrics import Scorecard, score
 from .policies.builtin import registry
 from .runner import evaluate, silence_ics
-from .schema import Decision
+from .schema import Decision, pair_key
 
 app = typer.Typer(
     add_completion=False,
@@ -27,9 +27,9 @@ def _fmt(v: float | None, spec: str = ".3f") -> str:
     return "--" if v is None else format(v, spec)
 
 
-def _bucket(moment_id: str) -> int:
-    """Stable 0-99 bucket for a moment id, independent of PYTHONHASHSEED."""
-    digest = hashlib.sha256(moment_id.encode()).digest()
+def _bucket(key: str) -> int:
+    """Stable 0-99 bucket for a split key, independent of PYTHONHASHSEED."""
+    digest = hashlib.sha256(key.encode()).digest()
     return digest[0] % 100
 
 
@@ -75,11 +75,19 @@ def build(
 ) -> None:
     """Generate the synthetic dataset splits."""
     items = generate(n_pairs_per_scenario=pairs, seed=seed)
-    # Split on a stable digest of the moment id, not Python's hash() -- string
-    # hashing is salted per process, so hash() would reshuffle the split on every
-    # run and silently leak test items into dev.
-    dev = [i for i in items if _bucket(i.moment.id) < 60]
-    test = [i for i in items if _bucket(i.moment.id) >= 60]
+    # Split on a stable digest of the PAIR key, not Python's hash() and not the
+    # item id.
+    #
+    # Not hash(): string hashing is salted per process, so it would reshuffle the
+    # split on every run and silently leak test items into dev.
+    #
+    # Not the item id: that was Round 10's bug. A pair's two sides share a
+    # byte-identical body, so bucketing them independently put 72 of 180 pairs on
+    # opposite sides of the split -- and made 77% of the held-out set answerable
+    # by looking the partner up in the published dev file and negating its label.
+    # Both sides of a pair must always travel together.
+    dev = [i for i in items if _bucket(pair_key(i.moment.id)) < 60]
+    test = [i for i in items if _bucket(pair_key(i.moment.id)) >= 60]
 
     for split, subset in (("dev", dev), ("test", test)):
         path = split_path(version, split)

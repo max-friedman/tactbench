@@ -23,7 +23,7 @@ import math
 import re
 from dataclasses import dataclass, field
 
-from .schema import Item
+from .schema import Item, pair_key
 
 TOKEN_RE = re.compile(r"[a-z0-9']+")
 
@@ -53,19 +53,54 @@ class LeakageReport:
 
     @property
     def excess_over_chance(self) -> float:
-        """How far above coin-flipping the probe gets. This is the number that
-        matters; 0.0 means the words carry no answer."""
+        """Signed distance from coin-flipping. Kept for reporting the *direction*;
+        never threshold on it -- use :attr:`leakage`."""
         return self.accuracy - 0.5
 
+    @property
+    def leakage(self) -> float:
+        """How much the words give away: ``|accuracy - 0.5|``.
+
+        **Distance from chance is what leaks; direction is a property of the
+        classifier, not of the dataset.** A probe that is wrong 67% of the time is
+        not ignorant — negating it scores 67%, and negating a classifier is free.
+
+        Round 10 found this the expensive way. Both audit assertions were upper
+        bounds (``< 0.70`` overall, ``< 0.60`` per family), so a family probing at
+        32.8% passed with room to spare and printed as ``at chance``. It was not
+        at chance; it was a 67.2% classifier with a minus sign, produced by a
+        dev/test split that broke pairs apart. A one-sided check cannot see an
+        inverted leak, which is the exact kind the pairing design can produce.
+        """
+        return abs(self.accuracy - 0.5)
+
+    @property
+    def exploitable_accuracy(self) -> float:
+        """What a learner gets once it picks the profitable polarity: ``0.5 + leakage``.
+
+        This is the honest headline. A submitter reads their own probe's
+        orientation off training data for free, so the benchmark must assume they
+        did.
+        """
+        return 0.5 + self.leakage
+
     def verdict(self, threshold: float = 0.65) -> str:
-        if self.accuracy >= threshold:
+        if self.exploitable_accuracy >= threshold:
+            direction = (
+                ""
+                if self.excess_over_chance >= 0
+                else " (inverted — the probe is reliably *wrong*, which is exactly "
+                "as exploitable as being reliably right)"
+            )
             return (
-                f"LEAKING — a bag-of-words model reaches {self.accuracy:.1%} without "
-                "seeing user state. The pairing is not forcing a judgment."
+                f"LEAKING — a bag-of-words model reaches {self.accuracy:.1%}, worth "
+                f"{self.exploitable_accuracy:.1%} to a learner that picks its polarity"
+                f"{direction}. The pairing is not forcing a judgment."
             )
         return (
-            f"OK — text-only probe reaches {self.accuracy:.1%}, near the {0.5:.0%} "
-            "chance floor. Signal text alone does not carry the answer."
+            f"OK — text-only probe reaches {self.accuracy:.1%}, within "
+            f"{self.leakage:.1%} of the {0.5:.0%} chance floor. Signal text alone "
+            "does not carry the answer."
         )
 
 
@@ -118,12 +153,13 @@ class _NaiveBayes:
 def _pair_key(item: Item) -> str:
     """Group a positive with its near-miss so folds never split a pair.
 
-    Ids look like ``travel-pos-0003`` / ``travel-near-0003``; the family and index
-    together identify the pair. Splitting a pair across train and test would let
-    the probe memorize one half and trivially answer the other.
+    Splitting a pair across train and test would let the probe memorize one half
+    and trivially answer the other. Delegates to :func:`schema.pair_key` -- the
+    single definition -- because this module holding its *own* notion of a pair,
+    correct but private, is exactly how the dev/test split came to disagree with
+    it for nine rounds without anything going red.
     """
-    parts = item.moment.id.split("-")
-    return f"{parts[0]}-{parts[-1]}" if len(parts) >= 3 else item.moment.id
+    return pair_key(item.moment.id)
 
 
 def lexical_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
