@@ -247,7 +247,7 @@ def audit(
     50% means the words carry no answer and a policy must actually judge. High
     means the benchmark is measuring vocabulary instead of tact.
     """
-    from .audit import lexical_leakage
+    from .audit import PER_FAMILY_THRESHOLD, lexical_leakage
 
     items = load(version, split)
     report = lexical_leakage(items)
@@ -255,19 +255,29 @@ def audit(
     t = Table(title="Shortcut audit — bag-of-words probe (chance = 50%)")
     t.add_column("family", style="bold")
     t.add_column("probe accuracy", justify="right")
+    # A probe that is reliably wrong is worth as much to a submitter as one that
+    # is reliably right, so show what the words are actually worth once polarity
+    # is chosen. Reporting only raw accuracy is how `meeting_prep` at 32.8% read
+    # as "at chance" for nine rounds.
+    t.add_column("exploitable", justify="right")
     t.add_column("verdict")
 
     families = sorted({i.moment.family for i in items})
     for family in families:
-        subset = [i for i in items if i.moment.family == family]
-        acc = lexical_leakage(subset).accuracy
-        ok = acc < 0.60
+        subset_report = lexical_leakage([i for i in items if i.moment.family == family])
+        leaking = subset_report.is_leaking(PER_FAMILY_THRESHOLD)
         t.add_row(
             family,
-            f"{acc:.1%}",
-            "[green]at chance[/green]" if ok else "[yellow]leaks[/yellow]",
+            f"{subset_report.accuracy:.1%}",
+            f"{subset_report.exploitable_accuracy:.1%}",
+            "[yellow]leaks[/yellow]" if leaking else "[green]at chance[/green]",
         )
-    t.add_row("[bold]overall[/bold]", f"[bold]{report.accuracy:.1%}[/bold]", "")
+    t.add_row(
+        "[bold]overall[/bold]",
+        f"[bold]{report.accuracy:.1%}[/bold]",
+        f"[bold]{report.exploitable_accuracy:.1%}[/bold]",
+        "",
+    )
     console.print(t)
     console.print(f"\n{report.verdict()}")
     console.print(

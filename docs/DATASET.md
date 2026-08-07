@@ -61,8 +61,8 @@ that a medical emergency is not a rearrangement of a routine check-in. It probed
 at 100% and was exempted from the per-family assertion by name.
 
 **The exemption was the error, not the family.** Because `quiet_hours` carries the
-highest false-positive cost in the benchmark, it drove 82% of the gap between
-`always` and silence from 13% of the moments — so a policy matching `admitt` /
+highest false-positive cost in the benchmark, it drove 87% of the gap between
+`always` and silence from 11% of the moments — so a policy matching `admitt` /
 `discharg` and coin-flipping on the other eight families beat silence, while the
 honest structural heuristic did not.
 
@@ -187,8 +187,8 @@ enforces the invariants that make the benchmark meaningful:
   the audit confirms word statistics don't carry the answer — but the *scenarios*
   are still a small hand-authored set. Item count overstates diversity. More
   families is the highest-value expansion.
-- **Cost is concentrated in `quiet_hours`** — 82% of the `always`-vs-silence gap
-  from 13% of moments, because a false positive while asleep under DND is the most
+- **Cost is concentrated in `quiet_hours`** — 87% of the `always`-vs-silence gap
+  from 11% of moments, because a false positive while asleep under DND is the most
   expensive error priced. Deliberate, but it makes the headline sensitive to how
   that one family is written.
 - **Independent moments.** Real interruption cost depends on how recently the user

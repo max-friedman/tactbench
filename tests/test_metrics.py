@@ -377,11 +377,14 @@ class TestShortcutResistance:
         items = generate(n_pairs_per_scenario=5)
         by_pair: dict[str, list] = {}
         for item in items:
-            parts = item.moment.id.split("-")
-            by_pair.setdefault(f"{parts[0]}-{parts[-1]}", []).append(item)
+            by_pair.setdefault(pair_key(item.moment.id), []).append(item)
+        # Every group must actually BE a pair. Guarding the assertion with
+        # `if len(pair) == 2` made it vacuous the moment grouping drifted --
+        # the same shape of hole this round found in the split itself.
+        assert by_pair, "no pairs generated"
         for key, pair in by_pair.items():
-            if len(pair) == 2:
-                assert pair[0].moment.user_state == pair[1].moment.user_state, key
+            assert len(pair) == 2, f"{key} grouped {len(pair)} items, not 2"
+            assert pair[0].moment.user_state == pair[1].moment.user_state, key
 
     def test_the_two_sides_are_equal_but_not_the_same_objects(self):
         """Byte-identical text, independent objects.
@@ -402,9 +405,15 @@ class TestShortcutResistance:
             if len(pair) != 2:
                 continue
             a, b = pair
-            shared = [(x, y) for x, y in zip(a.moment.signals, b.moment.signals, strict=False)]
-            assert any(x.content == y.content for x, y in shared), f"{key}: no shared body"
-            for x, y in shared:
+            assert len(a.moment.signals) == len(b.moment.signals), f"{key}: length mismatch"
+            # The body is every signal but the last; the last one is the decider,
+            # which is exactly what differs. `any()` here would pass while a
+            # paraphrase pass rewrote all but one body signal -- and paraphrase
+            # expansion is a named priority in CLAUDE.md.
+            body = list(zip(a.moment.signals[:-1], b.moment.signals[:-1], strict=True))
+            assert body, f"{key}: no shared body to compare"
+            for x, y in body:
+                assert x.content == y.content, f"{key}: body differs -- not a permutation"
                 assert x is not y, f"{key}: pair sides share a mutable Signal instance"
             assert a.moment.user_state is not b.moment.user_state, f"{key}: shared UserState"
 
@@ -463,6 +472,23 @@ class TestSplitIntegrity:
         dev_keys = {pair_key(i.moment.id) for i in load("v1", "dev")}
         test_keys = {pair_key(i.moment.id) for i in load("v1", "test")}
         assert not (dev_keys & test_keys)
+
+    def test_the_shipped_files_are_what_the_generator_produces(self):
+        """Closes the round's own defect shape, one level up.
+
+        The other tests here check that the *committed* ``data/v1`` is pair-whole.
+        Nothing checked that it is still what ``tactbench build`` writes. Change a
+        threshold or a scenario's phrasing and forget to rebuild, and the shipped
+        files stay pair-whole, every assertion above stays green, and every number
+        in the README is computed on a dataset the generator no longer produces --
+        "the invariant enforced in the checker and violated in the artifact", again.
+        """
+        dev, test = self._splits()
+        for name, rebuilt in (("dev", dev), ("test", test)):
+            shipped = load("v1", name)
+            assert [i.model_dump_json() for i in shipped] == [
+                i.model_dump_json() for i in rebuilt
+            ], f"data/v1/{name}.jsonl is stale -- re-run `uv run tactbench build`"
 
     def test_partner_lookup_cannot_answer_the_held_out_split(self):
         """The zero-model exploit, as an executable assertion.

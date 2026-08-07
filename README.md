@@ -37,12 +37,13 @@ Built-in policies on `v1/dev` (246 moments, 9 scenario families):
 | `always` | 581.0 | −78.2 | 0.500 | 1.000 | 0.500 | 24 | 246/246 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
-single cue worth surfacing — and it is the worst policy on the board, scoring 146
-points *below saying nothing at all*. That gap is the argument for this benchmark.
+single cue worth surfacing — and it is the worst policy on the board, costing 255
+more ICS than saying nothing at all (−78.2 normalized). That gap is the argument
+for this benchmark.
 Optimize for helpfulness and you land on that row.
 
 Then read the `heuristic` row. A hand-written rule set with no comprehension lands
-at **0.542 precision — barely above a coin flip** — and also loses to silence. That
+at **0.500 precision — a coin flip** — and also loses to silence. That
 is by design: every surface shortcut it used to exploit has been removed from the
 dataset (see [Shortcut resistance](#shortcut-resistance) below). Pattern matching
 gets no traction here.
@@ -129,11 +130,12 @@ Waking the one person who can be there in fifteen minutes is. Same tokens, swapp
 roles — and a harder judgment than spotting the word *admitted*.
 
 **Why it mattered.** `quiet_hours` carries the highest false-positive cost in the
-benchmark (asleep, DND-doubled), so it drove **82% of the gap** between `always`
-and silence from 13% of the moments. Concentration plus exploitability meant a
+benchmark (asleep, DND-doubled), so it drives **87% of the gap** between `always`
+and silence from 11% of the moments. Concentration plus exploitability meant a
 policy matching two substrings — `admitt` / `discharg` — and coin-flipping on the
 other eight families **beat silence at +28.0**, while the honest structural
-heuristic scored −22.9. After the rebuild that same policy scores **−85.0**.
+heuristic scored −22.9. After the rebuild that same policy scores **−76.7**,
+against the honest heuristic's −40.8.
 
 There is no exempt family now. `TestNoKeywordExploit` fails the build if any
 keyword policy beats silence, and every family must probe under 60%.
@@ -309,8 +311,8 @@ otherwise would defeat the purpose of building a benchmark:
   guessability (the audit measures this directly), but the scenarios remain a small,
   hand-authored set — nine families is nine effective degrees of freedom, whatever
   the item count.
-- **Cost is concentrated in `quiet_hours`** — 82% of the `always`-versus-silence
-  gap from 13% of the moments, because a false positive while asleep under DND is
+- **Cost is concentrated in `quiet_hours`** — 87% of the `always`-versus-silence
+  gap from 11% of the moments, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and
   it means the headline is sensitive to how that one family is written. It is no
   longer *exploitable* (see above), but it is still load-bearing.

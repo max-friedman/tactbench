@@ -27,6 +27,15 @@ from .schema import Item, pair_key
 
 TOKEN_RE = re.compile(r"[a-z0-9']+")
 
+#: The bars the audit enforces, as *exploitable* accuracy (see
+#: :attr:`LeakageReport.exploitable_accuracy`). Defined once, here, because this
+#: round found the same threshold typed out separately in the CLI, in the tests,
+#: and in the report's own verdict -- and one of the three was still one-sided
+#: after the other two were fixed. A threshold that is a literal at three call
+#: sites is three thresholds.
+OVERALL_THRESHOLD = 0.70
+PER_FAMILY_THRESHOLD = 0.60
+
 
 def tokenize(text: str) -> list[str]:
     return TOKEN_RE.findall(text.lower())
@@ -84,8 +93,16 @@ class LeakageReport:
         """
         return 0.5 + self.leakage
 
+    def is_leaking(self, threshold: float = PER_FAMILY_THRESHOLD) -> bool:
+        """The single predicate every caller must use.
+
+        Thresholds on :attr:`exploitable_accuracy`, never on raw accuracy, so a
+        reliably-wrong probe is judged the same as a reliably-right one.
+        """
+        return self.exploitable_accuracy >= threshold
+
     def verdict(self, threshold: float = 0.65) -> str:
-        if self.exploitable_accuracy >= threshold:
+        if self.is_leaking(threshold):
             direction = (
                 ""
                 if self.excess_over_chance >= 0

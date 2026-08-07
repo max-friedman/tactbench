@@ -99,6 +99,16 @@ def main() -> None:
     )
     print(f"  orphans sharing signal text with their dev partner: {shared}/{len(orphaned)}")
 
+    if not orphaned:
+        print(
+            "\n  No pair is divided by the split, so there is nothing here to\n"
+            "  measure. This is the repaired state -- see TestSplitIntegrity.\n"
+            "  Re-run against a pair-broken split to reproduce the finding:\n"
+            "    git stash && git checkout main -- data/ && uv run python "
+            "experiments/pair_split_leak_probe.py"
+        )
+        return
+
     model = fit_on(dev)
     a_orphan, a_intact = accuracy(model, orphaned), accuracy(model, intact)
 
@@ -111,13 +121,27 @@ def main() -> None:
     print("-" * 49)
     print(f"{'gap (leak premium)':<34} {'':>4} {a_orphan - a_intact:>+8.1%}")
 
-    print(
-        "\nThe gap is large and NEGATIVE, which is the strongest form of the leak.\n"
-        "An orphan's dev partner carries near-identical text under the OPPOSITE\n"
-        "label, so a probe fit on dev is systematically wrong -- and a systematic\n"
-        "wrong answer is a right answer with a minus sign. Inverted: "
-        f"{1 - a_orphan:.1%}."
-    )
+    # State the verdict the measurement supports, not the one it supported the
+    # day this was written. An experiment that prints its conclusion
+    # unconditionally stops being evidence and becomes a comment.
+    if a_orphan < a_intact - 0.05:
+        print(
+            f"\nThe gap is large and NEGATIVE ({a_orphan - a_intact:+.1%}), which is the\n"
+            "strongest form of the leak. An orphan's dev partner carries near-identical\n"
+            "text under the OPPOSITE label, so a probe fit on dev is systematically\n"
+            "wrong -- and a systematic wrong answer is a right answer with a minus\n"
+            f"sign. Inverted: {1 - a_orphan:.1%}."
+        )
+    elif a_orphan > a_intact + 0.05:
+        print(
+            f"\nOrphans score {a_orphan - a_intact:+.1%} above intact pairs: the held-out\n"
+            "number is partly memorization of items published in dev."
+        )
+    else:
+        print(
+            f"\nNo material gap ({a_orphan - a_intact:+.1%}). The broken pairing is not\n"
+            "measurably helping this probe."
+        )
 
     # ---------------------------------------------------------------- #
     # The exploit needs no statistics at all.
@@ -141,11 +165,14 @@ def main() -> None:
     coverage = len(looked_up) / len(test)
     overall = (exact + 0.5 * (len(test) - len(looked_up))) / len(test)
     print(f"  whole-split accuracy (coin-flip elsewhere) : {overall:.1%}")
-    print(
-        f"\n  {coverage:.0%} of the held-out split is answerable by table lookup\n"
-        "  against the published dev file. This requires no learning, no text\n"
-        "  analysis, and no access to anything that isn't shipped in the repo."
-    )
+    if looked_up:
+        print(
+            f"\n  {coverage:.0%} of the held-out split is answerable by table lookup\n"
+            "  against the published dev file. This requires no learning, no text\n"
+            "  analysis, and no access to anything that isn't shipped in the repo."
+        )
+    else:
+        print("\n  Nothing is answerable by lookup: no partner is published in dev.")
 
 
 if __name__ == "__main__":
