@@ -26,15 +26,15 @@ uv run tactbench demo
 
 ## Results
 
-Built-in policies on `v1/dev` (266 moments, 9 scenario families):
+Built-in policies on `v1/dev` (246 moments, 9 scenario families):
 
 | policy | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke |
 |---|---|---|---|---|---|---|---|
-| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 132/266 |
-| `never` *(the bar)* | 354.0 | 0.0 | — | 0.000 | 0.496 | 0 | 0/266 |
-| `heuristic` | 493.0 | −39.3 | 0.542 | 0.197 | 0.186 | 10 | 48/266 |
-| `random@0.5` | 543.0 | −53.4 | 0.496 | 0.530 | 0.000 | 17 | 141/266 |
-| `always` | 704.0 | −98.9 | 0.496 | 1.000 | 0.504 | 32 | 266/266 |
+| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 123/246 |
+| `never` *(the bar)* | 326.0 | 0.0 | — | 0.000 | 0.500 | 0 | 0/246 |
+| `heuristic` | 459.0 | −40.8 | 0.500 | 0.187 | 0.207 | 9 | 46/246 |
+| `random@0.5` | 463.0 | −42.0 | 0.534 | 0.577 | 0.037 | 14 | 133/246 |
+| `always` | 581.0 | −78.2 | 0.500 | 1.000 | 0.500 | 24 | 246/246 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
 single cue worth surfacing — and it is the worst policy on the board, scoring 146
@@ -68,17 +68,17 @@ guesses on the rest:
 
 | comprehension `p` | ICS ↓ | vs silence | prec@int |
 |---|---|---|---|
-| 0.0 | 507.0 | −43.2 | 0.484 |
-| 0.2 | 463.0 | −30.8 | 0.556 |
-| **0.4** | **245.0** | **+30.8** | 0.705 |
-| 0.6 | 178.0 | +49.7 | 0.836 |
-| 0.8 | 105.0 | +70.3 | 0.880 |
+| 0.0 | 466.0 | −42.9 | 0.483 |
+| 0.2 | 364.0 | −11.7 | 0.580 |
+| **0.4** | **277.0** | **+15.0** | 0.664 |
+| 0.6 | 177.0 | +45.7 | 0.756 |
+| 0.8 | 95.0 | +70.9 | 0.886 |
 | 1.0 | 0.0 | +100.0 | 1.000 |
 
-**A system needs roughly 30% comprehension before it beats silence at all.** Below
-that it is worse than shipping nothing, however well-intentioned — and note that
-`p = 0.2` still reaches 0.556 precision, which reads as "better than a coin flip"
-and is still a net loss.
+**A system needs roughly a third comprehension before it beats silence at all.**
+Below that it is worse than shipping nothing, however well-intentioned — and note
+that `p = 0.2` still reaches 0.580 precision, which reads as "better than a coin
+flip" and is still a net loss.
 
 The sweep also establishes that ICS is **monotone, anchored, and responsive across
 the whole range** — it ranks partial comprehension rather than merely separating
@@ -110,7 +110,7 @@ primary and secondary on-call trade places, the two boxes trade which one is sti
 sealed, the two meetings trade which is ahead and which has passed. Both sides then
 carry nearly the same token multiset, so word statistics cannot separate them.
 
-**All nine families sit at the chance floor. Overall: 48.1%.**
+**All nine families sit at the chance floor. Overall: 50.0%.**
 
 That was not always true, and the exception is worth the telling. `quiet_hours`
 originally probed at **100%** and was declared irreducible — a medical emergency
@@ -180,9 +180,9 @@ uv run tactbench eval --base-rate 100
 | policy | prec@int @ 1:1 | prec@int @ 100:1 |
 |---|---|---|
 | `skyline` | 1.000 | 1.000 |
-| `heuristic` | 0.514 | **0.010** |
-| `random@0.5` | 0.560 | **0.013** |
-| `always` | 0.496 | **0.010** |
+| `heuristic` | 0.500 | **0.010** |
+| `random@0.5` | 0.534 | **0.013** |
+| `always` | 0.500 | **0.010** |
 
 Precision collapses to roughly **1%** — ninety-nine of every hundred interruptions
 would be unwanted. Silence and the skyline are the only rows that don't move,

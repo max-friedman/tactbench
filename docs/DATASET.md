@@ -127,11 +127,45 @@ make the number mean nothing.
 
 ## Splitting
 
-`dev` / `test` are split on `sha256(moment_id)[0] % 100 < 60`.
+`dev` / `test` are split on `sha256(pair_key(moment_id))[0] % 100 < 60` — **246
+dev / 114 test**.
 
-Deliberately **not** Python's `hash()` — string hashing is salted per process, so
-`hash()` would reshuffle the split on every run and silently leak test items into
-dev. The digest is stable across processes, machines, and Python versions.
+Two things about that expression are load-bearing, and each was learned by getting
+it wrong.
+
+**Not Python's `hash()`.** String hashing is salted per process, so `hash()` would
+reshuffle the split on every run and silently leak test items into dev. The digest
+is stable across processes, machines, and Python versions.
+
+**Not the moment id — the *pair* key.** A pair's two sides must always travel
+together into the same split. This is not tidiness; it is the difference between
+a held-out set and a published one. Both sides share a byte-identical body and an
+identical `UserState`, differing only in which noun plays which role, so an
+orphaned test item is a near-verbatim copy of a dev item **carrying the opposite
+label**.
+
+Round 10 found the split bucketing on `moment.id`, which names an item rather than
+a pair. The two halves were therefore assigned independently, and:
+
+| | |
+|---|---|
+| pairs divided across dev and test | **72 of 180** |
+| held-out items whose partner was published in dev | **72 of 94 (77%)** |
+| of those, answered by negating the partner's label | **72 of 72** |
+| test-split accuracy by table lookup, no model | **88.3%** |
+
+`moment.id` is public, so the pair key is public, so the partner is findable. A
+pair has exactly one speak side and one stay-quiet side — reading the partner's
+label out of `dev.jsonl` and negating it gave the answer outright. No learning, no
+text analysis, nothing that isn't shipped in the repo.
+
+The audit had always kept pairs whole across its own cross-validation folds, with
+a comment explaining that splitting one "would let the probe memorize one half and
+trivially answer the other." The artifact it was auditing did not. `pair_key` in
+`schema.py` is now the single definition, used by both.
+
+`TestSplitIntegrity` enforces this on the generator *and* on the shipped `.jsonl`
+files, and asserts that partner-lookup recovers nothing.
 
 Regeneration with the same seed reproduces both splits exactly.
 

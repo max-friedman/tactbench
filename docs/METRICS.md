@@ -96,8 +96,8 @@ than an artifact of the split. The effect is not subtle:
 | policy | prec@int @ 1:1 | prec@int @ 100:1 |
 |---|---|---|
 | `skyline` | 1.000 | 1.000 |
-| `heuristic` | 0.514 | **0.010** |
-| `always` | 0.496 | **0.010** |
+| `heuristic` | 0.500 | **0.010** |
+| `always` | 0.500 | **0.010** |
 
 Two rows do not move — `never` and `skyline` — because neither produces a false
 positive. Everything else inflates around them, which is the concrete reason
@@ -206,6 +206,27 @@ This is not a diagnostic; it gates the build. `test_lexical_leakage_stays_near_c
 fails if the overall figure drifts above 70%, and **every** family must stay under
 60% — there are no exemptions.
 
+**Both bounds are on distance from chance, not on accuracy.** `LeakageReport`
+exposes `leakage` (`|accuracy − 0.5|`) and `exploitable_accuracy`
+(`0.5 + leakage`); the thresholds apply to the latter. A probe that is reliably
+*wrong* is worth exactly as much to a submitter as one that is reliably right,
+because negating a classifier is free.
+
+Round 10: the assertions were upper bounds on raw accuracy, so `meeting_prep`
+probing at **32.8%** passed with room to spare and printed as `at chance`. It was
+not at chance — it was a 67.2% classifier with a minus sign, above the very bar
+the audit claimed to enforce. The anti-correlation came from the dev/test split
+breaking pairs apart (see [DATASET.md](DATASET.md#splitting)); a one-sided check
+is structurally unable to see the kind of leak a pairing design produces.
+
+**A caveat worth stating plainly.** With pairs whole and deciders written as true
+role permutations, every family now probes at *exactly* 50.0% — and it must, since
+bag-of-words cannot see word order and a permutation is only a reordering. So this
+audit no longer discriminates among well-formed permutations; it catches deciders
+that are **not** permutations (a one-sided token, as `quiet_hours` once had). That
+is still worth gating on, but "50.0% everywhere" should not be read as stronger
+evidence than it is. An order-sensitive probe is the natural next check.
+
 The audit exists because the claim it measures was once false. v1 asserted that
 matched pairs prevented keyword matching; the probe hit **93.5%**.
 
@@ -225,14 +246,14 @@ model understands about 40% of these moments."*
 
 **That number is not real.** The curve was built from uniformly random errors;
 real systems fail systematically. Three policies understanding the same share of
-moments — true fractions within 0.015 of each other — land at implied fractions
-spanning **0.30**, purely from *which* families they understand:
+moments — true fractions within 0.033 of each other — land at implied fractions
+spanning **0.36**, purely from *which* families they understand:
 
 | comprehends | true fraction | ICS | implied p |
 |---|---|---|---|
-| cheap families (`commerce`, `health`, `meeting_prep`) | 0.323 | 466.0 | 0.198 |
-| mixed (`travel`, `deadline`, `finance`) | 0.338 | 367.0 | 0.303 |
-| costly (`quiet_hours`, `driving`, `childcare`) | 0.338 | 199.0 | 0.495 |
+| cheap families (`commerce`, `health`, `meeting_prep`) | 0.350 | 382.0 | 0.163 |
+| mixed (`travel`, `deadline`, `finance`) | 0.333 | 319.0 | 0.333 |
+| costly (`quiet_hours`, `driving`, `childcare`) | 0.317 | 192.0 | 0.527 |
 
 The metric is not wrong here — ICS weights by consequence, and a system that
 handles `quiet_hours` correctly genuinely *is* better than one that only handles
