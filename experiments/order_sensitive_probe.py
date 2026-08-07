@@ -216,7 +216,8 @@ def main() -> None:
         f"   held-out items whose decider WAS published in dev : {len(seen):>3}  {acc(seen):>6.1%}"
     )
     print(
-        f"   held-out items whose decider was NEVER in dev     : {len(unseen):>3}  {acc(unseen):>6.1%}"
+        f"   held-out items whose decider was NEVER in dev     : "
+        f"{len(unseen):>3}  {acc(unseen):>6.1%}"
     )
     print(
         "\n   Comparable accuracy on never-published phrasings means the model is\n"
