@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 8 complete
-- **Gate:** green — 69 tests, ruff clean, **enforced by CI** on py3.11-3.13
+- **Round:** 9 complete
+- **Gate:** green — 73 tests, ruff clean, **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (266 dev / 94 test), 9 families × 20 pairs
 - **Headline:** silence (ICS 354) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable
@@ -343,6 +343,63 @@ implied comprehension figure. Recorded so a future round doesn't re-propose it.
 
 ---
 
+## Round 9 — the exemption we granted ourselves
+
+**Question:** R8's breakdown showed `always` costing 9.71/moment in `quiet_hours`
+against 0.42 in `commerce`; R1's audit showed `quiet_hours` is the only family not
+at the chance floor. Together: *is the headline dominated by one family — and is
+it the one a keyword matcher can already solve?*
+
+**Measured, both parts yes.** `quiet_hours` is 13% of moments and drives **82% of
+the gap** between `always` and silence. And the exploit was live: a policy matching
+two substrings (`admitt` / `discharg`) and coin-flipping on the other eight
+families scored **+28.0 vs silence** — while the honest structural heuristic
+scored **−22.9**. Two tokens in one family beat reasoning across all nine.
+
+**Root cause: the exemption from R1, not the family.** "Severity is irreducibly
+lexical" was wrong. The decider was on the wrong *axis*. The admission now sits in
+the **shared body**, identical on both sides, and the judgment is whether the user
+can act:
+
+> *"Right now I am 6 hours out; you are the one nearby."* → speak
+> *"Right now you are 6 hours out; I am the one nearby."* → stay quiet
+
+**Results:**
+
+| | before | after |
+|---|---|---|
+| `quiet_hours` probe | 100.0% | **54.3%** |
+| overall probe | 55.6% | **48.1%** |
+| two-keyword exploit vs silence | **+28.0** | **−85.0** |
+| exempt families | 1 | **0** |
+| heuristic vs silence | −22.9 | −39.3 |
+
+The heuristic got *worse*, which is the leak removal working — its severity
+lexicon no longer buys anything.
+
+**Concentration itself was left alone.** `quiet_hours` still drives 82% of the
+gap, and that is correct: a false positive while asleep under DND is the most
+expensive error the cost model prices. Concentration is fine; concentration in an
+*exploitable* family was the bug.
+
+**Two bugs found in my own R7 code while re-verifying:**
+
+1. `PartialSkylinePolicy` drew guesses from a sequential RNG, so *which* moments
+   consumed randomness depended on `p` — raising `p` reshuffled every remaining
+   guess instead of only converting guesses to correct answers. R7's monotonicity
+   held **by luck**; it reversed on the new dataset (p=0.4 → 112.0, p=0.6 → 120.0).
+   Guesses are now hashed per moment, making monotonicity *structural*.
+2. `digest[2] / 255.0 < p` excluded a moment whose byte was exactly 255, so p=1.0
+   did not reproduce the skyline. Passed on small samples, failed on the full
+   split. Now `/ 256.0`.
+
+**Shipped:** rebuilt `quiet_hours`, skyline handler, `TestNoKeywordExploit` (4
+keyword sets), the per-family audit assertion extended to **all nine** families,
+the concentration probe, and corrections across README, DATASET.md, METRICS.md,
+CONTRIBUTING.md and CLAUDE.md — five documents asserted the exemption.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -382,5 +439,9 @@ dataset or the policy is wrong, not the assertion.
 - **No single-number "comprehension" score.** Refuted in R8: ICS weights by
   consequence, so one figure conflates how much a system understands with which
   parts. Report `--by-family` instead.
+- **No exempt families.** Every family probes under 60%. R9 showed an exemption is
+  not free: the exempted family was also the highest-cost one, which made it
+  exploitable by two keywords.
+- **No keyword policy may beat silence** (`TestNoKeywordExploit`).
 - ICS stays monotone, anchored, and responsive in comprehension — the metric must
   rank the middle, not only separate the ends.

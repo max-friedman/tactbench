@@ -92,8 +92,12 @@ is not lexical pairing. When adding a scenario, run `tactbench audit` and confir
 new family lands near 50% — if it doesn't, you wrote two sentences instead of one
 permutation.
 
-`quiet_hours` is the standing exception (severity isn't permutable) and is excluded
-from the per-family assertion by name. Don't add more exceptions.
+**There are no exempt families.** `quiet_hours` was one, on the reasoning that
+severity isn't permutable. That was wrong and it was expensive: the family carries
+the highest false-positive cost, so a two-substring policy exploiting it beat
+silence while the honest heuristic did not. The decider was on the wrong axis —
+moving the emergency into the shared body and asking *who can get there tonight*
+permutes fine. If a family looks irreducible, find a different decider.
 
 **4. Hard violations are never averaged.**
 

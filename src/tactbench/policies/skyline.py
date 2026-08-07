@@ -29,7 +29,6 @@ Treat a submitted policy that looks like this one as overfitting, not progress.
 from __future__ import annotations
 
 import hashlib
-import random
 import re
 
 from ..schema import Decision, Moment
@@ -104,8 +103,14 @@ class SkylinePolicy(Policy):
         )
 
     def _quiet_hours(self, text: str, low: str) -> bool:
-        """Speak only if the news is an admission rather than a discharge."""
-        return "admitt" in low
+        """Speak only if the user is the one who can actually get there tonight.
+
+        The emergency itself is identical on both sides -- it lives in the shared
+        body. What differs is who is nearby and who is hours out.
+        """
+        if "nearby: " in low:
+            return low.split("nearby: ")[1].split(".")[0].strip().startswith("you")
+        return "you are the one nearby" in low
 
     def _health(self, text: str, low: str) -> bool:
         """Speak only if the refill still at the counter is the user's own."""
@@ -143,27 +148,49 @@ class PartialSkylinePolicy(Policy):
     where every real system lands. A metric that is flat across that range cannot
     tell a mediocre assistant from a good one, however clean its endpoints look.
 
-    Which moments fall in the comprehending set is decided by a hash of the moment
-    id rather than by sampling, so the set is **nested**: raising ``p`` only ever
-    adds comprehended moments. Without that, a non-monotonic sweep could be an
-    artifact of resampling rather than a property of the metric.
+    Two properties make the sweep interpretable, and **both** are needed:
+
+    1. The comprehending set is chosen by hashing the moment id, so it is
+       **nested** -- raising ``p`` only ever adds moments.
+    2. The guess for a non-comprehended moment is *also* hashed from the moment
+       id, so it is **fixed independently of ``p``**.
+
+    Property 2 was missing in the original implementation, which drew guesses from
+    a sequential RNG. That made *which* moments consumed randomness depend on
+    ``p``, so raising ``p`` reshuffled every remaining guess rather than only
+    converting guesses into correct answers. Monotonicity then held or failed by
+    luck: it looked clean on one dataset and reversed on another (round 9 caught
+    p=0.4 scoring 112.0 and p=0.6 scoring 120.0).
+
+    With both properties, monotonicity is **structural** rather than statistical:
+    raising ``p`` strictly converts coin-flips into correct answers and leaves
+    every other decision untouched, so cost can only fall or stay level.
     """
 
     def __init__(self, p: float, seed: int = 0):
         if not 0.0 <= p <= 1.0:
             raise ValueError("p is a comprehension fraction and must be in [0, 1]")
         self.p = p
+        self.seed = seed
         self.name = f"partial@{p:.1f}"
         self._skyline = SkylinePolicy()
-        self._rng = random.Random(seed)
 
     def comprehends(self, moment_id: str) -> bool:
-        return hashlib.sha256(moment_id.encode()).digest()[2] / 255.0 < self.p
+        # Divided by 256, not 255: at p=1.0 a byte of exactly 255 would give 1.0,
+        # which is not < 1.0, so one moment in ~256 would never be comprehended and
+        # p=1.0 would not reproduce the skyline. Passes on small samples, fails on
+        # large ones.
+        return hashlib.sha256(moment_id.encode()).digest()[2] / 256.0 < self.p
+
+    def _guess(self, moment_id: str) -> bool:
+        """Fixed per moment and independent of ``p`` -- see property 2 above."""
+        digest = hashlib.sha256(f"{self.seed}:{moment_id}".encode()).digest()
+        return digest[3] % 2 == 0
 
     def decide(self, moment: Moment) -> Decision:
         if self.comprehends(moment.id):
             return self._skyline.decide(moment)
-        surface = self._rng.random() < 0.5
+        surface = self._guess(moment.id)
         return Decision(
             moment_id=moment.id,
             surface=surface,

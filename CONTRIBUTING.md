@@ -50,11 +50,19 @@ near-miss: On-call rotation — primary: Priya Raman, secondary: you.
 Identical token multiset. Word statistics cannot separate them; only resolving
 *who holds the page* can.
 
-`quiet_hours` is the standing exception — a medical emergency is not a
-rearrangement of a routine check-in, so severity there is irreducibly lexical. It
-probes at 100% and is excluded from the per-family assertion by name. **Don't add
-more exceptions.** If your family can't be permuted, say so explicitly in the PR
-and expect that to be the main thing reviewed.
+**There are no exempt families, and you should be very reluctant to propose one.**
+
+`quiet_hours` used to be the exception. It was declared irreducible — a medical
+emergency is not a rearrangement of a routine check-in — and excluded from the
+per-family assertion by name. That exemption was wrong, and it cost something
+real: two substrings captured the family, and because it carries the highest
+false-positive cost, a policy matching them and coin-flipping everywhere else
+**beat silence**, while the honest structural heuristic did not.
+
+The fix was to stop making severity the decider. The emergency moved into the
+shared body and the judgment became *who can actually get there tonight* — which
+permutes cleanly. If a family looks irreducible, the decider is probably just the
+wrong axis. Look for one that permutes before asking for an exception.
 
 ## Invariants you may not weaken
 
