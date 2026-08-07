@@ -189,6 +189,42 @@ def main() -> None:
     print("\n   distinct decider sentences per family (40 items each):")
     print("   " + ", ".join(f"{f}={n}" for f, n in families_by_diversity))
 
+    # ------------------------------------------------------------------ #
+    # 1c. The decisive control: does the exploit survive when duplication
+    # cannot possibly explain it?
+    #
+    # Round 12 inferred "the frame carries the label" from the exploit barely
+    # moving after duplication was cut. That is indirect. This measures it
+    # head-on -- score ONLY the held-out items whose decider sentence never
+    # appeared in dev. If accuracy holds up there, the residual exploit is not
+    # duplication-driven, and no amount of entity variation will touch it.
+    published = {i.moment.signals[-1].content for i in dev}
+    unseen = [i for i in test if i.moment.signals[-1].content not in published]
+    seen = [i for i in test if i.moment.signals[-1].content in published]
+    model = _NaiveBayes()
+    model.fit([(bigrams(i), i.label.should_surface) for i in dev])
+
+    def acc(subset):
+        if not subset:
+            return float("nan")
+        return sum(1 for i in subset if model.predict(bigrams(i)) == i.label.should_surface) / len(
+            subset
+        )
+
+    print("\n\n1c. IS THE RESIDUAL EXPLOIT DUPLICATION, OR THE FRAME?\n")
+    print(
+        f"   held-out items whose decider WAS published in dev : {len(seen):>3}  {acc(seen):>6.1%}"
+    )
+    print(
+        f"   held-out items whose decider was NEVER in dev     : "
+        f"{len(unseen):>3}  {acc(unseen):>6.1%}"
+    )
+    print(
+        "\n   Comparable accuracy on never-published phrasings means the model is\n"
+        "   not recognising strings -- it is reading the frame, which entity\n"
+        "   variation leaves untouched."
+    )
+
     print("\n\n2. EXPLOITABILITY -- fit on dev, graded on held-out test, scored by ICS\n")
     reference = silence_ics(test)
     print(f"   silence bar on test: ICS {reference:.1f}\n")

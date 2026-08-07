@@ -13,15 +13,16 @@ findings** below.
 
 ## Current status
 
-- **Round:** 11 complete
+- **Round:** 12 complete
 - **Gate:** green — 87 passed + **2 strict xfails recording an open defect**, ruff
   clean, **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (**246 dev / 114 test**), 9 families × 20 pairs,
   split on the **pair key** so no pair is divided
 - **Headline:** silence (ICS 326) is unbeaten by any *hand-written* baseline;
   skyline (ICS 0) proves the bar is clearable. **But a bag-of-bigrams fit on `dev`
-  scores +99.4 vs silence on held-out `test` — the dataset is currently solvable by
-  surface pattern matching (R11). Read every leaderboard number with that caveat.**
+  scores +98.1 vs silence on held-out `test` — the dataset is currently solvable by
+  surface pattern matching (R11, unfixed by R12). Read every leaderboard number
+  with that caveat.**
 
 ---
 
@@ -206,13 +207,15 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Paraphrase expansion — now the top item, and it is a benchmark-validity
-   blocker, not an enhancement.** R11 showed 91.2% of held-out deciders are
-   published verbatim and a dict lookup scores +90.9 vs silence. Every leaderboard
-   number is currently measuring a task a lookup table can mostly solve. Needs many
-   distinct surface realisations per family (today: as few as 4 across 40 items),
-   with `verbatim_overlap` driven under 10% and both strict xfails flipped to real
-   assertions. Re-run every published number afterwards.
+1. **Frame expansion with held-out phrasings — the validity blocker.** R12
+   established that entity variation is *not* the lever (91.2% → 29.8% duplication
+   bought 1.3 points of exploit). The frame carries the label and there are two
+   frames per family. R13 must: author ~8 structural frames per family; split
+   frames **disjointly** between dev and test so held-out items use phrasings never
+   trained on; generalise `_commerce` and `_meeting_prep` (which currently match the
+   literals `"the desk"` / `"contract review"` rather than resolving anything);
+   drive `verbatim_overlap` to ~0 by construction; flip both strict xfails to real
+   assertions; re-run every published number.
 2. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
@@ -550,6 +553,76 @@ that the checker found the maker repeating the exact pattern the round was about
 
 ---
 
+## Round 12 — entity variation was the wrong lever
+
+**Decision recorded (taken without Max, per his instruction to decide and note).**
+R11 left three candidate fixes. Chose the **phased** one — R12 does entity
+variation across all nine families (cheap, no skyline changes), R13 does held-out
+phrasings plus the skyline rework — because the loop's own rule is shippable
+independent increments, and authoring ~72 template pairs plus nine generalised
+skyline handlers in one round is where subtle leaks get introduced (R3 shipped a
+template that probed at 82.5% and nearly landed).
+
+**Question:** R11 attributed the exploit to decider scarcity — as few as **4
+distinct decider sentences across a family's 40 items**. *If the scarcity is
+removed, does the exploit go with it?*
+
+**Built:** entity pools (`COLLEAGUES`, `HOUSEHOLD`, `PHARMACY_OTHERS`,
+`RETURNABLES`, `MEETING_SUBJECTS`), drawn per pair. Both sides of a pair still take
+the **same** entity — the permutation is which role it plays — so varying it cannot
+leak. Numeric pools widened. `commerce` and `meeting_prep` vary only the
+*counterpart*, leaving the noun the skyline resolves against intact, which avoided
+touching the skyline at all.
+
+**Result: the diagnosis was half right, and the fix does not work.**
+
+| measure | before | after |
+|---|---|---|
+| distinct decider sentences per family | **4**–32 | **24–38** |
+| held-out deciders published verbatim in `dev` | 91.2% | **29.8%** |
+| held-out items wholly duplicate | 49.1% | **7.0%** |
+| dict-lookup accuracy (no model) | 95.6% | **64.9%** |
+| bigram probe | 97.2% | 93.5% |
+| **bigram exploit vs silence** | **+99.4** | **+98.1** |
+
+Duplication fell by two thirds. The exploit moved **1.3 points**. The reason is
+structural and should have been predictable: the **frame** carries the label
+(`pickup_you` → speak, `primary_you` → speak), and varying who stands in the *other*
+slot leaves the frame untouched. There are still exactly **two frames per family**.
+
+**Shipped anyway, framed as what it is.** The duplication reduction is real and
+worth having, the entity pools are what R13 builds on, and a measured negative
+result is the point of the check. Both strict xfails stay red. No claim of a fix
+appears anywhere.
+
+**The decisive control, added after review.** The round inferred "the frame carries
+the label" from the exploit not moving. Review pointed out that is indirect and ran
+the direct test: score only held-out items whose decider sentence **never** appeared
+in `dev`.
+
+| held-out subset | n | bigram accuracy |
+|---|---|---|
+| decider *was* published in dev | 34 | 100.0% |
+| decider **never** published in dev | 80 | **97.5%** |
+
+Near-identical. The model is not recognising strings. That converts the round's
+conclusion from inference to evidence, and it is now `1c` in the probe.
+
+**Method note.** Review also caught a base-rate figure that had been *scaled* from
+the previous round's value rather than re-run (0.011 where the truth is 0.009) —
+a direct breach of the repo's own "never ship a number the round didn't produce",
+committed by the round whose entire subject is numbers being wrong. Third round
+running that the checker caught the maker repeating the pattern under discussion.
+
+**Consequence for R13:** the fix must vary *frames*, and hold some frames out of
+`dev` entirely, so a model has to generalise across phrasings rather than recognise
+one. That also forces the skyline to resolve the relation instead of matching a
+constant — `_commerce` and `_meeting_prep` currently key on the literals
+`"the desk"` and `"contract review"`, which is a lookup wearing a ceiling's
+clothing and is its own recorded finding.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -579,8 +652,9 @@ dataset or the policy is wrong, not the assertion.
   **exploitable accuracy** (`0.5 + |acc − 0.5|`), never raw accuracy, because
   negating a classifier is free. A new family must be added to the audit, not
   exempted. **Scoped to the unigram probe** as of R11: the bigram probe is
-  reported and currently reads ~100% for every family, and gating on it is
-  deliberately deferred until paraphrase expansion gives it a fix. Recorded so
+  reported and currently reads 100% for eight of nine families (commerce fell to
+  66.7% after R12's entity variation), and gating on it is deliberately deferred
+  until frame expansion gives it a fix. Recorded so
   this reads as a knowing trade rather than an unenforced rule.
 - **A clean audit bounds only the shortcuts you thought to test.** A probe scoring
   at chance means *that probe* found nothing — not that the dataset forces a
@@ -588,7 +662,7 @@ dataset or the policy is wrong, not the assertion.
   arrangement. Report the worst probe, never the friendliest.
 - **The held-out split must not be published verbatim.** Pair-wholeness is not
   sufficient: text can repeat across the boundary even when no pair does.
-  `verbatim_overlap` must stay under 10% (currently 91.2% — open defect).
+  `verbatim_overlap` must stay under 10% (currently **29.8%** after R12 — open defect).
 - **No pair may be divided by the dev/test split**, and every split must contain
   whole pairs only. Partner lookup against the published dev file must recover
   nothing. Anything partitioning items uses `schema.pair_key` — one definition.

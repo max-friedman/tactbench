@@ -736,12 +736,13 @@ class TestOrderSensitiveShortcut:
     actually differs between them.
 
     It is currently violated, and the violation is recorded rather than softened.
-    Decider diversity is as low as four distinct sentences across a family's 40
-    items, so 91.2% of held-out decider sentences appear byte-identically in the
-    published dev split -- a dict lookup with no model scores +90.9 vs silence,
-    and a bigram adds the rest. The fix is paraphrase expansion -- many surface
-    realisations per family -- which is a dataset rebuild, not an assertion
-    change. See ``experiments/order_sensitive_probe.py`` and the queue.
+    Each family has only two structural frames, and the frame carries the label
+    (``pickup_you`` -> speak, ``primary_you`` -> speak). R12 varied the entities
+    instead, cutting verbatim overlap 91.2% -> 29.8% and moving the exploit 1.3
+    points; the bigram still scores 97.5% on held-out items whose phrasing never
+    appeared in dev. The fix is more frames, with some held out of dev entirely --
+    a dataset rebuild, not an assertion change. See
+    ``experiments/order_sensitive_probe.py`` and the queue.
     """
 
     class _NgramPolicy(Policy):
@@ -764,11 +765,11 @@ class TestOrderSensitiveShortcut:
 
     @pytest.mark.xfail(
         strict=True,
-        reason="Round 11: OPEN DEFECT, same root cause as the ICS test below. "
-        "91% of held-out decider sentences appear byte-identically in the "
-        "published dev split and 49% of held-out items are wholly duplicate text, "
-        "so a zero-model dict lookup scores +90.9 vs silence. Paraphrase expansion "
-        "fixes this; strict=True makes the build fail when it lands.",
+        reason="OPEN DEFECT (R11, reduced but not closed by R12). 29.8% of "
+        "held-out decider sentences still appear byte-identically in the published "
+        "dev split (was 91.2%); a zero-model dict lookup scores 64.9% (was 95.6%). "
+        "Holding frames out of dev closes this by construction; strict=True makes "
+        "the build fail when it lands.",
     )
     def test_the_held_out_split_is_not_published_verbatim(self):
         """The dominant mechanism, measured separately from the model.
@@ -809,12 +810,13 @@ class TestOrderSensitiveShortcut:
 
     @pytest.mark.xfail(
         strict=True,
-        reason="Round 11: OPEN DEFECT. Low decider diversity (as few as 4 distinct "
-        "decider sentences across a family's 40 items) means 91% of held-out "
-        "deciders are published verbatim in dev, so a bigram model fit on dev "
-        "scores +99.4 vs silence on held-out test (ICS 1.0 against a skyline of "
-        "0.0). The benchmark is solvable by surface statistics. Fixing it requires "
-        "paraphrase expansion, not a weaker bound. strict=True so this fails the "
+        reason="OPEN DEFECT (R11, refined by R12). Each family has only TWO "
+        "structural frames, and the frame carries the label, so a bigram model fit "
+        "on dev scores +98.1 vs silence on held-out test (ICS 3.0 against a "
+        "skyline of 0.0). R12 removed most of the duplicate text R11 blamed and "
+        "the exploit moved 1.3 points; the bigram still scores 97.5% on held-out "
+        "items whose phrasing never appeared in dev. The fix is more frames with "
+        "some held out of dev, not a weaker bound. strict=True so this fails the "
         "build the moment the dataset is repaired, forcing the assertion to be "
         "tightened rather than forgotten.",
     )

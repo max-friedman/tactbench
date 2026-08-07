@@ -38,6 +38,112 @@ import random
 
 from ..schema import Activity, GoldLabel, Item, Moment, Signal, Source, UserState
 
+# --------------------------------------------------------------------------- #
+# Entity pools -- Round 12.
+#
+# Four families baked a single counterpart name into their decider templates
+# ("Priya Raman", "Sam", "Dana", "the desk"), so however many pairs the generator
+# emitted, the family only ever produced FOUR distinct decider sentences. Round 11
+# measured the cost: 91.2% of held-out decider sentences appeared byte-identically
+# in the published dev split, and a dict lookup with no model scored +90.9 versus
+# silence.
+#
+# The counterpart is drawn per pair instead. Both sides of a pair still use the
+# SAME entity -- the permutation is which role it plays, so varying it cannot
+# leak. Pools are deliberately larger than the pair count so repeats are rare.
+# --------------------------------------------------------------------------- #
+
+COLLEAGUES = [
+    "Priya Raman",
+    "Marco Silva",
+    "Dana Whitfield",
+    "Tom Okafor",
+    "Lena Brandt",
+    "Sofia Duarte",
+    "Aziz Rahman",
+    "Grace Lindqvist",
+    "Hugo Bellini",
+    "Nina Torres",
+    "Omar Haddad",
+    "Ruth Castellanos",
+    "Ivan Petrov",
+    "Maya Chandra",
+    "Felix Nyondo",
+]
+
+HOUSEHOLD = [
+    "Dana",
+    "Chris",
+    "Sam",
+    "Alex",
+    "Jordan",
+    "Robin",
+    "Casey",
+    "Morgan",
+    "Riley",
+    "Quinn",
+    "Avery",
+    "Reese",
+    "Devon",
+    "Harper",
+    "Emerson",
+]
+
+PHARMACY_OTHERS = [
+    "Sam",
+    "Nadia",
+    "Theo",
+    "Ines",
+    "Bruno",
+    "Camille",
+    "Otto",
+    "Priya",
+    "Leo",
+    "Mira",
+    "Yusuf",
+    "Elena",
+    "Kai",
+    "Rosa",
+    "Dmitri",
+]
+
+# Stand-in nouns for the commerce decider. ONLY the stand-in varies: the returnable
+# item stays "the desk", because the body names it and `SkylinePolicy._commerce`
+# resolves the relation against that literal. Varying the returnable as well
+# requires generalising that handler first -- see the R13 queue item. Kept as a
+# flat list rather than tuples of (body form, decider form, stand-in): an earlier
+# draft carried those extra columns unused, and a comment describing fields
+# nothing reads is how a later contributor wires one in and silently breaks the
+# ceiling.
+RETURNABLE_STANDINS = [
+    "replacement",
+    "loaner",
+    "spare",
+    "substitute",
+    "backup",
+    "second",
+    "alternate",
+    "stand-in",
+    "rental",
+    "floor model",
+]
+
+# Counterpart meetings for the meeting_prep decider. ONLY the counterpart varies:
+# "contract review" is what the body names and `SkylinePolicy._meeting_prep`
+# resolves against. Same reasoning as RETURNABLE_STANDINS above.
+COUNTERPART_MEETINGS = [
+    "budget sync",
+    "staffing review",
+    "roadmap sync",
+    "hiring sync",
+    "planning sync",
+    "design sync",
+    "metrics sync",
+    "retro sync",
+    "forecast review",
+    "onboarding sync",
+]
+
 
 def _mk(
     mid: str,
@@ -239,14 +345,15 @@ class DeadlineScenario(Scenario):
         ]
 
     def deciders(self, rng):
+        who = rng.choice(COLLEAGUES)
         variants = [
             (
-                "On-call rotation — primary: you, secondary: Priya Raman.",
-                "On-call rotation — primary: Priya Raman, secondary: you.",
+                f"On-call rotation — primary: you, secondary: {who}.",
+                f"On-call rotation — primary: {who}, secondary: you.",
             ),
             (
-                "Paging the primary: you. Backup is Priya Raman.",
-                "Paging the primary: Priya Raman. Backup is you.",
+                f"Paging the primary: you. Backup is {who}.",
+                f"Paging the primary: {who}. Backup is you.",
             ),
         ]
         pos_text, near_text = variants[rng.randrange(len(variants))]
@@ -295,16 +402,22 @@ class CommerceScenario(Scenario):
         return [Signal(source=Source.APP_EVENT, age_s=300, content=phrasing)]
 
     def deciders(self, rng):
+        # The returnable item stays "the desk" -- the body names it, and the
+        # relation the skyline resolves is body-item vs still-sealed-item. Only
+        # the STAND-IN varies, which keeps the permutation exact (both sides carry
+        # the same two nouns) while taking the family from 4 distinct decider
+        # sentences to ~20. Round 12.
+        alt = rng.choice(RETURNABLE_STANDINS)
+        where = rng.choice(["the hallway", "the porch", "the entryway", "the garage"])
+        room = rng.choice(["the office", "the study", "the spare room", "the den"])
         variants = [
             (
-                "The desk is unopened in the hallway; the replacement is already "
-                "set up in the office.",
-                "The replacement is unopened in the hallway; the desk is already "
-                "set up in the office.",
+                f"The desk is unopened in {where}; the {alt} is already set up in {room}.",
+                f"The {alt} is unopened in {where}; the desk is already set up in {room}.",
             ),
             (
-                "Still boxed: the desk. Already assembled: the replacement.",
-                "Still boxed: the replacement. Already assembled: the desk.",
+                f"Still boxed: the desk. Already assembled: the {alt}.",
+                f"Still boxed: the {alt}. Already assembled: the desk.",
             ),
         ]
         pos_text, near_text = variants[rng.randrange(len(variants))]
@@ -353,19 +466,23 @@ class MeetingPrepScenario(Scenario):
         return [Signal(source=Source.EMAIL, age_s=5400, content=phrasing)]
 
     def deciders(self, rng):
-        m = rng.choice([8, 10, 12, 15])
+        m = rng.choice([6, 8, 9, 10, 11, 12, 14, 15, 17, 18, 20, 22])
+        # "contract review" is the subject the body names and the skyline resolves
+        # against; only the COUNTERPART meeting varies. Both sides still carry the
+        # same two subjects, so the permutation is exact. Round 12.
+        other = rng.choice(COUNTERPART_MEETINGS)
         # Two meetings, so "begins in" and "began ago" each appear on both sides and
         # only their subjects swap. Without the second meeting the tense alone gave
         # the answer away and this family probed at 100%.
         variants = [
             (
-                f"Contract review begins in {m} minutes; the daily standup began {m} minutes ago.",
-                f"The daily standup begins in {m} minutes; contract review began {m} minutes ago.",
+                f"Contract review begins in {m} minutes; the {other} began {m} minutes ago.",
+                f"The {other} begins in {m} minutes; contract review began {m} minutes ago.",
             ),
             (
-                f"Calendar: contract review starts in {m} minutes, daily standup "
+                f"Calendar: contract review starts in {m} minutes, {other} "
                 f"started {m} minutes back.",
-                f"Calendar: daily standup starts in {m} minutes, contract review "
+                f"Calendar: {other} starts in {m} minutes, contract review "
                 f"started {m} minutes back.",
             ),
         ]
@@ -414,7 +531,7 @@ class DrivingScenario(Scenario):
         ]
 
     def deciders(self, rng):
-        d = rng.choice([25, 30, 40])
+        d = rng.choice([9, 12, 14, 17, 19, 22, 25, 28, 30, 33, 36, 40, 43, 47])
         variants = [
             (
                 f"Your route is backed up {d} minutes; the alternate at the next exit is clear.",
@@ -509,7 +626,7 @@ class QuietHoursScenario(Scenario):
         ]
 
     def deciders(self, rng):
-        hrs = rng.choice([5, 6, 7])
+        hrs = rng.choice([3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
         variants = [
             (
                 f"Mom: 'Right now I am {hrs} hours out; you are the one nearby.'",
@@ -576,14 +693,17 @@ class HealthScenario(Scenario):
         return [Signal(source=Source.NOTIFICATION, age_s=180, content=phrasing)]
 
     def deciders(self, rng):
+        who = rng.choice(PHARMACY_OTHERS)
         variants = [
             (
-                "Your refill is waiting for pickup; Sam's refill was collected yesterday.",
-                "Sam's refill is waiting for pickup; your refill was collected yesterday.",
+                f"Your refill is waiting for pickup; {who}'s refill was collected yesterday.",
+                f"{who}'s refill is waiting for pickup; your refill was collected yesterday.",
             ),
             (
-                "Still at the counter: your prescription. Already picked up: Sam's prescription.",
-                "Still at the counter: Sam's prescription. Already picked up: your prescription.",
+                f"Still at the counter: your prescription. "
+                f"Already picked up: {who}'s prescription.",
+                f"Still at the counter: {who}'s prescription. "
+                f"Already picked up: your prescription.",
             ),
         ]
         pos_text, near_text = variants[rng.randrange(len(variants))]
@@ -631,14 +751,15 @@ class ChildcareScenario(Scenario):
         return [Signal(source=Source.CALENDAR, age_s=0, content=phrasing)]
 
     def deciders(self, rng):
+        who = rng.choice(HOUSEHOLD)
         variants = [
             (
-                "You are on the pickup list today; Dana is out of town.",
-                "Dana is on the pickup list today; you are out of town.",
+                f"You are on the pickup list today; {who} is out of town.",
+                f"{who} is on the pickup list today; you are out of town.",
             ),
             (
-                "Listed for pickup: you. Travelling today: Dana.",
-                "Listed for pickup: Dana. Travelling today: you.",
+                f"Listed for pickup: you. Travelling today: {who}.",
+                f"Listed for pickup: {who}. Travelling today: you.",
             ),
         ]
         pos_text, near_text = variants[rng.randrange(len(variants))]
@@ -685,7 +806,7 @@ class FinanceScenario(Scenario):
         return [Signal(source=Source.APP_EVENT, age_s=600, content=phrasing)]
 
     def deciders(self, rng):
-        amt = rng.choice([180, 200, 240, 310])
+        amt = rng.choice([95, 120, 145, 180, 200, 215, 240, 265, 290, 310, 335, 360])
         variants = [
             (
                 f"Checking is short ${amt}; savings covers the balance.",

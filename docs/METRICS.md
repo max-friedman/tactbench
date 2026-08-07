@@ -232,16 +232,18 @@ and prints the verdict of whichever probe is worse. On v1:
 | probe | overall | families ≥ 60% |
 |---|---|---|
 | unigram | 50.0% | 0 of 9 |
-| bigram | **97.2%** | **9 of 9** |
+| bigram | **93.5%** | **9 of 9** |
 
-Fit on `dev` and graded on held-out `test`, a bag-of-bigrams reaches ICS **1.0**
-against a skyline of 0.0 and a silence bar of 154.0 — **+99.4 versus silence**, at
-0.983 precision.
+Fit on `dev` and graded on held-out `test`, a bag-of-bigrams reaches ICS **3.0**
+against a skyline of 0.0 and a silence bar of 154.0 — **+98.1 versus silence**, at
+0.982 precision.
 
-Most of that is duplicate text rather than generalisation: **91.2%** of held-out
-decider sentences are published verbatim in `dev`, and a **dict lookup with no
-model** already scores +90.9. `audit.verbatim_overlap` measures this directly. The
-benchmark is currently solvable by surface pattern matching.
+Round 11 attributed most of this to duplicate text; `audit.verbatim_overlap`
+measures that directly. Round 12 cut the duplication hard (verbatim decider overlap
+91.2% → 29.8%, wholly-duplicate items 49.1% → 7.0%) and the exploit moved by 1.3
+points. So duplication was real but not the binding constraint: the **frame**
+carries the label, and there are still only two frames per family. The benchmark
+remains solvable by surface pattern matching.
 That is an open defect, pinned by a `strict=True` xfail in
 `TestOrderSensitiveShortcut` so repairing the dataset forces the assertion to be
 tightened rather than forgotten. The fix is paraphrase expansion, not a weaker

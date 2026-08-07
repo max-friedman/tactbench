@@ -63,17 +63,20 @@ concealed:
 | probe | overall |
 |---|---|
 | unigram | 50.0% |
-| **bigram** | **97.2%** |
+| **bigram** | **93.5%** |
 
-The root cause is diversity, not the permutation rule. Families carry as few as
-**4 distinct decider sentences across all 40 items**, so 91% of held-out decider
-sentences appear byte-identically in the published `dev` split — a dict lookup
-scores +90.9 versus silence with no model at all.
+The cause is that each family has only **two structural frames**, and the frame is
+what carries the label: `pickup_you` → speak, `primary_you` → speak.
 
-So keep writing permutations; the rule is right. But a family that reuses one
-decider sentence twenty times is still guessable, and the audit's unigram column
-will not tell you. Vary the phrasing as well as the roles. Paraphrase expansion
-across all nine families is the open work item.
+Round 12 tested whether *entity* variation was enough. It is not. Varying the
+counterpart per pair took every family from as few as 4 distinct decider sentences
+to 24–38 and cut verbatim overlap from 91.2% to 29.8% — and moved the exploit by
+1.3 points, +99.4 → +98.1.
+
+So keep writing permutations; the rule is right, and vary your entities. But
+understand that **neither fixes this**. The open work item is more *frames* per
+family, with some held out of `dev` entirely, so a model must generalise across
+phrasings rather than recognise one.
 
 **There are no exempt families, and you should be very reluctant to propose one.**
 

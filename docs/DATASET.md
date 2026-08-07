@@ -55,25 +55,28 @@ rule:
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
 audit** — which is exactly what a token permutation guarantees, since that probe
-cannot see arrangement. An order-aware probe reaches **97.2%**, and a bag-of-bigrams
-fit on `dev` scores **+99.4 versus silence on held-out `test`**.
+cannot see arrangement. An order-aware probe reaches **93.5%**, and a bag-of-bigrams
+fit on `dev` scores **+98.1 versus silence on held-out `test`**.
 
-The root cause is **decider scarcity**, not the permutation rule. Each family draws
-its decider from two variants, yielding as few as 4 distinct decider sentences
-across 40 items:
+Round 11 diagnosed this as **decider scarcity** — families carried as few as 4
+distinct decider sentences across 40 items, so 91.2% of held-out deciders appeared
+byte-identically in `dev` and a dict lookup scored +90.9 with no model.
 
-| family | distinct decider sentences (of 40 items) |
-|---|---|
-| childcare, commerce, deadline, health | **4** |
-| quiet_hours | 10 |
-| driving | 12 |
-| finance | 14 |
-| meeting_prep | 16 |
-| travel | 32 |
+**Round 12 tested that diagnosis by fixing the scarcity, and it was only half
+right.** Drawing the counterpart entity per pair took every family to 24–38
+distinct decider sentences:
 
-So **91.2%** of held-out decider sentences appear byte-identically in the published
-`dev` split, and 49.1% of held-out items are wholly duplicate text. A dict lookup
-on the decider string — no model — scores 95.6% and **+90.9 versus silence**.
+| measure | before R12 | after R12 |
+|---|---|---|
+| held-out deciders published verbatim in `dev` | 91.2% | **29.8%** |
+| held-out items wholly duplicate | 49.1% | **7.0%** |
+| dict-lookup accuracy (no model) | 95.6% | **64.9%** |
+| **bigram exploit vs silence** | **+99.4** | **+98.1** |
+
+Duplication fell hard; the exploit did not move. The **frame** carries the label —
+`pickup_you` → speak, `primary_you` → speak — and varying who occupies the other
+slot leaves the frame intact. Entity variation is the wrong lever. The fix has to
+vary the frames themselves and hold some out of `dev`.
 
 This is a **near-duplicate leak**, and it is a *different* defect from the pair-key
 split fixed in Round 10: that one divided pairs across the boundary, this one

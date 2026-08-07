@@ -14,15 +14,27 @@ this project has not yet cut a release, so everything sits under Unreleased.
   Bigrams reach **97.2%**. `audit.verbatim_overlap` additionally measures how much
   held-out text is published verbatim in `dev`.
 
+### Changed (Round 12)
+
+- **Decider entities are drawn per pair** instead of baked into the template. Four
+  families hardcoded a single counterpart ("Priya Raman", "Sam", "Dana", "the
+  desk") and so emitted only **4 distinct decider sentences** however many pairs
+  were generated; every family now yields 24–38. Both sides of a pair still take
+  the same entity — the permutation is which role it plays — so this cannot leak.
+  Verbatim decider overlap between the splits falls **91.2% → 29.8%** and wholly
+  duplicate held-out items **49.1% → 7.0%**.
+  **This did not fix the exploit** (+99.4 → +98.1 versus silence). The frame
+  carries the label, not the entity, and there are still two frames per family.
+  Recorded as a measured negative result; see the known defect below.
+
 ### Known defect (open, recorded, not worked around)
 
-- **The dataset is currently solvable by surface pattern matching.** Decider
-  diversity is as low as **4 distinct sentences across a family's 40 items**, so
-  **91.2%** of held-out decider sentences appear byte-identically in the published
-  `dev` split and 49.1% of held-out items are wholly duplicate text. A **dict lookup
-  with no model** scores +90.9 versus silence; a bag-of-bigrams fit on `dev` scores
-  **+99.4** on held-out `test` (ICS 1.0 against a skyline of 0.0), at 0.983
-  precision. This is a near-duplicate leak, distinct from the pair-key split fixed
+- **The dataset is currently solvable by surface pattern matching.** A
+  bag-of-bigrams fit on `dev` scores **+98.1** versus silence on held-out `test`
+  (ICS 3.0 against a skyline of 0.0), at 0.982 precision. Each family has only
+  **two structural frames**, and the frame carries the label. Round 12 removed most
+  of the duplicate text that Round 11 blamed and the exploit barely moved, which
+  localises the cause: it is frame scarcity, not entity scarcity. This is a near-duplicate leak, distinct from the pair-key split fixed
   above: a split can be perfectly pair-whole and still publish its own answers.
   Pinned by two `strict=True` xfails so repairing the dataset fails the build and
   forces the assertions to be tightened. **The fix is paraphrase expansion, not a
