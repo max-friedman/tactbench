@@ -55,7 +55,7 @@ rule:
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
 audit** — which is exactly what a token permutation guarantees, since that probe
-cannot see arrangement. An order-aware probe reaches **93.9%**, and a bag-of-bigrams
+cannot see arrangement. An order-aware probe reaches **93.5%**, and a bag-of-bigrams
 fit on `dev` scores **+98.1 versus silence on held-out `test`**.
 
 Round 11 diagnosed this as **decider scarcity** — families carried as few as 4

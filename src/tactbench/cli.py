@@ -303,9 +303,10 @@ def audit(
             f"\n[yellow]The unigram probe reports {report.accuracy:.1%} because it cannot "
             "see word order.[/yellow]\nA role permutation is only a reordering, so "
             "bag-of-words is structurally unable to\nseparate a pair. Bigrams reach "
-            f"{ngram_report.accuracy:.1%}. Root cause is decider scarcity: as few as 4\n"
-            "distinct decider sentences across a family's 40 items, so most held-out text\n"
-            "is published verbatim. See docs/DATASET.md."
+            f"{ngram_report.accuracy:.1%}. The cause is frame scarcity: each family has only\n"
+            "two structural frames, and the frame carries the label. Round 12 showed entity\n"
+            "variation does not help — a bigram still scores 97.5% on held-out items whose\n"
+            "phrasing never appeared in dev. See docs/DATASET.md."
         )
     console.print(
         "\n[dim]Most speak-predictive tokens: "

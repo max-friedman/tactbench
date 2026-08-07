@@ -232,7 +232,7 @@ and prints the verdict of whichever probe is worse. On v1:
 | probe | overall | families ≥ 60% |
 |---|---|---|
 | unigram | 50.0% | 0 of 9 |
-| bigram | **93.9%** | **9 of 9** |
+| bigram | **93.5%** | **9 of 9** |
 
 Fit on `dev` and graded on held-out `test`, a bag-of-bigrams reaches ICS **3.0**
 against a skyline of 0.0 and a silence bar of 154.0 — **+98.1 versus silence**, at

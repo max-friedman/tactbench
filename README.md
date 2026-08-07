@@ -155,7 +155,7 @@ Round 11 measured it with a probe that can see order:
 | probe | overall | families ≥ 60% |
 |---|---|---|
 | unigram (what the audit reported for ten rounds) | **50.0%** | 0 of 9 |
-| **bigram** | **93.9%** | **9 of 9** |
+| **bigram** | **93.5%** | **9 of 9** |
 
 And separability is not the damaging part. Fitting bag-of-bigrams on the published
 `dev` split and grading it on **held-out `test`**, as a submitter would:
@@ -166,12 +166,11 @@ And separability is not the damaging part. Fitting bag-of-bigrams on the publish
 | **bag-of-bigrams, text only** | **3.0** | **+98.1** |
 | silence | 154.0 | 0.0 |
 
-A model that sees nothing but adjacent word pairs lands **one point off the
-skyline**, at 0.983 precision.
+A model that sees nothing but adjacent word pairs lands **three points off the
+skyline**, at 0.982 precision.
 
-**But most of that is not generalisation — it is duplicate text.** The pairs are
-new; the sentences are not. Families carry as few as **4 distinct decider
-sentences across all 40 items**, so:
+**Round 11 attributed most of this to duplicate text**, and Round 12 tested that
+by removing the duplication. The current position:
 
 | | |
 |---|---|
@@ -187,10 +186,19 @@ its own answers.
 Drawing the counterpart name/noun/number per pair took every family from as few as
 4 distinct decider sentences to 24–38, and cut duplication hard — verbatim decider
 overlap 91.2% → **29.8%**, wholly-duplicate items 49.1% → **7.0%**, dict lookup
-95.6% → **64.9%**. The exploit did not care: **+99.4 → +98.1**. The *frame* is what
-carries the label (`pickup_you` → speak, `primary_you` → speak), and varying who
-stands in the other slot leaves the frame untouched. Measured, recorded, and it is
-why the remaining fix is structural — see below.
+95.6% → **64.9%**. The exploit did not care: **+99.4 → +98.1**.
+
+The decisive control: score only the held-out items whose decider sentence **never
+appeared in `dev`** at all.
+
+| held-out subset | n | bigram accuracy |
+|---|---|---|
+| decider *was* published in `dev` | 34 | 100.0% |
+| decider **never** published in `dev` | 80 | **97.5%** |
+
+Near-identical on unseen phrasings, so the model is not recognising strings — it is
+reading the **frame** (`pickup_you` → speak, `primary_you` → speak), which entity
+variation leaves untouched. That is why the remaining fix is structural.
 
 **So the honest statement of this benchmark's status is: the pairing defeats
 vocabulary, and does not yet defeat surface pattern matching.** The claim that
@@ -248,7 +256,7 @@ uv run tactbench eval --base-rate 100
 |---|---|---|
 | `skyline` | 1.000 | 1.000 |
 | `heuristic` | 0.500 | **0.010** |
-| `random@0.5` | 0.481 | **0.011** |
+| `random@0.5` | 0.481 | **0.009** |
 | `always` | 0.500 | **0.010** |
 
 Precision collapses to roughly **1%** — ninety-nine of every hundred interruptions

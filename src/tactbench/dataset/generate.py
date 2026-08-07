@@ -107,30 +107,41 @@ PHARMACY_OTHERS = [
     "Dmitri",
 ]
 
-# (long form used in the body, short form used in the decider, the stand-in)
-RETURNABLES = [
-    ("standing desk", "desk", "replacement"),
-    ("espresso machine", "machine", "loaner"),
-    ("road bike", "bike", "spare"),
-    ("monitor arm", "arm", "substitute"),
-    ("office chair", "chair", "backup"),
-    ("cast iron pan", "pan", "second"),
-    ("wool overcoat", "overcoat", "alternate"),
-    ("noise cancelling headset", "headset", "stand-in"),
-    ("electric kettle", "kettle", "spare"),
-    ("camera lens", "lens", "rental"),
+# Stand-in nouns for the commerce decider. ONLY the stand-in varies: the returnable
+# item stays "the desk", because the body names it and `SkylinePolicy._commerce`
+# resolves the relation against that literal. Varying the returnable as well
+# requires generalising that handler first -- see the R13 queue item. Kept as a
+# flat list rather than tuples of (body form, decider form, stand-in): an earlier
+# draft carried those extra columns unused, and a comment describing fields
+# nothing reads is how a later contributor wires one in and silently breaks the
+# ceiling.
+RETURNABLE_STANDINS = [
+    "replacement",
+    "loaner",
+    "spare",
+    "substitute",
+    "backup",
+    "second",
+    "alternate",
+    "stand-in",
+    "rental",
+    "floor model",
 ]
 
-# (subject used in body and decider, its counterpart meeting)
-MEETING_SUBJECTS = [
-    ("contract review", "budget sync"),
-    ("vendor negotiation", "staffing review"),
-    ("pricing review", "roadmap sync"),
-    ("renewal review", "hiring sync"),
-    ("procurement review", "planning sync"),
-    ("compliance review", "design sync"),
-    ("licensing review", "metrics sync"),
-    ("partnership review", "retro sync"),
+# Counterpart meetings for the meeting_prep decider. ONLY the counterpart varies:
+# "contract review" is what the body names and `SkylinePolicy._meeting_prep`
+# resolves against. Same reasoning as RETURNABLE_STANDINS above.
+COUNTERPART_MEETINGS = [
+    "budget sync",
+    "staffing review",
+    "roadmap sync",
+    "hiring sync",
+    "planning sync",
+    "design sync",
+    "metrics sync",
+    "retro sync",
+    "forecast review",
+    "onboarding sync",
 ]
 
 
@@ -396,7 +407,7 @@ class CommerceScenario(Scenario):
         # the STAND-IN varies, which keeps the permutation exact (both sides carry
         # the same two nouns) while taking the family from 4 distinct decider
         # sentences to ~20. Round 12.
-        alt = rng.choice([a for _, _, a in RETURNABLES])
+        alt = rng.choice(RETURNABLE_STANDINS)
         where = rng.choice(["the hallway", "the porch", "the entryway", "the garage"])
         room = rng.choice(["the office", "the study", "the spare room", "the den"])
         variants = [
@@ -459,7 +470,7 @@ class MeetingPrepScenario(Scenario):
         # "contract review" is the subject the body names and the skyline resolves
         # against; only the COUNTERPART meeting varies. Both sides still carry the
         # same two subjects, so the permutation is exact. Round 12.
-        other = rng.choice([o for _, o in MEETING_SUBJECTS])
+        other = rng.choice(COUNTERPART_MEETINGS)
         # Two meetings, so "begins in" and "began ago" each appear on both sides and
         # only their subjects swap. Without the second meeting the tense alone gave
         # the answer away and this family probed at 100%.

@@ -200,7 +200,7 @@ def item_bigrams(item: Item) -> list[str]:
 
     Identical token multiset. The bag-of-words probe is structurally incapable of
     separating these and reports 50.0% -- which was read as resistance for ten
-    rounds. Bigrams separate them at 97.2%.
+    rounds. Bigrams separate them at 93.5%.
     """
     toks = item_tokens(item)
     if len(toks) < 2:

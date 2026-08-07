@@ -582,7 +582,7 @@ touching the skyline at all.
 | held-out deciders published verbatim in `dev` | 91.2% | **29.8%** |
 | held-out items wholly duplicate | 49.1% | **7.0%** |
 | dict-lookup accuracy (no model) | 95.6% | **64.9%** |
-| bigram probe | 97.2% | 93.9% |
+| bigram probe | 97.2% | 93.5% |
 | **bigram exploit vs silence** | **+99.4** | **+98.1** |
 
 Duplication fell by two thirds. The exploit moved **1.3 points**. The reason is
@@ -594,6 +594,25 @@ slot leaves the frame untouched. There are still exactly **two frames per family
 worth having, the entity pools are what R13 builds on, and a measured negative
 result is the point of the check. Both strict xfails stay red. No claim of a fix
 appears anywhere.
+
+**The decisive control, added after review.** The round inferred "the frame carries
+the label" from the exploit not moving. Review pointed out that is indirect and ran
+the direct test: score only held-out items whose decider sentence **never** appeared
+in `dev`.
+
+| held-out subset | n | bigram accuracy |
+|---|---|---|
+| decider *was* published in dev | 34 | 100.0% |
+| decider **never** published in dev | 80 | **97.5%** |
+
+Near-identical. The model is not recognising strings. That converts the round's
+conclusion from inference to evidence, and it is now `1c` in the probe.
+
+**Method note.** Review also caught a base-rate figure that had been *scaled* from
+the previous round's value rather than re-run (0.011 where the truth is 0.009) —
+a direct breach of the repo's own "never ship a number the round didn't produce",
+committed by the round whose entire subject is numbers being wrong. Third round
+running that the checker caught the maker repeating the pattern under discussion.
 
 **Consequence for R13:** the fix must vary *frames*, and hold some frames out of
 `dev` entirely, so a model has to generalise across phrasings rather than recognise
@@ -633,8 +652,9 @@ dataset or the policy is wrong, not the assertion.
   **exploitable accuracy** (`0.5 + |acc − 0.5|`), never raw accuracy, because
   negating a classifier is free. A new family must be added to the audit, not
   exempted. **Scoped to the unigram probe** as of R11: the bigram probe is
-  reported and currently reads ~100% for every family, and gating on it is
-  deliberately deferred until paraphrase expansion gives it a fix. Recorded so
+  reported and currently reads 100% for eight of nine families (commerce fell to
+  66.7% after R12's entity variation), and gating on it is deliberately deferred
+  until frame expansion gives it a fix. Recorded so
   this reads as a knowing trade rather than an unenforced rule.
 - **A clean audit bounds only the shortcuts you thought to test.** A probe scoring
   at chance means *that probe* found nothing — not that the dataset forces a
@@ -642,7 +662,7 @@ dataset or the policy is wrong, not the assertion.
   arrangement. Report the worst probe, never the friendliest.
 - **The held-out split must not be published verbatim.** Pair-wholeness is not
   sufficient: text can repeat across the boundary even when no pair does.
-  `verbatim_overlap` must stay under 10% (currently 91.2% — open defect).
+  `verbatim_overlap` must stay under 10% (currently **29.8%** after R12 — open defect).
 - **No pair may be divided by the dev/test split**, and every split must contain
   whole pairs only. Partner lookup against the published dev file must recover
   nothing. Anything partitioning items uses `schema.pair_key` — one definition.

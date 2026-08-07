@@ -63,7 +63,7 @@ concealed:
 | probe | overall |
 |---|---|
 | unigram | 50.0% |
-| **bigram** | **93.9%** |
+| **bigram** | **93.5%** |
 
 The cause is that each family has only **two structural frames**, and the frame is
 what carries the label: `pickup_you` → speak, `primary_you` → speak.
