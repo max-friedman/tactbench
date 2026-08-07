@@ -32,8 +32,8 @@ Built-in policies on `v1/dev` (246 moments, 9 scenario families):
 |---|---|---|---|---|---|---|---|
 | `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 123/246 |
 | `never` *(the bar)* | 326.0 | 0.0 | — | 0.000 | 0.500 | 0 | 0/246 |
-| `heuristic` | 459.0 | −40.8 | 0.500 | 0.187 | 0.207 | 9 | 46/246 |
-| `random@0.5` | 463.0 | −42.0 | 0.534 | 0.577 | 0.037 | 14 | 133/246 |
+| `heuristic` | 479.0 | −46.9 | 0.500 | 0.171 | 0.211 | 10 | 42/246 |
+| `random@0.5` | 497.0 | −52.5 | 0.481 | 0.520 | 0.020 | 16 | 133/246 |
 | `always` | 581.0 | −78.2 | 0.500 | 1.000 | 0.500 | 24 | 246/246 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
@@ -155,7 +155,7 @@ Round 11 measured it with a probe that can see order:
 | probe | overall | families ≥ 60% |
 |---|---|---|
 | unigram (what the audit reported for ten rounds) | **50.0%** | 0 of 9 |
-| **bigram** | **97.2%** | **9 of 9** |
+| **bigram** | **93.9%** | **9 of 9** |
 
 And separability is not the damaging part. Fitting bag-of-bigrams on the published
 `dev` split and grading it on **held-out `test`**, as a submitter would:
@@ -163,7 +163,7 @@ And separability is not the damaging part. Fitting bag-of-bigrams on the publish
 | policy | ICS ↓ | vs silence |
 |---|---|---|
 | `skyline` *(perfect comprehension)* | 0.0 | +100.0 |
-| **bag-of-bigrams, text only** | **1.0** | **+99.4** |
+| **bag-of-bigrams, text only** | **3.0** | **+98.1** |
 | silence | 154.0 | 0.0 |
 
 A model that sees nothing but adjacent word pairs lands **one point off the
@@ -175,14 +175,22 @@ sentences across all 40 items**, so:
 
 | | |
 |---|---|
-| held-out deciders appearing byte-identically in `dev` | **91.2%** |
-| held-out items whose *entire* signal text appears in `dev` | **49.1%** |
-| accuracy of a **dict lookup** on the decider string, no model | **95.6%** (+90.9 vs silence) |
+| held-out deciders appearing byte-identically in `dev` | **29.8%** |
+| held-out items whose *entire* signal text appears in `dev` | **7.0%** |
+| accuracy of a **dict lookup** on the decider string, no model | **64.9%** |
 
-So the honest decomposition is: a zero-model lookup already gets +90.9, and the
-bigram model adds the rest. This is a **near-duplicate leak** — and it is a
-different defect from Round 10's, which split *pairs* across the boundary. A split
-can be perfectly pair-whole and still publish its own answers.
+This is a **near-duplicate leak** — a different defect from Round 10's, which split
+*pairs* across the boundary. A split can be perfectly pair-whole and still publish
+its own answers.
+
+**Round 12 attacked it with entity variation and that was the wrong lever.**
+Drawing the counterpart name/noun/number per pair took every family from as few as
+4 distinct decider sentences to 24–38, and cut duplication hard — verbatim decider
+overlap 91.2% → **29.8%**, wholly-duplicate items 49.1% → **7.0%**, dict lookup
+95.6% → **64.9%**. The exploit did not care: **+99.4 → +98.1**. The *frame* is what
+carries the label (`pickup_you` → speak, `primary_you` → speak), and varying who
+stands in the other slot leaves the frame untouched. Measured, recorded, and it is
+why the remaining fix is structural — see below.
 
 **So the honest statement of this benchmark's status is: the pairing defeats
 vocabulary, and does not yet defeat surface pattern matching.** The claim that
@@ -240,7 +248,7 @@ uv run tactbench eval --base-rate 100
 |---|---|---|
 | `skyline` | 1.000 | 1.000 |
 | `heuristic` | 0.500 | **0.010** |
-| `random@0.5` | 0.534 | **0.013** |
+| `random@0.5` | 0.481 | **0.011** |
 | `always` | 0.500 | **0.010** |
 
 Precision collapses to roughly **1%** — ninety-nine of every hundred interruptions
@@ -360,10 +368,10 @@ This is v1. The things that would make it stronger are not done yet, and pretend
 otherwise would defeat the purpose of building a benchmark:
 
 - **The dataset is solvable by surface pattern matching, and currently is.** Low
-  decider diversity — as few as **4 distinct decider sentences across a family's 40
-  items** — means **91.2%** of held-out decider sentences are published verbatim in
-  `dev`. A dict lookup with no model scores **+90.9 versus silence**; a
-  bag-of-bigrams scores **+99.4**, one point off the perfect skyline. The
+  decider diversity means **29.8%** of held-out decider sentences are still
+  published verbatim in `dev` (91.2% before Round 12's entity variation), and a
+  bag-of-bigrams scores **+98.1 versus silence**, three points off the perfect
+  skyline. The
   matched-pair construction defeats *vocabulary*; it does not defeat *word order*
   or *repetition*, and the audit looked at neither until Round 11. **Treat every
   leaderboard number as measuring a task a surface model can already solve** until
@@ -373,11 +381,11 @@ otherwise would defeat the purpose of building a benchmark:
   unvalidated against what people actually want. A human-agreement subset with
   reported inter-rater κ is the next priority.
 - **Moments are synthetic and template-generated.** Each family draws its decider
-  from **two variants**, which after entity substitution yields as few as 4 distinct
-  decider sentences across 40 items (`travel` is the most varied, at 32). That
-  scarcity is what the bullet above exploits. The scenarios also remain a small,
-  hand-authored set — nine families is nine effective degrees of freedom, whatever
-  the item count.
+  from **two structural frames**, with the counterpart entity varied per pair
+  (24–38 distinct decider sentences per family after Round 12). Two frames is still
+  two: the frame is what carries the label, which is why entity variation did not
+  dent the exploit. The scenarios also remain a small, hand-authored set — nine
+  families is nine effective degrees of freedom, whatever the item count.
 - **Cost is concentrated in `quiet_hours`** — 87% of the `always`-versus-silence
   gap from 11% of the moments, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and

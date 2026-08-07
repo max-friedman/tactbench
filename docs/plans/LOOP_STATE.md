@@ -13,15 +13,16 @@ findings** below.
 
 ## Current status
 
-- **Round:** 11 complete
+- **Round:** 12 complete
 - **Gate:** green — 87 passed + **2 strict xfails recording an open defect**, ruff
   clean, **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (**246 dev / 114 test**), 9 families × 20 pairs,
   split on the **pair key** so no pair is divided
 - **Headline:** silence (ICS 326) is unbeaten by any *hand-written* baseline;
   skyline (ICS 0) proves the bar is clearable. **But a bag-of-bigrams fit on `dev`
-  scores +99.4 vs silence on held-out `test` — the dataset is currently solvable by
-  surface pattern matching (R11). Read every leaderboard number with that caveat.**
+  scores +98.1 vs silence on held-out `test` — the dataset is currently solvable by
+  surface pattern matching (R11, unfixed by R12). Read every leaderboard number
+  with that caveat.**
 
 ---
 
@@ -206,13 +207,15 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Paraphrase expansion — now the top item, and it is a benchmark-validity
-   blocker, not an enhancement.** R11 showed 91.2% of held-out deciders are
-   published verbatim and a dict lookup scores +90.9 vs silence. Every leaderboard
-   number is currently measuring a task a lookup table can mostly solve. Needs many
-   distinct surface realisations per family (today: as few as 4 across 40 items),
-   with `verbatim_overlap` driven under 10% and both strict xfails flipped to real
-   assertions. Re-run every published number afterwards.
+1. **Frame expansion with held-out phrasings — the validity blocker.** R12
+   established that entity variation is *not* the lever (91.2% → 29.8% duplication
+   bought 1.3 points of exploit). The frame carries the label and there are two
+   frames per family. R13 must: author ~8 structural frames per family; split
+   frames **disjointly** between dev and test so held-out items use phrasings never
+   trained on; generalise `_commerce` and `_meeting_prep` (which currently match the
+   literals `"the desk"` / `"contract review"` rather than resolving anything);
+   drive `verbatim_overlap` to ~0 by construction; flip both strict xfails to real
+   assertions; re-run every published number.
 2. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
@@ -547,6 +550,57 @@ direction that made the round look better, and missing five files that still
 asserted the falsified claim — including `audit.py`'s own module docstring and a
 `CONTRIBUTING.md` step contributors could no longer follow. Second round running
 that the checker found the maker repeating the exact pattern the round was about.
+
+---
+
+## Round 12 — entity variation was the wrong lever
+
+**Decision recorded (taken without Max, per his instruction to decide and note).**
+R11 left three candidate fixes. Chose the **phased** one — R12 does entity
+variation across all nine families (cheap, no skyline changes), R13 does held-out
+phrasings plus the skyline rework — because the loop's own rule is shippable
+independent increments, and authoring ~72 template pairs plus nine generalised
+skyline handlers in one round is where subtle leaks get introduced (R3 shipped a
+template that probed at 82.5% and nearly landed).
+
+**Question:** R11 attributed the exploit to decider scarcity — as few as **4
+distinct decider sentences across a family's 40 items**. *If the scarcity is
+removed, does the exploit go with it?*
+
+**Built:** entity pools (`COLLEAGUES`, `HOUSEHOLD`, `PHARMACY_OTHERS`,
+`RETURNABLES`, `MEETING_SUBJECTS`), drawn per pair. Both sides of a pair still take
+the **same** entity — the permutation is which role it plays — so varying it cannot
+leak. Numeric pools widened. `commerce` and `meeting_prep` vary only the
+*counterpart*, leaving the noun the skyline resolves against intact, which avoided
+touching the skyline at all.
+
+**Result: the diagnosis was half right, and the fix does not work.**
+
+| measure | before | after |
+|---|---|---|
+| distinct decider sentences per family | **4**–32 | **24–38** |
+| held-out deciders published verbatim in `dev` | 91.2% | **29.8%** |
+| held-out items wholly duplicate | 49.1% | **7.0%** |
+| dict-lookup accuracy (no model) | 95.6% | **64.9%** |
+| bigram probe | 97.2% | 93.9% |
+| **bigram exploit vs silence** | **+99.4** | **+98.1** |
+
+Duplication fell by two thirds. The exploit moved **1.3 points**. The reason is
+structural and should have been predictable: the **frame** carries the label
+(`pickup_you` → speak, `primary_you` → speak), and varying who stands in the *other*
+slot leaves the frame untouched. There are still exactly **two frames per family**.
+
+**Shipped anyway, framed as what it is.** The duplication reduction is real and
+worth having, the entity pools are what R13 builds on, and a measured negative
+result is the point of the check. Both strict xfails stay red. No claim of a fix
+appears anywhere.
+
+**Consequence for R13:** the fix must vary *frames*, and hold some frames out of
+`dev` entirely, so a model has to generalise across phrasings rather than recognise
+one. That also forces the skyline to resolve the relation instead of matching a
+constant — `_commerce` and `_meeting_prep` currently key on the literals
+`"the desk"` and `"contract review"`, which is a lookup wearing a ceiling's
+clothing and is its own recorded finding.
 
 ---
 
