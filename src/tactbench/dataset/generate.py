@@ -279,6 +279,21 @@ FRAMES: dict[str, list[tuple[str, str]]] = {
     ],
 }
 
+#: The smallest ``n_pairs_per_scenario`` at which clause order can balance.
+#:
+#: Order alternates on the pair's index *within its frame*, so a frame needs at
+#: least two pairs before both orders appear. With ``frame = idx % 8`` that means
+#: 16 pairs. Below it the property silently fails -- at 10 pairs, 54 of 72
+#: (family, frame) cells carry a single order, and inside such a cell "the marker
+#: is in clause 0" answers the item outright.
+#:
+#: Round 14 found this because Round 13 had *recorded the symptom as a property of
+#: the dataset*: it reported a position-tagged probe separating "the full generated
+#: set at 74%" and deferred gating on it. That 74% came from a test calling
+#: ``generate(n_pairs_per_scenario=10)``. At a legal size the same probe reads
+#: 52%. The leak was in the call, not in the construction.
+MIN_PAIRS_FOR_BALANCED_ORDER = 16
+
 #: Frames reserved for the held-out split. Disjoint from training phrasings by
 #: construction, which is what makes `verbatim_overlap` zero rather than merely
 #: small.
@@ -939,6 +954,13 @@ def generate(n_pairs_per_scenario: int = 20, seed: int = 20260726) -> list[Item]
     real deployment sees far more quiet moments than loud ones, but a balanced
     benchmark makes the near-miss contrast legible. docs/DATASET.md explains how
     to reweight to a realistic base rate when that matters.
+
+    ``n_pairs_per_scenario`` below :data:`MIN_PAIRS_FOR_BALANCED_ORDER` produces a
+    dataset whose clause order does not balance, and which a position-tagged probe
+    separates well above chance. Small sizes are still allowed -- most tests want a
+    handful of pairs to check structure, not statistics -- but anything measuring
+    *leakage* must pass a legal size, so ``balanced_order`` says which you got
+    rather than leaving it to be rediscovered.
     """
     rng = random.Random(seed)
     items: list[Item] = []
@@ -949,3 +971,8 @@ def generate(n_pairs_per_scenario: int = 20, seed: int = 20260726) -> list[Item]
             items.append(near)
     rng.shuffle(items)
     return items
+
+
+def balanced_order(n_pairs_per_scenario: int) -> bool:
+    """Is clause order guaranteed to balance at this size? See the constant."""
+    return n_pairs_per_scenario >= MIN_PAIRS_FOR_BALANCED_ORDER

@@ -242,12 +242,16 @@ submitter would. It ties silence and never beats it. The one-sided version reads
 −87.5, which is the number Round 13's first draft reported before review pointed
 out that negating a classifier is free.
 
-`tactbench audit` also reports a third, **position-tagged** probe. It is *not*
-gated: it separates the full generated set at 74% and reads 60–63% on three
-families. The standard a shortcut is held to here is not "no probe finds signal"
-but "no surface policy beats silence", and a positional model loses by 16 points
-at worst — `test_a_positional_policy_cannot_beat_silence` enforces exactly that,
-so the residual becomes a defect the moment it becomes exploitable. `TestOrderSensitiveShortcut` enforces it. For two rounds those were
+`tactbench audit` also reports a third, **position-tagged** probe, gated overall
+alongside the other two (worst 56.1% across ten seeds). Per family it still clears
+60% on some seeds and is reported rather than gated there; a positional *policy* is
+held to the beats-silence standard instead, which it loses by 16 points, via
+`test_a_positional_policy_cannot_beat_silence`.
+
+**Measure leakage only at a legal size.** Clause order balances only at
+`n_pairs_per_scenario >= MIN_PAIRS_FOR_BALANCED_ORDER` (16 — two pairs per frame).
+Round 13 read this probe at 74% from a test calling `generate(10)` and recorded a
+dataset defect that did not exist; at a legal size it reads 52%. `TestOrderSensitiveShortcut` enforces it. For two rounds those were
 `strict=True` xfails recording an open defect; Round 13 flipped them to ordinary
 assertions. Do not soften them — a surface model beating silence is the failure
 this benchmark exists to detect.
