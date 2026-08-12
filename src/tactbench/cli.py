@@ -9,12 +9,12 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .dataset.generate import generate
+from .dataset.generate import HELD_OUT_FRAMES, generate
 from .dataset.loader import load, split_path, write_jsonl
 from .metrics import Scorecard, score
 from .policies.builtin import registry
 from .runner import evaluate, silence_ics
-from .schema import Decision, pair_key
+from .schema import Decision, frame_of
 
 app = typer.Typer(
     add_completion=False,
@@ -86,8 +86,19 @@ def build(
     # opposite sides of the split -- and made 77% of the held-out set answerable
     # by looking the partner up in the published dev file and negating its label.
     # Both sides of a pair must always travel together.
-    dev = [i for i in items if _bucket(pair_key(i.moment.id)) < 60]
-    test = [i for i in items if _bucket(pair_key(i.moment.id)) >= 60]
+    # Round 13: split on the FRAME, not on a digest of the pair.
+    #
+    # The pair-key digest (Round 10) fixed pairs being divided across the split,
+    # but left both splits drawing from the same handful of phrasings -- so 91% of
+    # held-out decider sentences were published verbatim in dev and the benchmark
+    # was solvable by a surface model. Round 12 showed varying the entities does
+    # not help, because the frame carries the label.
+    #
+    # Splitting on the frame makes the held-out phrasings disjoint *by
+    # construction*: verbatim overlap is zero, not merely small. Pair-wholeness is
+    # preserved for free, because a pair's two sides share a frame.
+    dev = [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+    test = [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
 
     for split, subset in (("dev", dev), ("test", test)):
         path = split_path(version, split)

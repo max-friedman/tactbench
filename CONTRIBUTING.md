@@ -63,20 +63,28 @@ concealed:
 | probe | overall |
 |---|---|
 | unigram | 50.0% |
-| **bigram** | **93.5%** |
+| **bigram** | **47.0%** |
 
-The cause is that each family has only **two structural frames**, and the frame is
-what carries the label: `pickup_you` → speak, `primary_you` → speak.
+The cause was that each family had only **two structural frames**, and the frame
+carries the label: `pickup_you` → speak.
 
-Round 12 tested whether *entity* variation was enough. It is not. Varying the
-counterpart per pair took every family from as few as 4 distinct decider sentences
-to 24–38 and cut verbatim overlap from 91.2% to 29.8% — and moved the exploit by
-1.3 points, +99.4 → +98.1.
+Round 12 tested whether *entity* variation was enough. It is not — varying the
+counterpart per pair cut verbatim overlap 91.2% → 29.8% and moved the exploit 1.3
+points. Round 13 fixed it by holding phrasings out: each family has **eight**
+decider frames, and the dev/test split is taken **on the frame**, so a held-out
+item is worded in a way that appears nowhere in training. A bag-of-bigrams now
+scores **−88.2 versus silence**, down from +99.4.
 
-So keep writing permutations; the rule is right, and vary your entities. But
-understand that **neither fixes this**. The open work item is more *frames* per
-family, with some held out of `dev` entirely, so a model must generalise across
-phrasings rather than recognise one.
+**What this means for adding a family.** Add eight entries to `FRAMES[your_family]`
+in `dataset/generate.py`, as `(privileged_label, other_label)` pairs, plus a
+`fillers()` returning `(marker, counterpart)`. The permutation then holds by
+construction — you cannot accidentally write two sentences instead of one
+permutation, which is the mistake the old free-text templates invited. Vary the
+label vocabulary genuinely across the eight: frames 5–7 are the held-out ones, and
+if they reuse frame 0–4's wording the guarantee is worthless.
+
+`SkylinePolicy` reads `FRAMES` directly, so it resolves new frames without a code
+change as long as your family is in `_MARKERS`.
 
 **There are no exempt families, and you should be very reluctant to propose one.**
 

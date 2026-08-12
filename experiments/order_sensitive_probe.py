@@ -143,6 +143,25 @@ class NgramPolicy:
         return Decision(moment_id=moment.id, surface=speak, intent="alert" if speak else None)
 
 
+def _report_exploitability(dev, test, feature_sets) -> None:
+    reference = silence_ics(test)
+    print(f"   silence bar on test: ICS {reference:.1f}\n")
+    print(f"{'feature set':<26} {'ICS':>8} {'vs silence':>12} {'prec@int':>10}")
+    print("-" * 60)
+    for name, fn in feature_sets:
+        policy = NgramPolicy(fn, dev)
+        decisions = [policy.decide(i.moment) for i in test]
+        card = score(test, decisions, name, reference)
+        prec = "--" if card.precision_at_interrupt is None else f"{card.precision_at_interrupt:.3f}"
+        print(f"{name:<26} {card.ics:>8.1f} {card.ics_normalized:>+11.1f} {prec:>10}")
+    print("-" * 60)
+    print(
+        "\n   'vs silence' above 0 means a text-only surface model, trained on the\n"
+        "   published split, is worth shipping over saying nothing. The benchmark's\n"
+        "   central claim is that this cannot happen."
+    )
+
+
 def main() -> None:
     dev, test = load("v1", "dev"), load("v1", "test")
     families = sorted({i.moment.family for i in dev})
@@ -212,6 +231,15 @@ def main() -> None:
         )
 
     print("\n\n1c. IS THE RESIDUAL EXPLOIT DUPLICATION, OR THE FRAME?\n")
+    if not seen:
+        print(
+            "   No held-out decider appears in dev at all -- the split is taken on\n"
+            "   the frame, so this comparison has no 'published' side to make. The\n"
+            f"   whole held-out set scores {acc(unseen):.1%}."
+        )
+        print("\n\n2. EXPLOITABILITY -- fit on dev, graded on held-out test, scored by ICS\n")
+        _report_exploitability(dev, test, feature_sets)
+        return
     print(
         f"   held-out items whose decider WAS published in dev : {len(seen):>3}  {acc(seen):>6.1%}"
     )
@@ -226,22 +254,7 @@ def main() -> None:
     )
 
     print("\n\n2. EXPLOITABILITY -- fit on dev, graded on held-out test, scored by ICS\n")
-    reference = silence_ics(test)
-    print(f"   silence bar on test: ICS {reference:.1f}\n")
-    print(f"{'feature set':<26} {'ICS':>8} {'vs silence':>12} {'prec@int':>10}")
-    print("-" * 60)
-    for name, fn in feature_sets:
-        policy = NgramPolicy(fn, dev)
-        decisions = [policy.decide(i.moment) for i in test]
-        card = score(test, decisions, name, reference)
-        prec = "--" if card.precision_at_interrupt is None else f"{card.precision_at_interrupt:.3f}"
-        print(f"{name:<26} {card.ics:>8.1f} {card.ics_normalized:>+11.1f} {prec:>10}")
-    print("-" * 60)
-    print(
-        "\n   'vs silence' above 0 means a text-only surface model, trained on the\n"
-        "   published split, is worth shipping over saying nothing. The benchmark's\n"
-        "   central claim is that this cannot happen."
-    )
+    _report_exploitability(dev, test, feature_sets)
 
 
 if __name__ == "__main__":

@@ -105,6 +105,21 @@ def pair_key(moment_id: str) -> str:
     return f"{parts[0]}-{parts[-1]}" if len(parts) >= 3 else moment_id
 
 
+def frame_of(moment: Moment) -> int:
+    """Which decider phrasing this moment uses, from its slice tags.
+
+    The dev/test split is taken on this (Round 13): held-out items use phrasings
+    that never appear in training, so a model must generalise across wordings
+    instead of recognising one. Recorded in ``slices`` rather than the id because
+    ``slices`` is already withheld from every policy prompt -- four tests in
+    ``test_llm.py`` enforce that -- so exposing it here cannot leak.
+    """
+    for tag in moment.slices:
+        if tag.startswith("frame:"):
+            return int(tag.split(":", 1)[1])
+    return 0
+
+
 class GoldLabel(BaseModel):
     """Ground truth for a moment."""
 

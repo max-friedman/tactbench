@@ -26,19 +26,19 @@ uv run tactbench demo
 
 ## Results
 
-Built-in policies on `v1/dev` (246 moments, 9 scenario families):
+Built-in policies on `v1/dev` (252 moments, 9 scenario families):
 
 | policy | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke |
 |---|---|---|---|---|---|---|---|
-| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 123/246 |
-| `never` *(the bar)* | 326.0 | 0.0 | — | 0.000 | 0.500 | 0 | 0/246 |
-| `heuristic` | 479.0 | −46.9 | 0.500 | 0.171 | 0.211 | 10 | 42/246 |
-| `random@0.5` | 497.0 | −52.5 | 0.481 | 0.520 | 0.020 | 16 | 133/246 |
-| `always` | 581.0 | −78.2 | 0.500 | 1.000 | 0.500 | 24 | 246/246 |
+| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 126/252 |
+| `never` *(the bar)* | 336.0 | 0.0 | — | 0.000 | 0.500 | 0 | 0/252 |
+| `heuristic` | 483.0 | −43.8 | 0.500 | 0.190 | 0.174 | 10 | 48/252 |
+| `random@0.5` | 567.0 | −68.8 | 0.493 | 0.524 | 0.008 | 19 | 134/252 |
+| `always` | 630.0 | −87.5 | 0.500 | 1.000 | 0.500 | 28 | 252/252 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
-single cue worth surfacing — and it is the worst policy on the board, costing 255
-more ICS than saying nothing at all (−78.2 normalized). That gap is the argument
+single cue worth surfacing — and it is the worst policy on the board, costing 294
+more ICS than saying nothing at all (−87.5 normalized). That gap is the argument
 for this benchmark.
 Optimize for helpfulness and you land on that row.
 
@@ -69,16 +69,16 @@ guesses on the rest:
 
 | comprehension `p` | ICS ↓ | vs silence | prec@int |
 |---|---|---|---|
-| 0.0 | 466.0 | −42.9 | 0.483 |
-| 0.2 | 364.0 | −11.7 | 0.580 |
-| **0.4** | **277.0** | **+15.0** | 0.664 |
-| 0.6 | 177.0 | +45.7 | 0.756 |
-| 0.8 | 95.0 | +70.9 | 0.886 |
+| 0.0 | 470.0 | −39.9 | 0.496 |
+| 0.2 | 365.0 | −8.6 | 0.593 |
+| **0.4** | **302.0** | **+10.1** | 0.669 |
+| 0.6 | 173.0 | +48.5 | 0.781 |
+| 0.8 | 99.0 | +70.5 | 0.878 |
 | 1.0 | 0.0 | +100.0 | 1.000 |
 
 **A system needs roughly a third comprehension before it beats silence at all.**
 Below that it is worse than shipping nothing, however well-intentioned — and note
-that `p = 0.2` still reaches 0.580 precision, which reads as "better than a coin
+that `p = 0.2` still reaches 0.593 precision, which reads as "better than a coin
 flip" and is still a net loss.
 
 The sweep also establishes that ICS is **monotone, anchored, and responsive across
@@ -143,75 +143,52 @@ against the honest heuristic's −40.8.
 There is no exempt family now. `TestNoKeywordExploit` fails the build if any
 keyword policy beats silence, and every family must probe under 60%.
 
-### The blind spot in that number
+### The blind spot in that number, and how it was closed
 
 **A bag of words cannot see word order, and a role permutation is only a
 reordering.** The construction above deliberately makes both sides of a pair carry
 the same token multiset — so the unigram probe is *structurally incapable* of
 separating them. It must report 50.0%. Ten rounds read that as resistance.
 
-Round 11 measured it with a probe that can see order:
+Round 11 measured it with a probe that can see order, and the benchmark failed
+badly: bigrams reached 97.2%, and a bag-of-bigrams fit on `dev` scored **+99.4
+versus silence** on held-out `test` — one point off perfect comprehension, having
+seen nothing but adjacent word pairs.
 
-| probe | overall | families ≥ 60% |
-|---|---|---|
-| unigram (what the audit reported for ten rounds) | **50.0%** | 0 of 9 |
-| **bigram** | **93.5%** | **9 of 9** |
+Two rounds of fixing established *why*:
 
-And separability is not the damaging part. Fitting bag-of-bigrams on the published
-`dev` split and grading it on **held-out `test`**, as a submitter would:
+- **Round 12 — entity variation is not the lever.** Drawing the counterpart
+  name/noun per pair cut duplicate text hard (verbatim decider overlap 91.2% →
+  29.8%) and moved the exploit **1.3 points**. The *frame* carries the label
+  (`pickup_you` → speak), and varying who stands in the other slot leaves the
+  frame untouched.
+- **Round 13 — hold the phrasings out.** Each family now has **eight** decider
+  frames, and the dev/test split is taken **on the frame**: frames 0–4 are
+  training phrasings, 5–7 appear only in the held-out split. A held-out item is
+  worded in a way that occurs nowhere in training.
 
-| policy | ICS ↓ | vs silence |
-|---|---|---|
-| `skyline` *(perfect comprehension)* | 0.0 | +100.0 |
-| **bag-of-bigrams, text only** | **3.0** | **+98.1** |
-| silence | 154.0 | 0.0 |
+| | R11 | R12 | **R13** |
+|---|---|---|---|
+| bigram probe (dev) | 97.2% | 93.5% | **47.0%** |
+| held-out deciders published verbatim in `dev` | 91.2% | 29.8% | **0.0%** |
+| dict lookup, no model | 95.6% | 64.9% | **50.0%** |
+| bigram accuracy on held-out phrasings | 97.5% | 97.5% | **50.9%** |
+| **bag-of-bigrams vs silence** | **+99.4** | **+98.1** | **−88.2** |
 
-A model that sees nothing but adjacent word pairs lands **three points off the
-skyline**, at 0.982 precision.
+**A surface model now scores worse than saying nothing** — worse, in fact, than
+the unigram probe that never had any signal to begin with. Two details make the
+held-out frames genuinely hard rather than merely different:
 
-**Round 11 attributed most of this to duplicate text**, and Round 12 tested that
-by removing the duplication. The current position:
+1. **The label vocabulary changes per frame**, so a bigram learned on
+   `listed_you` does not fire on a frame that says *"At the school gate"*.
+2. **Clause order varies per pair, independently of the frame.** Tying order to
+   the frame was not enough — the two splits then carry different order mixes, and
+   a *positional* probe scored 34.7% on held-out frames, which is 65.3% once
+   negated. Order comes from a stable digest of the pair id.
 
-| | |
-|---|---|
-| held-out deciders appearing byte-identically in `dev` | **29.8%** |
-| held-out items whose *entire* signal text appears in `dev` | **7.0%** |
-| accuracy of a **dict lookup** on the decider string, no model | **64.9%** |
-
-This is a **near-duplicate leak** — a different defect from Round 10's, which split
-*pairs* across the boundary. A split can be perfectly pair-whole and still publish
-its own answers.
-
-**Round 12 attacked it with entity variation and that was the wrong lever.**
-Drawing the counterpart name/noun/number per pair took every family from as few as
-4 distinct decider sentences to 24–38, and cut duplication hard — verbatim decider
-overlap 91.2% → **29.8%**, wholly-duplicate items 49.1% → **7.0%**, dict lookup
-95.6% → **64.9%**. The exploit did not care: **+99.4 → +98.1**.
-
-The decisive control: score only the held-out items whose decider sentence **never
-appeared in `dev`** at all.
-
-| held-out subset | n | bigram accuracy |
-|---|---|---|
-| decider *was* published in `dev` | 34 | 100.0% |
-| decider **never** published in `dev` | 80 | **97.5%** |
-
-Near-identical on unseen phrasings, so the model is not recognising strings — it is
-reading the **frame** (`pickup_you` → speak, `primary_you` → speak), which entity
-variation leaves untouched. That is why the remaining fix is structural.
-
-**So the honest statement of this benchmark's status is: the pairing defeats
-vocabulary, and does not yet defeat surface pattern matching.** The claim that
-survives is narrower than the one this section made for ten rounds.
-
-The fix is not a weaker threshold — it is [paraphrase
-expansion](#honest-limitations): many distinct surface realisations per family, so
-no fixed string or n-gram maps to a label. Until then the defect is pinned by two
-`strict=True` xfails in `TestOrderSensitiveShortcut` (one for the verbatim
-overlap, one for the ICS exploit), which fail the build the moment the dataset is
-repaired, forcing the assertions to be tightened rather than quietly forgotten. A
-third test characterises the current bigram transfer and will also go red then, by
-design.
+`TestOrderSensitiveShortcut` now enforces all of this as ordinary assertions. For
+two rounds it held them as `strict=True` xfails recording an open defect; those
+have been flipped.
 
 ## The metric
 
@@ -256,7 +233,7 @@ uv run tactbench eval --base-rate 100
 |---|---|---|
 | `skyline` | 1.000 | 1.000 |
 | `heuristic` | 0.500 | **0.010** |
-| `random@0.5` | 0.481 | **0.009** |
+| `random@0.5` | 0.493 | **0.010** |
 | `always` | 0.500 | **0.010** |
 
 Precision collapses to roughly **1%** — ninety-nine of every hundred interruptions
@@ -375,25 +352,25 @@ print(evaluate(MyPolicy(), load("v1", "dev")))
 This is v1. The things that would make it stronger are not done yet, and pretending
 otherwise would defeat the purpose of building a benchmark:
 
-- **The dataset is solvable by surface pattern matching, and currently is.** Low
-  decider diversity means **29.8%** of held-out decider sentences are still
-  published verbatim in `dev` (91.2% before Round 12's entity variation), and a
-  bag-of-bigrams scores **+98.1 versus silence**, three points off the perfect
-  skyline. The
-  matched-pair construction defeats *vocabulary*; it does not defeat *word order*
-  or *repetition*, and the audit looked at neither until Round 11. **Treat every
-  leaderboard number as measuring a task a surface model can already solve** until
-  paraphrase expansion lands. Pinned by two `strict=True` xfails.
+- **Surface resistance is now measured, not assumed — but only against the probes
+  we thought to run.** A bag-of-bigrams scored **+99.4 versus silence** for eleven
+  rounds before anyone looked at word order, and nothing went red. It now scores
+  **−88.2**, and the unigram, bigram and lookup checks all gate the build. That is
+  a bound on the shortcuts that have been *tried*; it is not a proof that none
+  exists. The honest reading of a clean audit is "no probe we ran found one".
 - **Labels are by construction.** Each item was built around a known answer rather
   than labeled by humans afterward. That makes them internally consistent but
   unvalidated against what people actually want. A human-agreement subset with
   reported inter-rater κ is the next priority.
-- **Moments are synthetic and template-generated.** Each family draws its decider
-  from **two structural frames**, with the counterpart entity varied per pair
-  (24–38 distinct decider sentences per family after Round 12). Two frames is still
-  two: the frame is what carries the label, which is why entity variation did not
-  dent the exploit. The scenarios also remain a small, hand-authored set — nine
-  families is nine effective degrees of freedom, whatever the item count.
+- **Moments are synthetic and template-generated, and the deciders are now
+  *uniform* in shape.** Round 13 rebuilt every decider as two `Label: value`
+  clauses so that the permutation holds by construction and the frames can be held
+  out cleanly. That bought validity at a real cost in naturalness: a decider now
+  reads like a status line, not like something a person or an app would actually
+  send. Eight frames per family is also still eight, and the scenarios remain a
+  small hand-authored set — nine families is nine effective degrees of freedom,
+  whatever the item count. Restoring prose phrasing while keeping the held-out
+  guarantee is open work.
 - **Cost is concentrated in `quiet_hours`** — 87% of the `always`-versus-silence
   gap from 11% of the moments, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and

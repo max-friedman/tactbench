@@ -14,6 +14,29 @@ this project has not yet cut a release, so everything sits under Unreleased.
   Bigrams reach **97.2%**. `audit.verbatim_overlap` additionally measures how much
   held-out text is published verbatim in `dev`.
 
+### Fixed (Round 13) — the surface-model exploit is closed
+
+- **Held-out phrasings.** Every decider is now rendered from a shared frame table
+  (`FRAMES[family]`, eight `(privileged_label, other_label)` entries), and the
+  dev/test split is taken **on the frame** — 0–4 train, 5–7 held out. A held-out
+  item is worded in a way that appears nowhere in training, so verbatim overlap is
+  **zero by construction** rather than merely small.
+  A bag-of-bigrams fit on `dev` and graded on held-out `test` goes from **+99.4 to
+  −59.0 versus silence**; the dict-lookup exploit falls to chance. The two
+  `strict=True` xfails that recorded this defect for two rounds are now ordinary
+  assertions.
+- **The permutation now holds by construction.** Frames are filled with
+  `(marker, counterpart)` and the pair's sides swap them, so an author cannot
+  accidentally write two sentences instead of one permutation.
+- **`SkylinePolicy` stopped being a lookup.** Nine hand-written matchers became one
+  resolver over the generator's frame table. `_commerce` matched the literal
+  `"the desk"` and `_meeting_prep` matched `"contract review"` — they resolved
+  nothing and worked only because those nouns never varied. Still zero
+  disagreements across all nine families.
+- **Known cost:** deciders are now uniform `Label: value.` lines, which reads like
+  a status line rather than a real message. Restoring prose while keeping the
+  guarantee is the top queue item.
+
 ### Changed (Round 12)
 
 - **Decider entities are drawn per pair** instead of baked into the template. Four
