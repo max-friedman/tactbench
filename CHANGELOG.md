@@ -14,6 +14,16 @@ this project has not yet cut a release, so everything sits under Unreleased.
   Bigrams reach **97.2%**. `audit.verbatim_overlap` additionally measures how much
   held-out text is published verbatim in `dev`.
 
+### Fixed (Round 14)
+
+- **`MIN_PAIRS_FOR_BALANCED_ORDER`.** Clause order alternates on a pair's index
+  within its frame, so fewer than two pairs per frame (16 per family) leaves cells
+  single-order — 54 of 72 at ten pairs — and a position-tagged probe then separates
+  the set at ~74%. Round 13 measured exactly that, from a test calling
+  `generate(10)`, and recorded it as a dataset defect in three documents. At a legal
+  size the probe reads 52%. The precondition is now stated, asserted in both
+  directions, and the positional probe is gated overall alongside the other two.
+
 ### Fixed (Round 13) — the surface-model exploit is closed
 
 - **Held-out phrasings.** Every decider is now rendered from a shared frame table

@@ -22,9 +22,16 @@ from tactbench.audit import (
     item_tokens,
     lexical_leakage,
     ngram_leakage,
+    positional_leakage,
     verbatim_overlap,
 )
-from tactbench.dataset.generate import FRAMES, HELD_OUT_FRAMES, generate
+from tactbench.dataset.generate import (
+    FRAMES,
+    HELD_OUT_FRAMES,
+    MIN_PAIRS_FOR_BALANCED_ORDER,
+    balanced_order,
+    generate,
+)
 from tactbench.dataset.loader import load
 from tactbench.metrics import score, score_item
 from tactbench.policies.base import Policy
@@ -296,16 +303,15 @@ class TestShortcutResistance:
         as useful to a submitter, who negates it for free. Threshold on distance
         from chance, never on accuracy.
         """
-        items = generate(n_pairs_per_scenario=10)
-        # Unigram and bigram only. The positional probe reaches 74% on the full
-        # generated set and is NOT gated -- see
-        # `test_a_positional_policy_cannot_beat_silence` below for why that is a
-        # considered position rather than a hole: position-tagged separability is
-        # real, and it does not translate into beating silence, which is the
-        # standard this benchmark actually holds shortcuts to. Recorded here and
-        # in LOOP_STATE so it cannot quietly become an unenforced rule the way the
-        # bigram deferral nearly did.
-        for report in (lexical_leakage(items), ngram_leakage(items)):
+        # A legal size: measuring leakage below MIN_PAIRS_FOR_BALANCED_ORDER
+        # measures the call, not the dataset.
+        items = generate(n_pairs_per_scenario=MIN_PAIRS_FOR_BALANCED_ORDER)
+        assert balanced_order(MIN_PAIRS_FOR_BALANCED_ORDER)
+        # All three probes, including positional -- which Round 13 deferred on the
+        # strength of a 74% reading that turned out to come from calling
+        # generate(10), below MIN_PAIRS_FOR_BALANCED_ORDER. At a legal size it
+        # reads ~52% and gates fine. The deferral is lifted, not inherited.
+        for report in (lexical_leakage(items), ngram_leakage(items), positional_leakage(items)):
             assert report.exploitable_accuracy < 0.70, (
                 f"the {report.probe} probe reaches {report.accuracy:.1%} without seeing "
                 f"user state — worth {report.exploitable_accuracy:.1%} once its polarity "
@@ -1025,3 +1031,48 @@ class TestFrameDisjointness:
         assert HELD_OUT_FRAMES == frozenset({5, 6, 7})
         for family, frames in FRAMES.items():
             assert max(HELD_OUT_FRAMES) < len(frames), family
+
+
+class TestOrderBalancePrecondition:
+    """Clause order balances only at or above MIN_PAIRS_FOR_BALANCED_ORDER.
+
+    Round 14. Order alternates on the pair's index *within its frame*, so a frame
+    needs two pairs before both orders appear. Below that the property silently
+    fails and a position-tagged probe separates the set well above chance.
+
+    Round 13 met this and misread it: it reported the probe "separates the full
+    generated set at 74%", recorded a residual, and deferred gating. The 74% came
+    from a test calling ``generate(10)``. At a legal size the same probe reads
+    ~52%. **The leak was in the measurement, not in the construction** — which is
+    the same shape of error as trusting a clean audit that never ran the right
+    probe, just pointing the other way.
+    """
+
+    @staticmethod
+    def _single_order_cells(n_pairs: int) -> int:
+        orders: dict[tuple[str, int], set[str]] = {}
+        for item in generate(n_pairs_per_scenario=n_pairs):
+            if item.label.should_surface:
+                key = (item.moment.family, frame_of(item.moment))
+                orders.setdefault(key, set()).add(item.moment.signals[-1].content.split(":")[0])
+        return sum(1 for v in orders.values() if len(v) == 1)
+
+    def test_order_balances_at_the_documented_minimum(self):
+        assert self._single_order_cells(MIN_PAIRS_FOR_BALANCED_ORDER) == 0
+
+    def test_order_does_not_balance_below_it(self):
+        """The precondition is real, not defensive. If this ever passes, the
+        constant is too conservative and should come down."""
+        assert self._single_order_cells(MIN_PAIRS_FOR_BALANCED_ORDER - 8) > 0
+
+    def test_the_shipped_dataset_uses_a_legal_size(self):
+        """20 pairs, which is what `tactbench build` defaults to."""
+        assert balanced_order(20)
+        counts: dict[tuple[str, int], set[str]] = {}
+        for split in ("dev", "test"):
+            for item in load("v1", split):
+                if item.label.should_surface:
+                    key = (item.moment.family, frame_of(item.moment))
+                    counts.setdefault(key, set()).add(item.moment.signals[-1].content.split(":")[0])
+        singles = [k for k, v in counts.items() if len(v) == 1]
+        assert not singles, f"shipped data has single-order cells: {singles[:3]}"

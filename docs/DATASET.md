@@ -192,6 +192,12 @@ trivially answer the other." The artifact it was auditing did not. `pair_key` in
 `TestSplitIntegrity` enforces this on the generator *and* on the shipped `.jsonl`
 files, and asserts that partner-lookup recovers nothing.
 
+`n_pairs_per_scenario` must be at least **16** (`MIN_PAIRS_FOR_BALANCED_ORDER`,
+two per frame) for clause order to balance. Below it, 54 of 72 (family, frame)
+cells carry a single order and a position-tagged probe separates the set at ~74%.
+Small sizes remain useful for structural tests; they are not valid for measuring
+leakage.
+
 Regeneration with the same seed reproduces both splits exactly.
 
 ## Extending it

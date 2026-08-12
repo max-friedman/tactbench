@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 13 complete
-- **Gate:** green — **101 passed, no xfails**; the two strict xfails that recorded
+- **Round:** 14 complete
+- **Gate:** green — **104 passed, no xfails**; the two strict xfails that recorded
   the surface-exploit defect were flipped to real assertions in R13. Ruff clean,
   **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (**252 dev / 108 test**), 9 families × 20 pairs,
@@ -25,9 +25,9 @@ findings** below.
   bag-of-bigrams fit on `dev` now scores **+0.0** vs silence on held-out `test`
   **two-sided** (best of the model and its negation) — it ties saying nothing and
   never beats it, across 30 seeds — down from +99.4 (R11). The leaderboard caveat
-  that stood for two rounds is gone. **Residual, reported not gated:** a
-  position-tagged probe separates the full generated set at 74%; it is held to the
-  beats-silence standard instead, which it loses by 16 points.
+  that stood for two rounds is gone. All three probes -- unigram, bigram,
+  positional -- are gated overall as of R14; positional remains reported-only per
+  family.
 
 ---
 
@@ -212,7 +212,7 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Restore prose deciders without losing the held-out guarantee (new, R13).**
+1. **Restore prose deciders without losing the held-out guarantee (R13).**
    R13 bought validity with uniformity: every decider is now
    `Label: value. Label: value.`, which reads like a status line rather than
    something a person or an app would send. A benchmark about proactive assistance
@@ -715,6 +715,49 @@ with zero disagreements.
 lines. That bought validity at a real price in naturalness -- a decider reads like
 a status line, not like something a person or an app would send. Restoring prose
 while keeping the held-out guarantee is now the top queue item.
+
+---
+
+## Round 14 — the leak was in the measurement
+
+**Question:** R13 shipped one deferral: a position-tagged probe separating "the
+full generated set at 74%", reported but not gated. Deferrals accumulate into
+unenforced rules, so: *is that a property of the dataset?*
+
+**No. It was a property of the call.**
+
+Clause order alternates on the pair's index *within its frame*, so a frame needs
+two pairs before both orders appear -- **16 pairs per family**, since there are
+eight frames. Below that the balance silently fails:
+
+| `n_pairs_per_scenario` | single-order (family, frame) cells |
+|---|---|
+| 10 | **54 of 72** |
+| **16** | **0 of 72** |
+| 20 (shipped) | 0 of 72 |
+
+R13's 74% came from a test calling `generate(n_pairs_per_scenario=10)`. At a legal
+size the same probe reads **52%**, and the worst across ten seeds is 56.1% against
+a 70% bound. The deferral is lifted rather than inherited: positional is now gated
+overall alongside unigram and bigram.
+
+**The shape of the error is worth keeping.** R13 measured a number, could not
+explain it, and wrote it into three documents as a dataset defect with a queue
+item attached. It was an artifact of measuring below a precondition nobody had
+stated. This is the mirror image of the failure this project keeps finding --
+trusting a clean audit that never ran the right probe -- and it is just as
+expensive, because a recorded non-defect sends the next round after a ghost.
+
+**Shipped:** `MIN_PAIRS_FOR_BALANCED_ORDER` and `balanced_order()`, stating the
+precondition where the generator can be read; `TestOrderBalancePrecondition`,
+which asserts **both** directions (order balances at the minimum, and does *not*
+below it -- so if the constant ever becomes too conservative, a test says so);
+the leakage tests moved to a legal size; positional added to the overall gate;
+and the 74% claim corrected in README, METRICS and DATASET.
+
+**Still true and still recorded:** per-family positional clears 60% on some seeds
+and is reported rather than gated there. A positional *policy* loses to silence by
+16 points, which is the standard that actually matters.
 
 ---
 

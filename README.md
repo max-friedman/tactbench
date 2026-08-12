@@ -196,13 +196,24 @@ and only the first was foreseen — the other three came out of measurement:
 Properties 2–4 were all found by probes rather than by review of the wording, and
 each one had shipped green under the checks that existed at the time.
 
-**One residual, reported and not gated.** A position-tagged unigram still
-separates the full generated set at 74%, and three families sit at 60–63%. It is
-not gated, because this benchmark's standard for a shortcut has never been "no
-probe finds signal" — it is **no surface policy beats silence**, and a positional
-model loses by 16 points at worst. `test_a_positional_policy_cannot_beat_silence`
-holds it to that standard, so if the separability ever becomes exploitable the
-build goes red.
+**A fifth property, and the one that nearly got recorded as a defect.** Clause
+order alternates on the pair's index *within its frame*, so a frame needs at least
+two pairs before both orders appear — **16 pairs per family**, since there are
+eight frames. Below that the balance silently fails: at 10 pairs, **54 of 72**
+(family, frame) cells carry a single order.
+
+Round 13 measured a position-tagged probe at 74%, called it a residual property of
+the dataset, and deferred gating on it. That 74% came from a test calling
+`generate(n_pairs_per_scenario=10)`. At a legal size the same probe reads **52%**,
+and it is now gated overall like the other two. **The leak was in the measurement,
+not in the construction** — the mirror image of trusting a clean audit that never
+ran the right probe. `MIN_PAIRS_FOR_BALANCED_ORDER` states the precondition and
+`TestOrderBalancePrecondition` holds both directions of it: order balances at the
+minimum, and does *not* below it.
+
+Per-family, positional still reads above the 60% bound on some seeds and is
+reported rather than gated there; a positional policy is held to the
+beats-silence standard instead, which it loses by 16 points.
 
 `TestOrderSensitiveShortcut` now enforces all of this as ordinary assertions. For
 two rounds it held them as `strict=True` xfails recording an open defect; those
