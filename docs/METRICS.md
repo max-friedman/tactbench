@@ -232,11 +232,22 @@ and prints the verdict of whichever probe is worse. On v1:
 | probe | overall | families ≥ 60% |
 |---|---|---|
 | unigram | 50.0% | 0 of 9 |
-| bigram | **47.0%** | **0 of 9** |
+| bigram | **48.9%** | **0 of 9** |
 
 Fit on `dev` and graded on held-out `test`, a bag-of-bigrams reached **+99.4
-versus silence** in Round 11 and **−88.2** after Round 13 held the decider
-phrasings out of the training split. `TestOrderSensitiveShortcut` enforces it. For two rounds those were
+versus silence** in Round 11 and **+0.0** after Round 13 held the decider
+phrasings out of the training split — and that figure is **two-sided**: the best
+of the model and its negation, with the polarity chosen from `dev` alone, as a
+submitter would. It ties silence and never beats it. The one-sided version reads
+−87.5, which is the number Round 13's first draft reported before review pointed
+out that negating a classifier is free.
+
+`tactbench audit` also reports a third, **position-tagged** probe. It is *not*
+gated: it separates the full generated set at 74% and reads 60–63% on three
+families. The standard a shortcut is held to here is not "no probe finds signal"
+but "no surface policy beats silence", and a positional model loses by 16 points
+at worst — `test_a_positional_policy_cannot_beat_silence` enforces exactly that,
+so the residual becomes a defect the moment it becomes exploitable. `TestOrderSensitiveShortcut` enforces it. For two rounds those were
 `strict=True` xfails recording an open defect; Round 13 flipped them to ordinary
 assertions. Do not soften them — a surface model beating silence is the failure
 this benchmark exists to detect.

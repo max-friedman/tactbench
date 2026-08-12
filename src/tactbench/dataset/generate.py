@@ -34,7 +34,6 @@ around it. That limitation is documented in docs/DATASET.md.
 
 from __future__ import annotations
 
-import hashlib
 import random
 
 from ..schema import Activity, GoldLabel, Item, Moment, Signal, Source, UserState
@@ -53,6 +52,9 @@ from ..schema import Activity, GoldLabel, Item, Moment, Signal, Source, UserStat
 # SAME entity -- the permutation is which role it plays, so varying it cannot
 # leak. Pools are deliberately larger than the pair count so repeats are rare.
 # --------------------------------------------------------------------------- #
+
+#: 240 gate codes. See TravelScenario.body for why the space is wide.
+GATES = [f"{letter}{number}" for letter in "ABCDEF" for number in range(1, 41)]
 
 COLLEAGUES = [
     "Priya Raman",
@@ -108,19 +110,17 @@ PHARMACY_OTHERS = [
     "Dmitri",
 ]
 
-# Stand-in nouns for the commerce decider. ONLY the stand-in varies: the returnable
-# item stays "the desk", because the body names it and `SkylinePolicy._commerce`
-# resolves the relation against that literal. Varying the returnable as well
-# requires generalising that handler first -- see the R13 queue item. Kept as a
-# flat list rather than tuples of (body form, decider form, stand-in): an earlier
-# draft carried those extra columns unused, and a comment describing fields
-# nothing reads is how a later contributor wires one in and silently breaks the
-# ceiling.
-# (long form named in the body, short form used in the decider). Round 13: the
-# returnable was a constant "the desk", which left the family's marker token fixed
-# while the stand-in varied -- the bigram probe read that asymmetry at 2.0 SE from
-# chance. Both roles now vary, and `SkylinePolicy` reads the item out of the body
-# instead of matching a literal.
+# The commerce decider names two things: the item whose return window is closing
+# (the marker) and a stand-in that is already in use. BOTH vary per pair.
+#
+# Until Round 13 the returnable was the constant "the desk" while only the
+# stand-in moved, which left the family's marker token fixed and the bigram probe
+# read that asymmetry at 2.0 SE from chance. `SkylinePolicy` now reads the item
+# out of the body instead of matching a literal -- which is what resolving a
+# relation means, and what the ceiling was only pretending to do here and in
+# meeting_prep.
+
+# (long form named in the body, short form used in the decider)
 RETURNABLES = [
     ("standing desk", "desk"),
     ("espresso machine", "machine"),
@@ -147,9 +147,9 @@ RETURNABLE_STANDINS = [
     "floor model",
 ]
 
-# Counterpart meetings for the meeting_prep decider. ONLY the counterpart varies:
-# "contract review" is what the body names and `SkylinePolicy._meeting_prep`
-# resolves against. Same reasoning as RETURNABLE_STANDINS above.
+# Counterpart meetings for the meeting_prep decider. Only the counterpart varies
+# here: "contract review" is what the body names and what the skyline resolves
+# against. Varying it too would need the same body-reading treatment commerce got.
 COUNTERPART_MEETINGS = [
     "budget sync",
     "staffing review",
@@ -188,94 +188,94 @@ COUNTERPART_MEETINGS = [
 
 FRAMES: dict[str, list[tuple[str, str]]] = {
     "childcare": [
-        ("Listed for pickup", "Travelling this week"),
-        ("On the school run", "Out of town"),
-        ("Collecting at half three", "Away on business"),
-        ("At the classroom door", "At a conference"),
-        ("Doing the afternoon fetch", "On a flight"),
-        ("Holding the kids tonight", "Boarding a plane tonight"),
-        ("Minding bedtime", "Minding a layover"),
-        ("Rostered for the nursery", "Rostered for the depot"),
+        ("Listed for pickup", "Booked on flights"),
+        ("Doing the school run", "Leaving the country tonight"),
+        ("Collecting at three", "Landing at midnight"),
+        ("Classroom door duty", "Departure lounge duty"),
+        ("Fetching kids", "Boarding planes"),
+        ("Minding bedtime", "Missing bedtime"),
+        ("Rostered for nursery", "Rostered for depot"),
+        ("Home by four", "Away till Sunday"),
     ],
     "deadline": [
         ("Primary", "Secondary"),
         ("Paged first", "Alerted second"),
-        ("Owns the rota slot", "Escalation target"),
+        ("Owns this rota", "Backs that rota"),
         ("On point", "On standby"),
-        ("Carrying the pager", "Carrying the spare"),
-        ("Holding the bleeper", "Holding the courtesy copy"),
+        ("Carrying the pager", "Lacking the pager"),
+        ("Holding the bleeper", "Ignoring the bleeper"),
         ("Accountable tonight", "Unavailable tonight"),
         ("Named lead", "Named deputy"),
     ],
     "health": [
-        ("Still at the counter", "Handed over yesterday"),
-        ("Waiting for pickup", "Signed for"),
+        ("Still at counter", "Gone since Tuesday"),
+        ("Waiting for pickup", "Signed for already"),
         ("Uncollected", "Claimed"),
         ("On the shelf", "Out the door"),
-        ("Awaiting a bag", "Already dispensed"),
+        ("Awaiting a bag", "Dispensed a month"),
         ("Sitting unclaimed", "Taken home"),
         ("Behind the screen", "Through the till"),
         ("In the basket", "Off the premises"),
     ],
     "quiet_hours": [
-        ("Nearby", "Hours away"),
-        ("Close enough to go", "Too far to go"),
-        ("Can be there tonight", "Cannot arrive before morning"),
-        ("Nearest to the hospital", "Furthest from the hospital"),
-        ("In town", "On the road"),
-        ("Twenty minutes from the ward", "A day's drive from the ward"),
-        ("Able to walk in", "Unable to walk in"),
+        ("Nearby", "Distant"),
+        ("Close enough", "Far enough"),
+        ("Arrives tonight", "Arrives Thursday"),
+        ("Minutes from hospital", "Counties from hospital"),
+        ("Still in town", "Deep in transit"),
+        ("Able to leave", "Stuck till dawn"),
         ("Within reach", "Beyond reach"),
+        ("Walks in", "Drives Sunday"),
     ],
     "finance": [
-        ("Short of the payment", "Clears it"),
-        ("Below the amount due", "Above the amount due"),
+        ("Short of payment", "Clears the payment"),
+        ("Below the amount", "Above the amount"),
         ("Underfunded", "Flush"),
-        ("Cannot carry autopay", "Can carry autopay"),
+        ("Cannot carry autopay", "Happily carries autopay"),
         ("Insufficient", "Ample"),
         ("Lacking the money", "Holding the money"),
         ("Empty by Friday", "Loaded by Friday"),
         ("Will bounce", "Will settle"),
     ],
     "commerce": [
-        ("Still boxed", "Already assembled"),
-        ("Unopened", "Set up"),
-        ("Sealed", "In use"),
-        ("Shrink-wrapped", "Unpacked"),
-        ("In its carton", "Out of the carton"),
-        ("Factory taped", "Bolted together"),
-        ("Never cut open", "Screwed down"),
-        ("Awaiting a knife", "Standing on its legs"),
+        ("Still boxed", "Fully assembled"),
+        ("Unopened", "Installed"),
+        ("Shrink-wrapped", "Screwed together"),
+        ("Never cut", "Long used"),
+        ("In its carton", "Out of storage"),
+        ("Factory taped", "Bolted upright"),
+        ("Awaiting a knife", "Standing on legs"),
+        ("Untouched", "Working"),
     ],
     "meeting_prep": [
-        ("Begins shortly", "Already started"),
-        ("Still ahead", "Long since underway"),
-        ("Not yet open", "In progress"),
-        ("Coming up", "Just passed"),
-        ("Due to convene", "Convened without you"),
-        ("Doors have not parted", "Doors parted an hour back"),
-        ("Queued for later", "Ran earlier"),
-        ("Scheduled after this", "Held before this"),
+        ("Begins shortly", "Started already"),
+        ("Still ahead", "Long past"),
+        ("Not yet open", "Well into progress"),
+        ("Coming up", "Just finished"),
+        ("Due to convene", "Ran without you"),
+        ("Doors have not parted", "Doors parted an hour"),
+        ("Queued for later", "Wrapped at lunch"),
+        ("Scheduled after this", "Concluded before this"),
     ],
     "driving": [
-        ("Backed up", "Clear"),
+        ("Backed up", "Running clear"),
         ("Congested", "Flowing"),
         ("Jammed", "Moving"),
         ("Slow", "Open"),
-        ("At a standstill", "At speed"),
-        ("Crawling", "Running well"),
+        ("At a standstill", "At full speed"),
+        ("Crawling", "Sprinting"),
         ("Gridlocked", "Empty"),
         ("Snarled", "Untroubled"),
     ],
     "travel": [
-        ("Standing at", "Ticket lists"),
+        ("Standing at", "Ticketed for"),
         ("Physically by", "Printed as"),
-        ("Where you wait", "Where the stub points"),
-        ("Your actual position", "Your issued gate"),
-        ("Boots on the ground at", "Ink says"),
-        ("Body is near", "Barcode claims"),
-        ("Feet are beside", "Paper insists"),
-        ("Currently parked at", "Booked against"),
+        ("Where you wait", "Where stubs point"),
+        ("Your actual position", "Your issued seat"),
+        ("Boots down at", "Ink says gate"),
+        ("Body near", "Barcode claims"),
+        ("Feet beside", "Paper insists"),
+        ("Currently parked", "Formally booked"),
     ],
 }
 
@@ -374,10 +374,15 @@ class Scenario:
         """(positive_text, near_miss_text) for one frame, as an exact permutation."""
         privileged, other = self.frames[frame % len(self.frames)]
         marker, counterpart = self.fillers(rng)
-        # Stable per-pair, independent of the frame and of PYTHONHASHSEED.
-        first_is_privileged = (
-            hashlib.sha256(f"{self.family}-order-{idx}".encode()).digest()[0] % 2 == 0
-        )
+        # Alternate within the frame, so every (family, frame) cell contains BOTH
+        # orders. A digest of the pair id was the first attempt and it is not good
+        # enough: `frame = idx % n` means a frame receives only 2-3 pairs at the
+        # shipped size, and a fair coin lands all-same in a third of those cells.
+        # Inside such a cell "the marker sits in clause 0" predicts the label
+        # perfectly, and a position-tagged probe read 5 of 9 families above the
+        # 60% bound. Alternating on the pair's index *within its frame* makes the
+        # balance structural instead of probabilistic.
+        first_is_privileged = (idx // max(len(self.frames), 1)) % 2 == 0
 
         def render(in_privileged: str, in_other: str) -> str:
             a = f"{privileged}: {in_privileged}."
@@ -477,9 +482,13 @@ class TravelScenario(Scenario):
         # old or the new one, and a bigram read `at_b12` -> speak, `at_b31` ->
         # quiet. It survived from Round 1 because both gates appear on both sides
         # of a pair, which is exactly what the unigram probe checks.
-        self._a, self._b = rng.sample(
-            ["B12", "C4", "A21", "D7", "B31", "C19", "A2", "D22", "E14", "F3"], 2
-        )
+        # A wide code space, not a short list. With ten codes and twenty pairs a
+        # code lands on the "old gate" side more often than the "new" side by
+        # chance alone, and a bigram picks that bias up: travel probed 63.3%
+        # exploitable at small n while every other family sat at exactly 50%. The
+        # bias is finite-sample rather than structural, so the fix is to make each
+        # code too rare to memorise rather than to widen the bound.
+        self._a, self._b = rng.sample(GATES, 2)
         mins = rng.choice([25, 30, 35, 40])
         phrasing = rng.choice(
             [

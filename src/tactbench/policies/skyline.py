@@ -125,7 +125,13 @@ class SkylinePolicy(Policy):
 
         for label, value in self._clauses(low):
             if label in privileged:
-                return value == marker or value.startswith(marker)
+                # Exact, or a whole-word prefix. A bare startswith() made
+                # "a21".startswith("a2") true, so a travel pair drawing gates A2
+                # and A21 had its near-miss resolved as speak -- the ceiling
+                # mislabelling a family. It fires on 1.1% of travel pairs and not
+                # at all on the shipped seed, which is exactly the kind of defect
+                # a fixed-seed self-consistency test at 5 pairs cannot see.
+                return value == marker or value.startswith(marker + " ")
         return False
 
     def decide(self, moment: Moment) -> Decision:

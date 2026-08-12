@@ -26,13 +26,15 @@ freedom no matter how many items the generator emits.
 2. **Build the decider as a role permutation, not two sentences.** Both sides must
    carry nearly the same token multiset, differing by which noun plays which role.
    This is the rule the whole benchmark rests on — see below.
-3. Add a handler to `SkylinePolicy` so the ceiling still resolves your family.
+3. Add your family to `SkylinePolicy._MARKERS`. The nine per-family handlers are
+   gone — the resolver reads `FRAMES` directly, so it handles new frames without a
+   code change.
 4. Run `uv run tactbench audit` and confirm your family lands near **50% in the
    unigram column**. If it doesn't, you wrote two sentences instead of one
    permutation — fix the data, not the threshold.
-   **The bigram column currently reads ~100% for every family. That is a known,
-   recorded defect (Round 11), not something your family introduced** — see
-   "The limit of this rule" below. Do not try to fix it in a scenario PR.
+   The **bigram** column is gated too and should also read ~50%. The
+   **positional** column is reported but not gated; 60–63% there is expected. See
+   "The limit of this rule" below.
 5. Run `uv run tactbench build` and commit the regenerated splits. CI verifies the
    committed data is reproducible from the generator.
 
@@ -63,7 +65,7 @@ concealed:
 | probe | overall |
 |---|---|
 | unigram | 50.0% |
-| **bigram** | **47.0%** |
+| **bigram** | **48.9%** |
 
 The cause was that each family had only **two structural frames**, and the frame
 carries the label: `pickup_you` → speak.
@@ -73,7 +75,7 @@ counterpart per pair cut verbatim overlap 91.2% → 29.8% and moved the exploit 
 points. Round 13 fixed it by holding phrasings out: each family has **eight**
 decider frames, and the dev/test split is taken **on the frame**, so a held-out
 item is worded in a way that appears nowhere in training. A bag-of-bigrams now
-scores **−88.2 versus silence**, down from +99.4.
+ties silence at **+0.0 two-sided**, down from +99.4.
 
 **What this means for adding a family.** Add eight entries to `FRAMES[your_family]`
 in `dataset/generate.py`, as `(privileged_label, other_label)` pairs, plus a

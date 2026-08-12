@@ -18,6 +18,7 @@ from tactbench.audit import (
     LeakageReport,
     _NaiveBayes,
     item_bigrams,
+    item_positional,
     item_tokens,
     lexical_leakage,
     ngram_leakage,
@@ -296,6 +297,14 @@ class TestShortcutResistance:
         from chance, never on accuracy.
         """
         items = generate(n_pairs_per_scenario=10)
+        # Unigram and bigram only. The positional probe reaches 74% on the full
+        # generated set and is NOT gated -- see
+        # `test_a_positional_policy_cannot_beat_silence` below for why that is a
+        # considered position rather than a hole: position-tagged separability is
+        # real, and it does not translate into beating silence, which is the
+        # standard this benchmark actually holds shortcuts to. Recorded here and
+        # in LOOP_STATE so it cannot quietly become an unenforced rule the way the
+        # bigram deferral nearly did.
         for report in (lexical_leakage(items), ngram_leakage(items)):
             assert report.exploitable_accuracy < 0.70, (
                 f"the {report.probe} probe reaches {report.accuracy:.1%} without seeing "
@@ -397,10 +406,22 @@ class TestShortcutResistance:
         demonstrating that no keyword policy can exploit it -- see
         TestNoKeywordExploit.
         """
-        # 30 pairs, not 10. At 10 a family holds 40 items, so the probe's standard
-        # error is 7.9% and a 60% reading sits 1.3 sigma from chance -- the bound
-        # would fail at random across nine families and two probes. More data
-        # tightens the estimate; it does not loosen the assertion.
+        # 30 pairs, not 10, and this deserves the scrutiny it got in review: the
+        # same round that added the bigram probe to this assertion also changed the
+        # sample size that decides whether it is red. Both reasons are real and
+        # both are stated:
+        #
+        # 1. n=10 is genuinely underpowered. A family then holds 20 items, of which
+        #    only ~13 land in the training frames, so the frame-folded estimate has
+        #    a standard error near 14% -- a 63% reading is one sigma from chance.
+        #    (An earlier version of this comment said 40 items and 7.9%. Wrong on
+        #    both counts, and wrong in the direction that made the change look
+        #    better than it was.)
+        # 2. `travel` was also genuinely leaking, and that was fixed rather than
+        #    sized around: its gate pool held ten codes, so a code landed on the
+        #    "old gate" side more often than chance and a bigram read the bias.
+        #    The pool is now 240 codes. Worst per-family exploitable accuracy
+        #    across eight seeds fell from 58.8% to 53.8%.
         items = generate(n_pairs_per_scenario=30)
         permutable = {i.moment.family for i in items}
         assert len(permutable) >= 9, "new families must be added to the audit"
@@ -788,13 +809,16 @@ class TestOrderSensitiveShortcut:
 
         name = "ngram-exploit"
 
-        def __init__(self, train: list[Item]):
+        def __init__(self, train: list[Item], invert: bool = False):
             self.model = _NaiveBayes()
             self.model.fit([(item_bigrams(i), i.label.should_surface) for i in train])
+            self.invert = invert
 
         def decide(self, moment):
             probe = Item.model_construct(moment=moment, label=None)
             speak = self.model.predict(item_bigrams(probe))
+            if self.invert:
+                speak = not speak
             return Decision(moment_id=moment.id, surface=speak, intent="alert" if speak else None)
 
     def test_the_held_out_split_is_not_published_verbatim(self):
@@ -811,6 +835,51 @@ class TestOrderSensitiveShortcut:
             f"{overlap['decider_published']:.1%} of held-out decider sentences are "
             f"published verbatim in dev; a dict lookup scores "
             f"{overlap['lookup_accuracy']:.1%} with no model"
+        )
+
+    def test_a_positional_policy_cannot_beat_silence(self):
+        """The probe the gate deliberately does not run, held to the real standard.
+
+        A position-tagged unigram separates this dataset better than chance -- 74%
+        on the full generated set, and 60-63% on three families. That is a genuine
+        residual and it is not gated, because the benchmark's standard for a
+        shortcut has never been "no probe finds signal"; it is **no surface policy
+        beats silence** (see TestNoKeywordExploit, Round 9). By that standard a
+        positional model loses by 16 points at worst across seeds.
+
+        Keeping the separability un-gated but the exploit gated is the honest
+        split. If a positional model ever clears silence, this goes red and the
+        residual becomes a defect rather than a curiosity.
+        """
+        worst, worst_seed = -999.0, None
+        for seed in range(1, 9):
+            items = generate(n_pairs_per_scenario=20, seed=seed)
+            dev = [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+            held = [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
+            reference = silence_ics(held)
+            model = _NaiveBayes()
+            model.fit([(item_positional(i), i.label.should_surface) for i in dev])
+            for invert in (False, True):
+                decisions = []
+                for item in held:
+                    speak = model.predict(item_positional(item))
+                    if invert:
+                        speak = not speak
+                    decisions.append(
+                        Decision(
+                            moment_id=item.moment.id,
+                            surface=speak,
+                            intent="alert" if speak else None,
+                        )
+                    )
+                card = score(held, decisions, "positional", reference)
+                if card.ics_normalized > worst:
+                    worst, worst_seed = card.ics_normalized, seed
+
+        assert worst <= 0.0, (
+            f"a position-tagged model fit on dev reaches {worst:+.1f} vs silence on "
+            f"held-out phrasings (seed {worst_seed}); positional separability has "
+            "become exploitable and now needs fixing, not just reporting"
         )
 
     def test_bigrams_do_not_transfer_to_held_out_phrasings(self):
@@ -836,19 +905,44 @@ class TestOrderSensitiveShortcut:
         )
 
     def test_a_surface_ngram_policy_cannot_beat_silence(self):
-        """Closed in Round 13. Was a strict xfail for two rounds.
+        """Two-sided: the policy AND its negation must both lose to silence.
 
-        Held-out phrasings are disjoint from training ones, so a bag-of-bigrams
-        fit on dev scores **-59.0 versus silence** on test, where it scored +98.1
-        before. Do not soften this bound: it is the benchmark's central claim.
+        Negating a classifier is free, so "this model loses to silence" is only a
+        claim about half the models a submitter can build from it. Round 13's first
+        draft asserted the one-sided version, passed, and declared the defect
+        closed; review pointed out the flipped model beat silence on 9 of 20 seeds.
+        Two further fixes were needed before this held -- symmetric frame labels
+        and a wide gate pool -- and the two-sided form is what proved it.
+
+        The margin is **thin**: the best of the two polarities lands at exactly
+        +0.0 on several seeds. It ties silence and never beats it. If a future
+        round pushes it positive, that is a real regression, not a rounding
+        artifact.
         """
-        dev, test = load("v1", "dev"), load("v1", "test")
-        reference = silence_ics(test)
-        card = evaluate(self._NgramPolicy(dev), test, reference=reference)
-        assert card.ics > reference, (
-            f"a bag-of-bigrams fit on dev beats silence on held-out test "
-            f"({card.ics:.1f} vs {reference:.1f}, {card.ics_normalized:+.1f}) — "
-            "the dataset is solvable by surface pattern matching"
+        # Across seeds, not just the shipped artifact. The invariant is a property
+        # of the CONSTRUCTION -- "this generator cannot produce a dataset a surface
+        # model beats silence on" -- and the shipped seed happens to land at
+        # exactly +0.0, which would let a one-artifact test report a guarantee the
+        # construction does not provide.
+        worst, worst_seed = -999.0, None
+        for seed in range(1, 9):
+            items = generate(n_pairs_per_scenario=20, seed=seed)
+            dev = [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+            test = [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
+            reference = silence_ics(test)
+            best = max(
+                evaluate(
+                    self._NgramPolicy(dev, invert=inv), test, reference=reference
+                ).ics_normalized
+                for inv in (False, True)
+            )
+            if best > worst:
+                worst, worst_seed = best, seed
+
+        assert worst <= 0.0, (
+            f"a bag-of-bigrams fit on dev reaches {worst:+.1f} vs silence on held-out "
+            f"test (seed {worst_seed}) once its polarity is chosen from dev; a surface "
+            "model must not beat saying nothing"
         )
 
 

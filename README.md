@@ -32,8 +32,8 @@ Built-in policies on `v1/dev` (252 moments, 9 scenario families):
 |---|---|---|---|---|---|---|---|
 | `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 126/252 |
 | `never` *(the bar)* | 336.0 | 0.0 | — | 0.000 | 0.500 | 0 | 0/252 |
-| `heuristic` | 483.0 | −43.8 | 0.500 | 0.190 | 0.174 | 10 | 48/252 |
-| `random@0.5` | 567.0 | −68.8 | 0.493 | 0.524 | 0.008 | 19 | 134/252 |
+| `random@0.5` | 406.0 | −20.8 | 0.507 | 0.540 | 0.008 | 9 | 134/252 |
+| `heuristic` | 486.0 | −44.6 | 0.500 | 0.167 | 0.171 | 10 | 42/252 |
 | `always` | 630.0 | −87.5 | 0.500 | 1.000 | 0.500 | 28 | 252/252 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
@@ -137,8 +137,9 @@ benchmark (asleep, DND-doubled), so it drives **87% of the gap** between `always
 and silence from 11% of the moments. Concentration plus exploitability meant a
 policy matching two substrings — `admitt` / `discharg` — and coin-flipping on the
 other eight families **beat silence at +28.0**, while the honest structural
-heuristic scored −22.9. After the rebuild that same policy scores **−76.7**,
-against the honest heuristic's −40.8.
+heuristic scored −22.9. On the current dataset that same policy scores **−89.3**,
+against the honest heuristic's −44.6. (Those two figures went three rounds without
+being re-run while the dataset was rebuilt underneath them — caught in review.)
 
 There is no exempt family now. `TestNoKeywordExploit` fails the build if any
 keyword policy beats silence, and every family must probe under 60%.
@@ -169,22 +170,39 @@ Two rounds of fixing established *why*:
 
 | | R11 | R12 | **R13** |
 |---|---|---|---|
-| bigram probe (dev) | 97.2% | 93.5% | **47.0%** |
+| bigram probe (dev) | 97.2% | 93.5% | **48.9%** |
 | held-out deciders published verbatim in `dev` | 91.2% | 29.8% | **0.0%** |
 | dict lookup, no model | 95.6% | 64.9% | **50.0%** |
 | bigram accuracy on held-out phrasings | 97.5% | 97.5% | **50.9%** |
-| **bag-of-bigrams vs silence** | **+99.4** | **+98.1** | **−88.2** |
+| **bag-of-bigrams vs silence** (two-sided) | **+99.4** | **+98.1** | **+0.0** |
 
-**A surface model now scores worse than saying nothing** — worse, in fact, than
-the unigram probe that never had any signal to begin with. Two details make the
-held-out frames genuinely hard rather than merely different:
+**A surface model no longer beats silence.** Getting there took four properties,
+and only the first was foreseen — the other three came out of measurement:
 
-1. **The label vocabulary changes per frame**, so a bigram learned on
-   `listed_you` does not fire on a frame that says *"At the school gate"*.
-2. **Clause order varies per pair, independently of the frame.** Tying order to
-   the frame was not enough — the two splits then carry different order mixes, and
-   a *positional* probe scored 34.7% on held-out frames, which is 65.3% once
-   negated. Order comes from a stable digest of the pair id.
+1. **The label vocabulary changes per frame**, so a bigram learned on `listed_you`
+   does not fire on a frame that says *"Fetching kids"*.
+2. **All eight frames of a family are pairwise lexically disjoint**, on stems. The
+   weaker rule — held-out frames differ from training frames — is not enough:
+   `collected` was the *other* label in health frames 0 and 2, both training
+   frames, and a bigram learned on one answered the other through the fold.
+3. **Both labels in a frame carry the same token count.** Otherwise the marker's
+   position shifts with which clause it occupies, and a position-tagged probe read
+   five of nine families above the per-family bound while every gated check stayed
+   green.
+4. **Clause order alternates within each frame.** Drawing it from a digest of the
+   pair id left a third of the (family, frame) cells single-order, and inside such
+   a cell "the marker is in clause 0" answers the item outright.
+
+Properties 2–4 were all found by probes rather than by review of the wording, and
+each one had shipped green under the checks that existed at the time.
+
+**One residual, reported and not gated.** A position-tagged unigram still
+separates the full generated set at 74%, and three families sit at 60–63%. It is
+not gated, because this benchmark's standard for a shortcut has never been "no
+probe finds signal" — it is **no surface policy beats silence**, and a positional
+model loses by 16 points at worst. `test_a_positional_policy_cannot_beat_silence`
+holds it to that standard, so if the separability ever becomes exploitable the
+build goes red.
 
 `TestOrderSensitiveShortcut` now enforces all of this as ordinary assertions. For
 two rounds it held them as `strict=True` xfails recording an open defect; those
@@ -233,7 +251,7 @@ uv run tactbench eval --base-rate 100
 |---|---|---|
 | `skyline` | 1.000 | 1.000 |
 | `heuristic` | 0.500 | **0.010** |
-| `random@0.5` | 0.493 | **0.010** |
+| `random@0.5` | 0.507 | **0.010** |
 | `always` | 0.500 | **0.010** |
 
 Precision collapses to roughly **1%** — ninety-nine of every hundred interruptions
@@ -355,7 +373,8 @@ otherwise would defeat the purpose of building a benchmark:
 - **Surface resistance is now measured, not assumed — but only against the probes
   we thought to run.** A bag-of-bigrams scored **+99.4 versus silence** for eleven
   rounds before anyone looked at word order, and nothing went red. It now scores
-  **−88.2**, and the unigram, bigram and lookup checks all gate the build. That is
+  **+0.0** two-sided — it ties saying nothing and never beats it — and the
+  unigram, bigram, lookup and exploit checks all gate the build. That is
   a bound on the shortcuts that have been *tried*; it is not a proof that none
   exists. The honest reading of a clean audit is "no probe we ran found one".
 - **Labels are by construction.** Each item was built around a known answer rather

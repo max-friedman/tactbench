@@ -68,11 +68,11 @@ and the split is taken **on the frame**:
 
 | | R11 | R12 | **R13** |
 |---|---|---|---|
-| bigram probe (dev) | 97.2% | 93.5% | **47.0%** |
+| bigram probe (dev) | 97.2% | 93.5% | **48.9%** |
 | held-out deciders published verbatim | 91.2% | 29.8% | **0.0%** |
 | dict lookup, no model | 95.6% | 64.9% | **50.0%** |
 | bigram on held-out phrasings | 97.5% | 97.5% | **50.9%** |
-| **bag-of-bigrams vs silence** | **+99.4** | **+98.1** | **−88.2** |
+| **bag-of-bigrams vs silence** (two-sided) | **+99.4** | **+98.1** | **+0.0** |
 
 That was a **near-duplicate leak**, a *different* defect from the pair-key split
 fixed in Round 10: that one divided pairs across the boundary, this one repeated

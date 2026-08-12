@@ -14,7 +14,7 @@ findings** below.
 ## Current status
 
 - **Round:** 13 complete
-- **Gate:** green — **90 passed, no xfails**; the two strict xfails that recorded
+- **Gate:** green — **101 passed, no xfails**; the two strict xfails that recorded
   the surface-exploit defect were flipped to real assertions in R13. Ruff clean,
   **enforced by CI** on py3.11-3.13
 - **Dataset:** `v1` — 360 items (**252 dev / 108 test**), 9 families × 20 pairs,
@@ -22,8 +22,12 @@ findings** below.
   held-out phrasings appear nowhere in training and no pair is divided
 - **Headline:** silence (ICS 336) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable. **The surface-model exploit is closed** — a
-  bag-of-bigrams fit on `dev` now scores **−59.0** vs silence on held-out `test`,
-  down from +99.4 (R11). The leaderboard caveat that stood for two rounds is gone.
+  bag-of-bigrams fit on `dev` now scores **+0.0** vs silence on held-out `test`
+  **two-sided** (best of the model and its negation) — it ties saying nothing and
+  never beats it, across 30 seeds — down from +99.4 (R11). The leaderboard caveat
+  that stood for two rounds is gone. **Residual, reported not gated:** a
+  position-tagged probe separates the full generated set at 74%; it is held to the
+  beats-silence standard instead, which it loses by 16 points.
 
 ---
 
@@ -636,51 +640,67 @@ occupant decides the answer; the pair's two sides swap marker and counterpart, s
 **the permutation holds by construction** rather than by an author remembering to
 make it so. The dev/test split is taken **on the frame**: 0-4 train, 5-7 held out.
 
-**Result — closed.**
+**Result — closed, but only after review refused the first draft.**
 
 | | R11 | R12 | **R13** |
 |---|---|---|---|
-| bigram probe (dev) | 97.2% | 93.5% | **47.0%** |
+| bigram probe (dev) | 97.2% | 93.5% | **48.9%** |
 | held-out deciders published verbatim | 91.2% | 29.8% | **0.0%** |
 | dict lookup, no model | 95.6% | 64.9% | **50.0%** |
 | bigram on held-out phrasings | 97.5% | 97.5% | **50.9%** |
-| **bag-of-bigrams vs silence** | **+99.4** | **+98.1** | **-88.2** |
+| **bag-of-bigrams vs silence, two-sided** | **+99.4** | **+98.1** | **+0.0** |
 
-Both strict xfails flipped to ordinary assertions. Verbatim overlap is **zero by
-construction**, not merely small -- the difference between a guarantee and a large
-enough entity pool.
+**The first draft claimed this and had not earned it.** It asserted the *one-sided*
+bound -- that the bigram policy loses to silence -- which passed at −87.5 and read
+as a decisive close. Review pointed out the obvious thing: negating a classifier is
+free, the polarity is readable off `dev`, and **the flipped model beat silence on 9
+of 20 seeds**. Round 10 had already established that a one-sided check cannot see an
+inverted leak; the round applied that lesson to the probe assertions and not to the
+one it called the benchmark's central claim.
 
-**Two details are load-bearing, and one was found by measurement rather than
-foresight.** The label vocabulary must genuinely change across frames, so a bigram
-learned on `listed_you` does not fire on *"At the school gate"*. And **clause order
-must vary per pair, independently of the frame**: tying order to frame parity left
-the two splits with different order mixes, and a *positional* probe scored 34.7% on
-held-out frames -- 65.3% once negated. Order now comes from a stable digest of the
-pair id. The first design would have passed every bigram check and shipped a
-positional leak.
+Three further fixes were needed before the two-sided bound held, and **all three
+were found by probes rather than by reading the wording**:
 
-**The frame-folded audit found two leaks that predate this round.** Folding the
-probe by *frame* rather than by pair -- which matches how the benchmark is
-actually graded -- exposed:
+1. **Frames must be pairwise lexically disjoint**, not merely disjoint across the
+   split. `collected` was the *other* label in health frames 0 and 2 -- both
+   training frames -- so a bigram learned on one answered the other through the
+   fold. The first frame table failed this in 7 of 9 families.
+2. **A frame's two labels must carry the same token count.** Otherwise the marker's
+   position shifts with which clause it occupies; a position-tagged probe read five
+   of nine families above the per-family bound while every gated check stayed green.
+3. **Clause order must alternate within each frame.** Drawing it from a digest of
+   the pair id left 32 of 72 (family, frame) cells single-order, and inside such a
+   cell "the marker is in clause 0" answers the item outright. The round's own note
+   said of the rejected design that it "would have passed every bigram check and
+   shipped a positional leak" -- the shipped design did the same thing, smaller.
 
-1. **`travel`'s gate pools were disjoint** (old gates always `{B12,C4,A21,D7}`,
-   new always `{B31,C19,A2,D22}`), so a gate's identity revealed which it was and
-   a bigram read `at_b12` -> speak. **Live since Round 1**, invisible to the
-   unigram probe because both gates appear on both sides of a pair. One pool now,
-   sampled without replacement.
-2. **Frames sharing content words leak through the fold.** `collected` was the
-   *other* label in `health` frames 0 and 2 -- both training frames -- so a bigram
-   learned on one answered the other. The rule is stronger than "held-out frames
-   differ from training frames": **all eight frames must be pairwise lexically
-   disjoint**, on stems. `TestFrameDisjointness` enforces it per family.
+**Two leaks predating this round**, surfaced by folding the audit by *frame* rather
+than by pair (which matches how the benchmark is actually graded):
 
-The first draft of the frames failed this in 7 of 9 families. The check caught
-what authorship could not.
+- **`travel`'s gate pools were disjoint** (old always `{B12,C4,A21,D7}`), so a
+  gate's identity revealed which it was and a bigram read `at_b12` -> speak. **Live
+  since Round 1**, invisible to the unigram probe because both gates appear on both
+  sides of a pair. One pool of 240 codes now -- ten was still enough for per-code
+  sampling bias to be learnable.
+- **The skyline mislabelled travel** whenever gates `A2` and `A21` were drawn
+  together: `"a21".startswith("a2")`. 1.1% of travel pairs, not on the shipped seed,
+  and the self-consistency test runs 5 pairs at one fixed seed -- far too weak to
+  see it.
 
-**Margin to watch.** Worst per-family exploitable accuracy across six seeds is
-**58.9%** (`travel`, bigram) against a 60% bound. That is thinner than it looks
-comfortable being; if a future round pushes it over, the answer is more frame
-vocabulary, not a wider bound.
+**The sample-size change, judged.** `test_every_family_sits_at_the_chance_floor`
+went from 10 to 30 pairs in the same commit that added the bigram probe to it,
+which is exactly the shape of resizing a sample until an assertion passes. Both
+halves turned out to be true and both are now recorded: n=10 leaves ~13 training
+items per family (standard error ~14%, so a 63% reading is one sigma) **and**
+`travel` was genuinely leaking, which was fixed rather than sized around.
+
+**Residual, reported and deliberately not gated.** A position-tagged unigram
+separates the full generated set at 74%, and three families sit at 60-63%. The
+standard here has never been "no probe finds signal" -- it is "no surface policy
+beats silence", which a positional model loses by 16 points.
+`test_a_positional_policy_cannot_beat_silence` holds it to that, so the residual
+becomes a defect the moment it becomes exploitable. Written down rather than left
+implicit, because the bigram deferral in R11 nearly became an unenforced rule.
 
 **The skyline stopped being a lookup.** Nine hand-written matchers became one
 resolver over `FRAMES`. `_commerce` matched the literal `"the desk"` and
@@ -737,7 +757,8 @@ dataset or the policy is wrong, not the assertion.
   arrangement. Report the worst probe, never the friendliest.
 - **The held-out split must not be published verbatim.** Pair-wholeness is not
   sufficient: text can repeat across the boundary even when no pair does.
-  `verbatim_overlap` must stay under 10% (currently **29.8%** after R12 — open defect).
+  `verbatim_overlap` must be **zero** — guaranteed by splitting on the frame, not
+  bought probabilistically with a large entity pool.
 - **No pair may be divided by the dev/test split**, and every split must contain
   whole pairs only. Partner lookup against the published dev file must recover
   nothing. Anything partitioning items uses `schema.pair_key` — one definition.

@@ -22,9 +22,19 @@ this project has not yet cut a release, so everything sits under Unreleased.
   item is worded in a way that appears nowhere in training, so verbatim overlap is
   **zero by construction** rather than merely small.
   A bag-of-bigrams fit on `dev` and graded on held-out `test` goes from **+99.4 to
-  −59.0 versus silence**; the dict-lookup exploit falls to chance. The two
-  `strict=True` xfails that recorded this defect for two rounds are now ordinary
-  assertions.
+  +0.0 versus silence, two-sided** — it ties saying nothing and never beats it,
+  across 30 seeds. The dict-lookup exploit falls to chance. The two `strict=True`
+  xfails that recorded this defect for two rounds are now ordinary assertions.
+  Four properties were needed, and three of them were found by measurement after
+  the first draft claimed a closure it had not earned: frames must be pairwise
+  lexically disjoint (not merely disjoint across the split), a frame's two labels
+  must carry the same token count, and clause order must alternate *within* each
+  frame rather than being drawn from a digest.
+- **A third, position-tagged probe** is reported by `tactbench audit`. It is not
+  gated — it separates the full generated set at 74% — but a positional policy is
+  held to the same "must not beat silence" standard, which it loses by 16 points.
+- **`travel`'s gate pool** was ten codes, so a code landed on the "old gate" side
+  more often than chance and a bigram read the bias. Now 240 codes.
 - **The permutation now holds by construction.** Frames are filled with
   `(marker, counterpart)` and the pair's sides swap them, so an author cannot
   accidentally write two sentences instead of one permutation.

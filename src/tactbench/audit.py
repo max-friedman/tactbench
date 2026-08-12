@@ -228,6 +228,23 @@ def _frame_key(item: Item) -> str:
     return f"{item.moment.family}:{frame_of(item.moment)}"
 
 
+def item_positional(item: Item) -> list[str]:
+    """Each token tagged with where in the signal it fell, in tenths.
+
+    A third axis, added in Round 13 after review. Unigrams cannot see arrangement
+    and bigrams see only adjacency; neither notices "the marker sits in the first
+    clause". That mattered: the first attempt at balancing clause order used a
+    digest of the pair id, which left a third of the (family, frame) cells
+    single-order, and a position-tagged probe read five of nine families above the
+    per-family bound while every gated check stayed green.
+
+    A probe the gate does not run is a shortcut the gate cannot see.
+    """
+    toks = item_tokens(item)
+    n = len(toks) or 1
+    return [f"{t}@{(idx * 10) // n}" for idx, t in enumerate(toks)]
+
+
 def lexical_leakage(
     items: list[Item], folds: int = 5, features=item_tokens, group=_pair_key
 ) -> LeakageReport:
@@ -265,6 +282,13 @@ def lexical_leakage(
         top_speak=[(t, v) for t, v in reversed(odds[-12:])],
         top_quiet=odds[:12],
     )
+
+
+def positional_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
+    """The position-aware probe, folded by frame. See :func:`item_positional`."""
+    report = lexical_leakage(items, folds=folds, features=item_positional, group=_frame_key)
+    report.probe = "positional"
+    return report
 
 
 def ngram_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
