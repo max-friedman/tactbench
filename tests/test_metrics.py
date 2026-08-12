@@ -8,6 +8,8 @@ away, and that the silence baseline is a meaningful bar.
 from __future__ import annotations
 
 import hashlib
+import itertools
+import re
 from collections import Counter
 
 import pytest
@@ -16,13 +18,13 @@ from tactbench.audit import (
     LeakageReport,
     _NaiveBayes,
     item_bigrams,
+    item_positional,
     item_tokens,
     lexical_leakage,
     ngram_leakage,
     verbatim_overlap,
 )
-from tactbench.cli import _bucket
-from tactbench.dataset.generate import generate
+from tactbench.dataset.generate import FRAMES, HELD_OUT_FRAMES, generate
 from tactbench.dataset.loader import load
 from tactbench.metrics import score, score_item
 from tactbench.policies.base import Policy
@@ -38,6 +40,7 @@ from tactbench.schema import (
     Signal,
     Source,
     UserState,
+    frame_of,
     pair_key,
 )
 
@@ -294,12 +297,20 @@ class TestShortcutResistance:
         from chance, never on accuracy.
         """
         items = generate(n_pairs_per_scenario=10)
-        report = lexical_leakage(items)
-        assert report.exploitable_accuracy < 0.70, (
-            f"bag-of-words probe reaches {report.accuracy:.1%} without seeing user "
-            f"state — worth {report.exploitable_accuracy:.1%} once its polarity is "
-            "chosen; the pairing has stopped forcing a judgment"
-        )
+        # Unigram and bigram only. The positional probe reaches 74% on the full
+        # generated set and is NOT gated -- see
+        # `test_a_positional_policy_cannot_beat_silence` below for why that is a
+        # considered position rather than a hole: position-tagged separability is
+        # real, and it does not translate into beating silence, which is the
+        # standard this benchmark actually holds shortcuts to. Recorded here and
+        # in LOOP_STATE so it cannot quietly become an unenforced rule the way the
+        # bigram deferral nearly did.
+        for report in (lexical_leakage(items), ngram_leakage(items)):
+            assert report.exploitable_accuracy < 0.70, (
+                f"the {report.probe} probe reaches {report.accuracy:.1%} without seeing "
+                f"user state — worth {report.exploitable_accuracy:.1%} once its polarity "
+                "is chosen; the pairing has stopped forcing a judgment"
+            )
 
     def test_the_unigram_probe_is_blind_to_role_permutation(self):
         """Documents *why* the unigram number is 50.0%, so it is not misread again.
@@ -321,9 +332,13 @@ class TestShortcutResistance:
             )
 
         assert lexical_leakage(items).accuracy == pytest.approx(0.5, abs=0.01)
-        assert ngram_leakage(items).accuracy > 0.90, (
-            "bigrams must separate what unigrams cannot; if this drops, the "
-            "dataset changed and the recorded finding needs re-measuring"
+        # Until Round 13 this asserted bigrams reach >90%, documenting the defect.
+        # With phrasings held out of the training split they no longer do, so the
+        # assertion is now the bound rather than the symptom.
+        bigram = ngram_leakage(items)
+        assert bigram.exploitable_accuracy < 0.70, (
+            f"bigrams reach {bigram.accuracy:.1%} across the whole generated set "
+            f"(worth {bigram.exploitable_accuracy:.1%} after choosing polarity)"
         )
 
     def test_the_probe_still_catches_a_real_tell(self):
@@ -391,18 +406,39 @@ class TestShortcutResistance:
         demonstrating that no keyword policy can exploit it -- see
         TestNoKeywordExploit.
         """
-        items = generate(n_pairs_per_scenario=10)
+        # 30 pairs, not 10, and this deserves the scrutiny it got in review: the
+        # same round that added the bigram probe to this assertion also changed the
+        # sample size that decides whether it is red. Both reasons are real and
+        # both are stated:
+        #
+        # 1. n=10 is genuinely underpowered. A family then holds 20 items, of which
+        #    only ~13 land in the training frames, so the frame-folded estimate has
+        #    a standard error near 14% -- a 63% reading is one sigma from chance.
+        #    (An earlier version of this comment said 40 items and 7.9%. Wrong on
+        #    both counts, and wrong in the direction that made the change look
+        #    better than it was.)
+        # 2. `travel` was also genuinely leaking, and that was fixed rather than
+        #    sized around: its gate pool held ten codes, so a code landed on the
+        #    "old gate" side more often than chance and a bigram read the bias.
+        #    The pool is now 240 codes. Worst per-family exploitable accuracy
+        #    across eight seeds fell from 58.8% to 53.8%.
+        items = generate(n_pairs_per_scenario=30)
         permutable = {i.moment.family for i in items}
         assert len(permutable) >= 9, "new families must be added to the audit"
         for family in sorted(permutable):
             subset = [i for i in items if i.moment.family == family]
-            report = lexical_leakage(subset)
-            # Two-sided. `meeting_prep` sat at 32.8% under the old one-sided bound
-            # and printed as "at chance"; negating that probe scores 67.2%.
-            assert report.exploitable_accuracy < 0.60, (
-                f"{family} leaks at {report.accuracy:.1%} "
-                f"(worth {report.exploitable_accuracy:.1%} after choosing polarity)"
-            )
+            # Both probes, as of Round 13. The bigram bound was deferred in R11
+            # because every family read ~100% and there was no available fix;
+            # holding decider phrasings out of the training split brought them all
+            # to chance, so the deferral is lifted rather than left as an
+            # unenforced rule.
+            for report in (lexical_leakage(subset), ngram_leakage(subset)):
+                # Two-sided. `meeting_prep` sat at 32.8% under the old one-sided
+                # bound and printed as "at chance"; negating it scores 67.2%.
+                assert report.exploitable_accuracy < 0.60, (
+                    f"{family} leaks at {report.accuracy:.1%} on the {report.probe} probe "
+                    f"(worth {report.exploitable_accuracy:.1%} after choosing polarity)"
+                )
 
     def test_pairs_share_an_identical_user_state(self):
         """If state differed across a pair it would give the answer away as surely
@@ -477,9 +513,28 @@ class TestSplitIntegrity:
 
     def _splits(self, pairs: int = 20):
         items = generate(n_pairs_per_scenario=pairs, seed=20260726)
-        dev = [i for i in items if _bucket(pair_key(i.moment.id)) < 60]
-        test = [i for i in items if _bucket(pair_key(i.moment.id)) >= 60]
+        dev = [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+        test = [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
         return dev, test
+
+    def test_the_splits_use_disjoint_phrasings(self):
+        """Round 13's core guarantee, and the reason overlap is zero not merely small.
+
+        A held-out item must use a decider phrasing that appears nowhere in
+        training. Enforced on the frame, so it holds by construction rather than
+        by an entity pool happening to be large enough.
+        """
+        dev, test = self._splits()
+        dev_frames = {frame_of(i.moment) for i in dev}
+        test_frames = {frame_of(i.moment) for i in test}
+        assert dev_frames and test_frames
+        assert not (dev_frames & test_frames), (
+            f"frames {sorted(dev_frames & test_frames)} appear in both splits"
+        )
+        for family in sorted({i.moment.family for i in dev}):
+            seen = {i.moment.signals[-1].content for i in dev if i.moment.family == family}
+            held = {i.moment.signals[-1].content for i in test if i.moment.family == family}
+            assert not (seen & held), f"{family}: a held-out decider is published in dev"
 
     def test_no_pair_spans_the_split(self):
         dev, test = self._splits()
@@ -754,23 +809,18 @@ class TestOrderSensitiveShortcut:
 
         name = "ngram-exploit"
 
-        def __init__(self, train: list[Item]):
+        def __init__(self, train: list[Item], invert: bool = False):
             self.model = _NaiveBayes()
             self.model.fit([(item_bigrams(i), i.label.should_surface) for i in train])
+            self.invert = invert
 
         def decide(self, moment):
             probe = Item.model_construct(moment=moment, label=None)
             speak = self.model.predict(item_bigrams(probe))
+            if self.invert:
+                speak = not speak
             return Decision(moment_id=moment.id, surface=speak, intent="alert" if speak else None)
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="OPEN DEFECT (R11, reduced but not closed by R12). 29.8% of "
-        "held-out decider sentences still appear byte-identically in the published "
-        "dev split (was 91.2%); a zero-model dict lookup scores 64.9% (was 95.6%). "
-        "Holding frames out of dev closes this by construction; strict=True makes "
-        "the build fail when it lands.",
-    )
     def test_the_held_out_split_is_not_published_verbatim(self):
         """The dominant mechanism, measured separately from the model.
 
@@ -787,13 +837,58 @@ class TestOrderSensitiveShortcut:
             f"{overlap['lookup_accuracy']:.1%} with no model"
         )
 
-    def test_bigrams_transfer_to_held_out_pairs(self):
-        """Pins the measured effect so a dataset change forces a re-measure.
+    def test_a_positional_policy_cannot_beat_silence(self):
+        """The probe the gate deliberately does not run, held to the real standard.
 
-        Note this asserts the DEFECT exists. It is not an xfail because it is a
-        characterisation of the current data, not the invariant -- but it will go
-        red when paraphrase expansion lands, and that is intended. See the two
-        strict xfails in this class for the invariants themselves.
+        A position-tagged unigram separates this dataset better than chance -- 74%
+        on the full generated set, and 60-63% on three families. That is a genuine
+        residual and it is not gated, because the benchmark's standard for a
+        shortcut has never been "no probe finds signal"; it is **no surface policy
+        beats silence** (see TestNoKeywordExploit, Round 9). By that standard a
+        positional model loses by 16 points at worst across seeds.
+
+        Keeping the separability un-gated but the exploit gated is the honest
+        split. If a positional model ever clears silence, this goes red and the
+        residual becomes a defect rather than a curiosity.
+        """
+        worst, worst_seed = -999.0, None
+        for seed in range(1, 9):
+            items = generate(n_pairs_per_scenario=20, seed=seed)
+            dev = [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+            held = [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
+            reference = silence_ics(held)
+            model = _NaiveBayes()
+            model.fit([(item_positional(i), i.label.should_surface) for i in dev])
+            for invert in (False, True):
+                decisions = []
+                for item in held:
+                    speak = model.predict(item_positional(item))
+                    if invert:
+                        speak = not speak
+                    decisions.append(
+                        Decision(
+                            moment_id=item.moment.id,
+                            surface=speak,
+                            intent="alert" if speak else None,
+                        )
+                    )
+                card = score(held, decisions, "positional", reference)
+                if card.ics_normalized > worst:
+                    worst, worst_seed = card.ics_normalized, seed
+
+        assert worst <= 0.0, (
+            f"a position-tagged model fit on dev reaches {worst:+.1f} vs silence on "
+            f"held-out phrasings (seed {worst_seed}); positional separability has "
+            "become exploitable and now needs fixing, not just reporting"
+        )
+
+    def test_bigrams_do_not_transfer_to_held_out_phrasings(self):
+        """The inverse of what this asserted for two rounds.
+
+        Until Round 13 it pinned the *defect* -- a bigram fit on dev scored 97.5%
+        on held-out items. With phrasings held out it scores near chance, and that
+        is now the invariant. Two-sided, because a reliably-wrong probe is worth
+        exactly as much to a submitter as a reliably-right one.
         """
         dev, test = load("v1", "dev"), load("v1", "test")
         assert not ({pair_key(i.moment.id) for i in dev} & {pair_key(i.moment.id) for i in test}), (
@@ -803,29 +898,130 @@ class TestOrderSensitiveShortcut:
         model = _NaiveBayes()
         model.fit([(item_bigrams(i), i.label.should_surface) for i in dev])
         hits = sum(1 for i in test if model.predict(item_bigrams(i)) == i.label.should_surface)
-        assert hits / len(test) > 0.90, (
-            "a bigram model fit on dev should still transfer to held-out pairs; "
-            "if this drops, the templates were varied and the finding needs re-measuring"
+        exploitable = 0.5 + abs(hits / len(test) - 0.5)
+        assert exploitable < 0.70, (
+            f"a bigram fit on dev reaches {hits / len(test):.1%} on held-out phrasings "
+            f"(worth {exploitable:.1%} after choosing polarity); the frames are leaking"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="OPEN DEFECT (R11, refined by R12). Each family has only TWO "
-        "structural frames, and the frame carries the label, so a bigram model fit "
-        "on dev scores +98.1 vs silence on held-out test (ICS 3.0 against a "
-        "skyline of 0.0). R12 removed most of the duplicate text R11 blamed and "
-        "the exploit moved 1.3 points; the bigram still scores 97.5% on held-out "
-        "items whose phrasing never appeared in dev. The fix is more frames with "
-        "some held out of dev, not a weaker bound. strict=True so this fails the "
-        "build the moment the dataset is repaired, forcing the assertion to be "
-        "tightened rather than forgotten.",
-    )
     def test_a_surface_ngram_policy_cannot_beat_silence(self):
-        dev, test = load("v1", "dev"), load("v1", "test")
-        reference = silence_ics(test)
-        card = evaluate(self._NgramPolicy(dev), test, reference=reference)
-        assert card.ics > reference, (
-            f"a bag-of-bigrams fit on dev beats silence on held-out test "
-            f"({card.ics:.1f} vs {reference:.1f}, {card.ics_normalized:+.1f}) — "
-            "the dataset is solvable by surface pattern matching"
+        """Two-sided: the policy AND its negation must both lose to silence.
+
+        Negating a classifier is free, so "this model loses to silence" is only a
+        claim about half the models a submitter can build from it. Round 13's first
+        draft asserted the one-sided version, passed, and declared the defect
+        closed; review pointed out the flipped model beat silence on 9 of 20 seeds.
+        Two further fixes were needed before this held -- symmetric frame labels
+        and a wide gate pool -- and the two-sided form is what proved it.
+
+        The margin is **thin**: the best of the two polarities lands at exactly
+        +0.0 on several seeds. It ties silence and never beats it. If a future
+        round pushes it positive, that is a real regression, not a rounding
+        artifact.
+        """
+        # Across seeds, not just the shipped artifact. The invariant is a property
+        # of the CONSTRUCTION -- "this generator cannot produce a dataset a surface
+        # model beats silence on" -- and the shipped seed happens to land at
+        # exactly +0.0, which would let a one-artifact test report a guarantee the
+        # construction does not provide.
+        worst, worst_seed = -999.0, None
+        for seed in range(1, 9):
+            items = generate(n_pairs_per_scenario=20, seed=seed)
+            dev = [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+            test = [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
+            reference = silence_ics(test)
+            best = max(
+                evaluate(
+                    self._NgramPolicy(dev, invert=inv), test, reference=reference
+                ).ics_normalized
+                for inv in (False, True)
+            )
+            if best > worst:
+                worst, worst_seed = best, seed
+
+        assert worst <= 0.0, (
+            f"a bag-of-bigrams fit on dev reaches {worst:+.1f} vs silence on held-out "
+            f"test (seed {worst_seed}) once its polarity is chosen from dev; a surface "
+            "model must not beat saying nothing"
         )
+
+
+class TestFrameDisjointness:
+    """Frames must not share content words -- with each other, at all.
+
+    Round 13 learned this in two stages. First: held-out frames sharing vocabulary
+    with training frames obviously leaks. Then the frame-folded audit showed the
+    weaker rule is not enough -- `collected` was the *other* label in health frames
+    0 and 2, both training frames, and a bigram learned on one answered the other
+    through the fold. `travel` was worse: its two gate pools were disjoint, so a
+    gate's identity revealed whether it was the old or the new one, and `at_b12`
+    meant speak from Round 1 onward.
+
+    Stems, not words, because "collect"/"collected"/"collection" are one signal.
+    """
+
+    STOP = {
+        "the",
+        "a",
+        "an",
+        "of",
+        "to",
+        "for",
+        "on",
+        "at",
+        "in",
+        "is",
+        "be",
+        "and",
+        "not",
+        "yet",
+        "it",
+        "its",
+        "you",
+        "your",
+        "still",
+        "already",
+        "up",
+        "off",
+        "out",
+        "down",
+        "over",
+        "under",
+        "by",
+        "has",
+        "have",
+        "was",
+        "will",
+        "this",
+        "are",
+        "from",
+        "due",
+        "no",
+    }
+
+    @staticmethod
+    def _stem(word: str) -> str:
+        for suffix in ("ing", "ed", "s"):
+            if word.endswith(suffix) and len(word) > 4:
+                return word[: -len(suffix)]
+        return word
+
+    def _content(self, label: str) -> set[str]:
+        return {self._stem(w) for w in re.findall(r"[a-z]+", label.lower()) if w not in self.STOP}
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_every_frame_is_lexically_disjoint_from_every_other(self, family):
+        frames = FRAMES[family]
+        assert len(frames) == 8, f"{family} has {len(frames)} frames, expected 8"
+        vocab = [self._content(a) | self._content(b) for a, b in frames]
+        for i, j in itertools.combinations(range(len(frames)), 2):
+            shared = vocab[i] & vocab[j]
+            assert not shared, (
+                f"{family} frames {i} and {j} share {sorted(shared)}; a bigram learned "
+                "on one answers the other straight through the fold"
+            )
+
+    def test_held_out_frames_exist_and_are_reserved(self):
+        assert HELD_OUT_FRAMES == frozenset({5, 6, 7})
+        for family, frames in FRAMES.items():
+            assert max(HELD_OUT_FRAMES) < len(frames), family

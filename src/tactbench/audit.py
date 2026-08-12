@@ -16,7 +16,9 @@ answer and the headline results are measuring vocabulary rather than tact.
 means *that* probe found nothing. Round 11: the bag-of-words probe reported 50.0%
 on all nine families for ten rounds, because both sides of a pair carry the same
 token multiset by construction and a bag of words cannot see arrangement. The
-order-aware probe reaches 97.2% on the same data. Read the worst probe, never the
+order-aware probe reached 97.2% on the same data, and a bag-of-bigrams beat silence
+on the held-out split until Round 13 held the phrasings out. Read the worst probe,
+never the
 friendliest, and remember that a clean audit bounds only the shortcuts you
 thought to test.
 
@@ -30,7 +32,7 @@ import math
 import re
 from dataclasses import dataclass, field
 
-from .schema import Item, pair_key
+from .schema import Item, frame_of, pair_key
 
 TOKEN_RE = re.compile(r"[a-z0-9']+")
 
@@ -200,7 +202,9 @@ def item_bigrams(item: Item) -> list[str]:
 
     Identical token multiset. The bag-of-words probe is structurally incapable of
     separating these and reports 50.0% -- which was read as resistance for ten
-    rounds. Bigrams separate them at 93.5%.
+    rounds, while bigrams separated them at 97.2%. Round 13 split the dev/test
+    boundary on the decider frame, so held-out phrasings never appear in training;
+    the bigram probe now reads 47.0%.
     """
     toks = item_tokens(item)
     if len(toks) < 2:
@@ -212,7 +216,38 @@ def item_bigrams(item: Item) -> list[str]:
     return [f"{a}_{b}" for a, b in zip(toks, toks[1:], strict=False)]
 
 
-def lexical_leakage(items: list[Item], folds: int = 5, features=item_tokens) -> LeakageReport:
+def _frame_key(item: Item) -> str:
+    """Group by decider phrasing, so folds hold out a *wording* rather than a pair.
+
+    Round 13. Folding by pair asks "can a model that has seen all five training
+    phrasings separate a held-out pair?" -- which for some families is yes, by
+    memorising the phrasing. That is not what the benchmark is graded on: a
+    submitter fits on `dev` and is scored on `test`, whose wordings are disjoint.
+    Folding by frame asks the question that matches the grading.
+    """
+    return f"{item.moment.family}:{frame_of(item.moment)}"
+
+
+def item_positional(item: Item) -> list[str]:
+    """Each token tagged with where in the signal it fell, in tenths.
+
+    A third axis, added in Round 13 after review. Unigrams cannot see arrangement
+    and bigrams see only adjacency; neither notices "the marker sits in the first
+    clause". That mattered: the first attempt at balancing clause order used a
+    digest of the pair id, which left a third of the (family, frame) cells
+    single-order, and a position-tagged probe read five of nine families above the
+    per-family bound while every gated check stayed green.
+
+    A probe the gate does not run is a shortcut the gate cannot see.
+    """
+    toks = item_tokens(item)
+    n = len(toks) or 1
+    return [f"{t}@{(idx * 10) // n}" for idx, t in enumerate(toks)]
+
+
+def lexical_leakage(
+    items: list[Item], folds: int = 5, features=item_tokens, group=_pair_key
+) -> LeakageReport:
     """Cross-validated probe over signal text only.
 
     ``features`` selects the representation. The default is the historical
@@ -222,13 +257,13 @@ def lexical_leakage(items: list[Item], folds: int = 5, features=item_tokens) -> 
     probe's blind spot rather than on the pairing.
     """
     docs = [(features(i), i.label.should_surface) for i in items]
-    keys = sorted({_pair_key(i) for i in items})
+    keys = sorted({group(i) for i in items})
     fold_of = {k: idx % folds for idx, k in enumerate(keys)}
 
     accuracies: list[float] = []
     for f in range(folds):
-        train = [d for d, i in zip(docs, items, strict=True) if fold_of[_pair_key(i)] != f]
-        test = [(d, i) for d, i in zip(docs, items, strict=True) if fold_of[_pair_key(i)] == f]
+        train = [d for d, i in zip(docs, items, strict=True) if fold_of[group(i)] != f]
+        test = [(d, i) for d, i in zip(docs, items, strict=True) if fold_of[group(i)] == f]
         if not train or not test:
             continue
         model = _NaiveBayes()
@@ -249,9 +284,20 @@ def lexical_leakage(items: list[Item], folds: int = 5, features=item_tokens) -> 
     )
 
 
+def positional_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
+    """The position-aware probe, folded by frame. See :func:`item_positional`."""
+    report = lexical_leakage(items, folds=folds, features=item_positional, group=_frame_key)
+    report.probe = "positional"
+    return report
+
+
 def ngram_leakage(items: list[Item], folds: int = 5) -> LeakageReport:
-    """The order-aware probe. See :func:`item_bigrams` for why it exists."""
-    report = lexical_leakage(items, folds=folds, features=item_bigrams)
+    """The order-aware probe, folded by **frame**.
+
+    See :func:`item_bigrams` for why the probe exists and :func:`_frame_key` for
+    why it holds out a wording rather than a pair.
+    """
+    report = lexical_leakage(items, folds=folds, features=item_bigrams, group=_frame_key)
     report.probe = "bigram"
     return report
 

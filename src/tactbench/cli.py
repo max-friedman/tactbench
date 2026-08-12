@@ -9,12 +9,12 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .dataset.generate import generate
+from .dataset.generate import HELD_OUT_FRAMES, generate
 from .dataset.loader import load, split_path, write_jsonl
 from .metrics import Scorecard, score
 from .policies.builtin import registry
 from .runner import evaluate, silence_ics
-from .schema import Decision, pair_key
+from .schema import Decision, frame_of
 
 app = typer.Typer(
     add_completion=False,
@@ -86,8 +86,19 @@ def build(
     # opposite sides of the split -- and made 77% of the held-out set answerable
     # by looking the partner up in the published dev file and negating its label.
     # Both sides of a pair must always travel together.
-    dev = [i for i in items if _bucket(pair_key(i.moment.id)) < 60]
-    test = [i for i in items if _bucket(pair_key(i.moment.id)) >= 60]
+    # Round 13: split on the FRAME, not on a digest of the pair.
+    #
+    # The pair-key digest (Round 10) fixed pairs being divided across the split,
+    # but left both splits drawing from the same handful of phrasings -- so 91% of
+    # held-out decider sentences were published verbatim in dev and the benchmark
+    # was solvable by a surface model. Round 12 showed varying the entities does
+    # not help, because the frame carries the label.
+    #
+    # Splitting on the frame makes the held-out phrasings disjoint *by
+    # construction*: verbatim overlap is zero, not merely small. Pair-wholeness is
+    # preserved for free, because a pair's two sides share a frame.
+    dev = [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+    test = [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
 
     for split, subset in (("dev", dev), ("test", test)):
         path = split_path(version, split)
@@ -249,7 +260,7 @@ def audit(
     by construction, so read the bigram column too. High
     means the benchmark is measuring vocabulary instead of tact.
     """
-    from .audit import PER_FAMILY_THRESHOLD, lexical_leakage, ngram_leakage
+    from .audit import PER_FAMILY_THRESHOLD, lexical_leakage, ngram_leakage, positional_leakage
 
     items = load(version, split)
     report = lexical_leakage(items)
@@ -266,6 +277,7 @@ def audit(
     # The unigram column cannot see word order, so a role permutation is invisible
     # to it by construction. Reporting it alone read as resistance for ten rounds.
     t.add_column("bigram", justify="right")
+    t.add_column("positional", justify="right")
     t.add_column("verdict")
 
     families = sorted({i.moment.family for i in items})
@@ -273,40 +285,52 @@ def audit(
         subset = [i for i in items if i.moment.family == family]
         uni = lexical_leakage(subset)
         big = ngram_leakage(subset)
+        pos = positional_leakage(subset)
+        # Gate on unigram and bigram; positional is reported only (see the audit
+        # section of docs/METRICS.md for why, and the queue for when).
         worst = max(uni.exploitable_accuracy, big.exploitable_accuracy)
+
+        def cell(r):
+            return (
+                f"[yellow]{r.exploitable_accuracy:.1%}[/yellow]"
+                if r.is_leaking(PER_FAMILY_THRESHOLD)
+                else f"{r.exploitable_accuracy:.1%}"
+            )
+
         t.add_row(
             family,
             f"{uni.accuracy:.1%}",
-            f"{uni.exploitable_accuracy:.1%}",
-            f"[yellow]{big.accuracy:.1%}[/yellow]"
-            if big.is_leaking(PER_FAMILY_THRESHOLD)
-            else f"{big.accuracy:.1%}",
+            cell(uni),
+            cell(big),
+            cell(pos),
             "[yellow]leaks[/yellow]"
             if worst >= PER_FAMILY_THRESHOLD
             else "[green]at chance[/green]",
         )
+    pos_report = positional_leakage(items)
     t.add_row(
         "[bold]overall[/bold]",
         f"[bold]{report.accuracy:.1%}[/bold]",
         f"[bold]{report.exploitable_accuracy:.1%}[/bold]",
-        f"[bold]{ngram_report.accuracy:.1%}[/bold]",
+        f"[bold]{ngram_report.exploitable_accuracy:.1%}[/bold]",
+        f"[bold]{pos_report.exploitable_accuracy:.1%}[/bold]",
         "",
     )
     console.print(t)
     # Report the WORST probe, not the friendliest one. Printing only the unigram
     # verdict under a table full of bigram leaks is how a benchmark keeps looking
     # fine while it has stopped measuring what it claims to.
-    worst = max((report, ngram_report), key=lambda r: r.exploitable_accuracy)
+    worst = max((report, ngram_report, pos_report), key=lambda r: r.exploitable_accuracy)
     console.print(f"\n{worst.verdict()}")
     if ngram_report.is_leaking(PER_FAMILY_THRESHOLD):
         console.print(
             f"\n[yellow]The unigram probe reports {report.accuracy:.1%} because it cannot "
             "see word order.[/yellow]\nA role permutation is only a reordering, so "
             "bag-of-words is structurally unable to\nseparate a pair. Bigrams reach "
-            f"{ngram_report.accuracy:.1%}. The cause is frame scarcity: each family has only\n"
-            "two structural frames, and the frame carries the label. Round 12 showed entity\n"
-            "variation does not help — a bigram still scores 97.5% on held-out items whose\n"
-            "phrasing never appeared in dev. See docs/DATASET.md."
+            f"{ngram_report.accuracy:.1%}. Check that your family's eight frames are\n"
+            "pairwise lexically disjoint and that each frame's two labels have the same\n"
+            "token count — those two properties are what keep the probe at chance.\n"
+            "See docs/DATASET.md and TestFrameDisjointness."
         )
     console.print(
         "\n[dim]Most speak-predictive tokens: "

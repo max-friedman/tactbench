@@ -31,6 +31,7 @@ from __future__ import annotations
 import hashlib
 import re
 
+from ..dataset.generate import FRAMES
 from ..schema import Decision, Moment
 from .base import Policy
 
@@ -40,18 +41,103 @@ _GATE_CHANGE = re.compile(
     re.I,
 )
 _GATE_LOCATION = re.compile(r"(?:seated|standing) at\s+([A-Z]\d+)", re.I)
+# "Return window for the standing desk closes" / "left to return the road bike" /
+# "The camera lens return period ends"
+_RETURN_ITEM = re.compile(
+    r"return window for the ([a-z ]+?) closes"
+    r"|left to return the ([a-z ]+?)\."
+    r"|the ([a-z ]+?) return period ends",
+    re.I,
+)
+
+
+#: The value that means *speak* when it occupies a frame's privileged role.
+#: ``None`` means the marker is not a constant and must be read from the moment --
+#: only ``travel``, where it is the gate boarding moved away from.
+_MARKERS = {
+    "childcare": "you",
+    "deadline": "you",
+    "quiet_hours": "you",
+    "health": "your prescription",
+    "finance": "checking",
+    "commerce": None,
+    "meeting_prep": "contract review",
+    "driving": "your route",
+    "travel": None,
+}
 
 
 class SkylinePolicy(Policy):
-    """Resolves each family's deciding relation from the signal text."""
+    """Resolves each family's deciding relation from the signal text.
+
+    Round 13 replaced nine hand-written string matchers with one resolver over the
+    generator's own frame table. That is a deliberate honesty change as much as a
+    maintenance one: ``_commerce`` matched the literal ``"the desk"`` and
+    ``_meeting_prep`` matched ``"contract review"``, which *resolved nothing* --
+    they worked only because those nouns never varied, and would have silently
+    mislabelled a whole family the moment they did. A ceiling that is secretly a
+    lookup overstates the headroom it is there to measure.
+
+    The resolver reads the decider's two ``LABEL: VALUE`` clauses, finds the one
+    whose label is the frame's **privileged** role, and asks whether the family's
+    marker occupies it. It imports ``FRAMES`` rather than restating the phrasings,
+    because two private notions of the same thing is how Round 10's split leak
+    survived nine rounds.
+    """
 
     name = "skyline"
+
+    @staticmethod
+    def _clauses(text: str) -> list[tuple[str, str]]:
+        """Split a decider into (label, value) pairs."""
+        out = []
+        for part in text.split(". "):
+            part = part.strip().rstrip(".")
+            if ": " in part:
+                label, _, value = part.partition(": ")
+                out.append((label.strip().lower(), value.strip().lower()))
+        return out
+
+    def _resolve(self, moment: Moment, text: str, low: str) -> bool:
+        frames = FRAMES.get(moment.family)
+        if not frames:
+            return False
+        privileged = {p.lower() for p, _ in frames}
+        marker = _MARKERS.get(moment.family)
+        if marker is None:
+            # The marker is not a constant -- read it out of the body, which is
+            # what "resolving the relation" actually means. travel: the gate
+            # boarding moved AWAY from. commerce: the item whose return window is
+            # closing. Both were literal string matches until Round 13, which is
+            # to say the ceiling was a lookup for those two families.
+            if moment.family == "travel":
+                change = _GATE_CHANGE.search(text)
+                if not change:
+                    return False
+                marker = change.group(1)
+            else:
+                item = _RETURN_ITEM.search(low)
+                if not item:
+                    return False
+                phrase = next(g for g in item.groups() if g)
+                marker = "the " + phrase.split()[-1]
+        marker = marker.lower()
+
+        for label, value in self._clauses(low):
+            if label in privileged:
+                # Exact, or a whole-word prefix. A bare startswith() made
+                # "a21".startswith("a2") true, so a travel pair drawing gates A2
+                # and A21 had its near-miss resolved as speak -- the ceiling
+                # mislabelling a family. It fires on 1.1% of travel pairs and not
+                # at all on the shipped seed, which is exactly the kind of defect
+                # a fixed-seed self-consistency test at 5 pairs cannot see.
+                return value == marker or value.startswith(marker + " ")
+        return False
 
     def decide(self, moment: Moment) -> Decision:
         text = " ".join(s.content for s in moment.signals)
         low = text.lower()
-        fn = getattr(self, f"_{moment.family}", None)
-        surface = bool(fn(text, low)) if fn else False
+        surface = self._resolve(moment, text, low)
         intent_by_family = {
             "travel": "gate_change_alert",
             "deadline": "incident_page",
@@ -70,68 +156,6 @@ class SkylinePolicy(Policy):
             intent=intent_by_family.get(moment.family) if surface else None,
             rationale="skyline: resolved the deciding relation directly",
         )
-
-    def _travel(self, text: str, low: str) -> bool:
-        """Speak only if the user is standing at the gate boarding moved *away* from."""
-        change = _GATE_CHANGE.search(text)
-        where = _GATE_LOCATION.search(text)
-        if not change or not where:
-            return False
-        old_gate = change.group(1).upper()
-        return where.group(1).upper() == old_gate
-
-    def _deadline(self, text: str, low: str) -> bool:
-        """Speak only if the page names the user as primary, not as backup."""
-        m = re.search(r"primary[:\s]+\(?([a-z ]+?)[,.)]", low)
-        return bool(m and "you" in m.group(1))
-
-    def _commerce(self, text: str, low: str) -> bool:
-        """Speak only if the item whose return window is closing is still sealed."""
-        if "still boxed:" in low:
-            return low.split("still boxed:")[1].split(".")[0].strip().startswith("the desk")
-        return bool(re.search(r"the desk is unopened", low))
-
-    def _meeting_prep(self, text: str, low: str) -> bool:
-        """Speak only if the meeting the unread document concerns is still ahead."""
-        return bool(re.search(r"contract review (?:begins in|starts in)", low))
-
-    def _driving(self, text: str, low: str) -> bool:
-        """Speak only if the congestion is on the route the user is actually taking."""
-        return bool(
-            re.search(r"your route is backed up", low)
-            or re.search(r"congestion is on your route", low)
-        )
-
-    def _quiet_hours(self, text: str, low: str) -> bool:
-        """Speak only if the user is the one who can actually get there tonight.
-
-        The emergency itself is identical on both sides -- it lives in the shared
-        body. What differs is who is nearby and who is hours out.
-        """
-        if "nearby: " in low:
-            return low.split("nearby: ")[1].split(".")[0].strip().startswith("you")
-        return "you are the one nearby" in low
-
-    def _health(self, text: str, low: str) -> bool:
-        """Speak only if the refill still at the counter is the user's own."""
-        if "still at the counter:" in low:
-            tail = low.split("still at the counter:")[1].split(".")[0]
-            return "your" in tail
-        return "your refill is waiting" in low
-
-    def _childcare(self, text: str, low: str) -> bool:
-        """Speak only if the user is the parent listed for pickup."""
-        if "listed for pickup:" in low:
-            tail = low.split("listed for pickup:")[1].split(".")[0]
-            return "you" in tail
-        return "you are on the pickup list" in low
-
-    def _finance(self, text: str, low: str) -> bool:
-        """Speak only if the shortfall is in the account autopay actually draws from."""
-        if "below the payment by" in low:
-            tail = low.split("below the payment by")[1].split(".")[0]
-            return "checking" in tail
-        return "checking is short" in low
 
 
 class PartialSkylinePolicy(Policy):

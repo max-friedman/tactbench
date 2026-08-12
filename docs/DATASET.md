@@ -55,33 +55,30 @@ rule:
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
 audit** — which is exactly what a token permutation guarantees, since that probe
-cannot see arrangement. An order-aware probe reaches **93.5%**, and a bag-of-bigrams
-fit on `dev` scores **+98.1 versus silence on held-out `test`**.
+cannot see arrangement. An order-aware probe reached **97.2%** in Round 11, and a bag-of-bigrams fit on
+`dev` scored **+99.4 versus silence on held-out `test`** — the benchmark was
+solvable by surface statistics.
 
-Round 11 diagnosed this as **decider scarcity** — families carried as few as 4
-distinct decider sentences across 40 items, so 91.2% of held-out deciders appeared
-byte-identically in `dev` and a dict lookup scored +90.9 with no model.
+Round 12 blamed decider scarcity and removed it (entities drawn per pair, 4 → 24–38
+distinct decider sentences per family). Verbatim overlap fell 91.2% → 29.8% and the
+exploit moved **1.3 points**. The frame carries the label, not the entity.
 
-**Round 12 tested that diagnosis by fixing the scarcity, and it was only half
-right.** Drawing the counterpart entity per pair took every family to 24–38
-distinct decider sentences:
+Round 13 held the phrasings out instead. Each family has **eight** decider frames,
+and the split is taken **on the frame**:
 
-| measure | before R12 | after R12 |
-|---|---|---|
-| held-out deciders published verbatim in `dev` | 91.2% | **29.8%** |
-| held-out items wholly duplicate | 49.1% | **7.0%** |
-| dict-lookup accuracy (no model) | 95.6% | **64.9%** |
-| **bigram exploit vs silence** | **+99.4** | **+98.1** |
+| | R11 | R12 | **R13** |
+|---|---|---|---|
+| bigram probe (dev) | 97.2% | 93.5% | **48.9%** |
+| held-out deciders published verbatim | 91.2% | 29.8% | **0.0%** |
+| dict lookup, no model | 95.6% | 64.9% | **50.0%** |
+| bigram on held-out phrasings | 97.5% | 97.5% | **50.9%** |
+| **bag-of-bigrams vs silence** (two-sided) | **+99.4** | **+98.1** | **+0.0** |
 
-Duplication fell hard; the exploit did not move. The **frame** carries the label —
-`pickup_you` → speak, `primary_you` → speak — and varying who occupies the other
-slot leaves the frame intact. Entity variation is the wrong lever. The fix has to
-vary the frames themselves and hold some out of `dev`.
-
-This is a **near-duplicate leak**, and it is a *different* defect from the pair-key
-split fixed in Round 10: that one divided pairs across the boundary, this one
-repeats text across it. A split can be perfectly pair-whole and still publish its
-own answers. See "Known weaknesses" and `experiments/order_sensitive_probe.py`.
+That was a **near-duplicate leak**, a *different* defect from the pair-key split
+fixed in Round 10: that one divided pairs across the boundary, this one repeated
+text across it. A split can be perfectly pair-whole and still publish its own
+answers. Holding frames out closes it by construction rather than probabilistically.
+See `experiments/order_sensitive_probe.py`.
 
 `quiet_hours` was not always in that list. It originally turned on severity —
 *admitted* versus *discharged* — and was declared irreducible on the reasoning
@@ -155,8 +152,8 @@ make the number mean nothing.
 
 ## Splitting
 
-`dev` / `test` are split on `sha256(pair_key(moment_id))[0] % 100 < 60` — **246
-dev / 114 test**.
+`dev` / `test` are split on the **decider frame** — frames 0–4 train, 5–7 are
+held out — giving **252 dev / 108 test**.
 
 Two things about that expression are load-bearing, and each was learned by getting
 it wrong.

@@ -53,6 +53,9 @@ from ..schema import Activity, GoldLabel, Item, Moment, Signal, Source, UserStat
 # leak. Pools are deliberately larger than the pair count so repeats are rare.
 # --------------------------------------------------------------------------- #
 
+#: 240 gate codes. See TravelScenario.body for why the space is wide.
+GATES = [f"{letter}{number}" for letter in "ABCDEF" for number in range(1, 41)]
+
 COLLEAGUES = [
     "Priya Raman",
     "Marco Silva",
@@ -107,14 +110,30 @@ PHARMACY_OTHERS = [
     "Dmitri",
 ]
 
-# Stand-in nouns for the commerce decider. ONLY the stand-in varies: the returnable
-# item stays "the desk", because the body names it and `SkylinePolicy._commerce`
-# resolves the relation against that literal. Varying the returnable as well
-# requires generalising that handler first -- see the R13 queue item. Kept as a
-# flat list rather than tuples of (body form, decider form, stand-in): an earlier
-# draft carried those extra columns unused, and a comment describing fields
-# nothing reads is how a later contributor wires one in and silently breaks the
-# ceiling.
+# The commerce decider names two things: the item whose return window is closing
+# (the marker) and a stand-in that is already in use. BOTH vary per pair.
+#
+# Until Round 13 the returnable was the constant "the desk" while only the
+# stand-in moved, which left the family's marker token fixed and the bigram probe
+# read that asymmetry at 2.0 SE from chance. `SkylinePolicy` now reads the item
+# out of the body instead of matching a literal -- which is what resolving a
+# relation means, and what the ceiling was only pretending to do here and in
+# meeting_prep.
+
+# (long form named in the body, short form used in the decider)
+RETURNABLES = [
+    ("standing desk", "desk"),
+    ("espresso machine", "machine"),
+    ("road bike", "bike"),
+    ("monitor arm", "arm"),
+    ("office chair", "chair"),
+    ("cast iron pan", "pan"),
+    ("wool overcoat", "overcoat"),
+    ("electric kettle", "kettle"),
+    ("camera lens", "lens"),
+    ("folding treadmill", "treadmill"),
+]
+
 RETURNABLE_STANDINS = [
     "replacement",
     "loaner",
@@ -128,9 +147,9 @@ RETURNABLE_STANDINS = [
     "floor model",
 ]
 
-# Counterpart meetings for the meeting_prep decider. ONLY the counterpart varies:
-# "contract review" is what the body names and `SkylinePolicy._meeting_prep`
-# resolves against. Same reasoning as RETURNABLE_STANDINS above.
+# Counterpart meetings for the meeting_prep decider. Only the counterpart varies
+# here: "contract review" is what the body names and what the skyline resolves
+# against. Varying it too would need the same body-reading treatment commerce got.
 COUNTERPART_MEETINGS = [
     "budget sync",
     "staffing review",
@@ -143,6 +162,127 @@ COUNTERPART_MEETINGS = [
     "forecast review",
     "onboarding sync",
 ]
+
+
+# --------------------------------------------------------------------------- #
+# Decider frames -- Round 13.
+#
+# Every family's decider names two roles and swaps which value occupies which.
+# A frame is ``(privileged_label, other_label)``: the privileged role is the one
+# whose occupant decides the answer. Rendering puts the family's *marker* value in
+# one role and the counterpart in the other, and the pair's two sides swap them --
+# so both sides carry an identical token multiset by construction rather than by
+# an author remembering to make it so.
+#
+# **The dev/test split is taken on the frame.** Frames 0-4 are training phrasings;
+# 5-7 appear only in the held-out split. Round 12 showed that varying the *entity*
+# buys nothing (91.2% -> 29.8% duplication moved the exploit 1.3 points) because
+# the frame carries the label. Varying the frame *and holding some out* is the
+# lever that was left: a bigram learned on "listed_you" does not fire on a test
+# frame that says "At the school gate".
+#
+# This table is the single definition. `SkylinePolicy` imports it rather than
+# keeping its own copy of the phrasings -- two private notions of the same thing
+# is how Round 10's split leak survived nine rounds.
+# --------------------------------------------------------------------------- #
+
+FRAMES: dict[str, list[tuple[str, str]]] = {
+    "childcare": [
+        ("Listed for pickup", "Booked on flights"),
+        ("Doing the school run", "Leaving the country tonight"),
+        ("Collecting at three", "Landing at midnight"),
+        ("Classroom door duty", "Departure lounge duty"),
+        ("Fetching kids", "Boarding planes"),
+        ("Minding bedtime", "Missing bedtime"),
+        ("Rostered for nursery", "Rostered for depot"),
+        ("Home by four", "Away till Sunday"),
+    ],
+    "deadline": [
+        ("Primary", "Secondary"),
+        ("Paged first", "Alerted second"),
+        ("Owns this rota", "Backs that rota"),
+        ("On point", "On standby"),
+        ("Carrying the pager", "Lacking the pager"),
+        ("Holding the bleeper", "Ignoring the bleeper"),
+        ("Accountable tonight", "Unavailable tonight"),
+        ("Named lead", "Named deputy"),
+    ],
+    "health": [
+        ("Still at counter", "Gone since Tuesday"),
+        ("Waiting for pickup", "Signed for already"),
+        ("Uncollected", "Claimed"),
+        ("On the shelf", "Out the door"),
+        ("Awaiting a bag", "Dispensed a month"),
+        ("Sitting unclaimed", "Taken home"),
+        ("Behind the screen", "Through the till"),
+        ("In the basket", "Off the premises"),
+    ],
+    "quiet_hours": [
+        ("Nearby", "Distant"),
+        ("Close enough", "Far enough"),
+        ("Arrives tonight", "Arrives Thursday"),
+        ("Minutes from hospital", "Counties from hospital"),
+        ("Still in town", "Deep in transit"),
+        ("Able to leave", "Stuck till dawn"),
+        ("Within reach", "Beyond reach"),
+        ("Walks in", "Drives Sunday"),
+    ],
+    "finance": [
+        ("Short of payment", "Clears the payment"),
+        ("Below the amount", "Above the amount"),
+        ("Underfunded", "Flush"),
+        ("Cannot carry autopay", "Happily carries autopay"),
+        ("Insufficient", "Ample"),
+        ("Lacking the money", "Holding the money"),
+        ("Empty by Friday", "Loaded by Friday"),
+        ("Will bounce", "Will settle"),
+    ],
+    "commerce": [
+        ("Still boxed", "Fully assembled"),
+        ("Unopened", "Installed"),
+        ("Shrink-wrapped", "Screwed together"),
+        ("Never cut", "Long used"),
+        ("In its carton", "Out of storage"),
+        ("Factory taped", "Bolted upright"),
+        ("Awaiting a knife", "Standing on legs"),
+        ("Untouched", "Working"),
+    ],
+    "meeting_prep": [
+        ("Begins shortly", "Started already"),
+        ("Still ahead", "Long past"),
+        ("Not yet open", "Well into progress"),
+        ("Coming up", "Just finished"),
+        ("Due to convene", "Ran without you"),
+        ("Doors have not parted", "Doors parted an hour"),
+        ("Queued for later", "Wrapped at lunch"),
+        ("Scheduled after this", "Concluded before this"),
+    ],
+    "driving": [
+        ("Backed up", "Running clear"),
+        ("Congested", "Flowing"),
+        ("Jammed", "Moving"),
+        ("Slow", "Open"),
+        ("At a standstill", "At full speed"),
+        ("Crawling", "Sprinting"),
+        ("Gridlocked", "Empty"),
+        ("Snarled", "Untroubled"),
+    ],
+    "travel": [
+        ("Standing at", "Ticketed for"),
+        ("Physically by", "Printed as"),
+        ("Where you wait", "Where stubs point"),
+        ("Your actual position", "Your issued seat"),
+        ("Boots down at", "Ink says gate"),
+        ("Body near", "Barcode claims"),
+        ("Feet beside", "Paper insists"),
+        ("Currently parked", "Formally booked"),
+    ],
+}
+
+#: Frames reserved for the held-out split. Disjoint from training phrasings by
+#: construction, which is what makes `verbatim_overlap` zero rather than merely
+#: small.
+HELD_OUT_FRAMES = frozenset({5, 6, 7})
 
 
 def _mk(
@@ -191,9 +331,77 @@ class Scenario:
         """Context signals identical across both sides of the pair."""
         raise NotImplementedError
 
-    def deciders(self, rng: random.Random) -> tuple[Signal, Signal]:
-        """(positive_decider, near_miss_decider). Permute roles, don't rewrite."""
+    #: Structural phrasings of the decider. Round 13.
+    #:
+    #: Each entry is ``(privileged_label, other_label)``. The decider always names
+    #: two roles; the **privileged** one is the role whose occupant decides the
+    #: answer (the parent doing pickup, the on-call primary, the account autopay
+    #: draws from). Rendering fills one role with ``you`` and the other with an
+    #: entity, and the pair's two sides swap which is which -- so both sides carry
+    #: an identical token multiset for free, rather than by an author remembering
+    #: to make it so.
+    #:
+    #: Two properties make held-out frames actually hard, and both are load-bearing:
+    #:
+    #: 1. **The label vocabulary changes per frame.** A bigram learned on dev
+    #:    frames ("listed_you") does not fire on a test frame that says "at the
+    #:    school gate today". Round 12 established that varying the *entity* buys
+    #:    nothing, because the frame carries the label; varying the frame is the
+    #:    lever that was left.
+    #: 2. **Clause order varies per pair, independently of the frame.** If the
+    #:    privileged clause were always first, "you appears early" would answer the
+    #:    item regardless of vocabulary and a *positional* probe would sail through
+    #:    unseen frames. Tying order to frame parity is not enough either -- the
+    #:    dev and test frame sets then carry different order mixes, and a
+    #:    positional probe scored 34.7% on held-out frames, which is 65.3% once
+    #:    negated. Order is drawn from a stable digest of the pair id, so both
+    #:    orders appear within every frame and in both splits.
+    @property
+    def frames(self) -> list[tuple[str, str]]:
+        return FRAMES[self.family]
+
+    def fillers(self, rng: random.Random) -> tuple[str, str]:
+        """``(marker, counterpart)``.
+
+        The **marker** is the value that means *speak* when it occupies the
+        privileged role -- ``you`` for the person families, ``checking`` for
+        finance, the gate boarding moved away from for travel. The counterpart
+        fills the other role, and the pair's two sides swap them.
+        """
         raise NotImplementedError
+
+    def render_frame(self, frame: int, rng: random.Random, idx: int = 0) -> tuple[str, str]:
+        """(positive_text, near_miss_text) for one frame, as an exact permutation."""
+        privileged, other = self.frames[frame % len(self.frames)]
+        marker, counterpart = self.fillers(rng)
+        # Alternate within the frame, so every (family, frame) cell contains BOTH
+        # orders. A digest of the pair id was the first attempt and it is not good
+        # enough: `frame = idx % n` means a frame receives only 2-3 pairs at the
+        # shipped size, and a fair coin lands all-same in a third of those cells.
+        # Inside such a cell "the marker sits in clause 0" predicts the label
+        # perfectly, and a position-tagged probe read 5 of 9 families above the
+        # 60% bound. Alternating on the pair's index *within its frame* makes the
+        # balance structural instead of probabilistic.
+        first_is_privileged = (idx // max(len(self.frames), 1)) % 2 == 0
+
+        def render(in_privileged: str, in_other: str) -> str:
+            a = f"{privileged}: {in_privileged}."
+            b = f"{other}: {in_other}."
+            return f"{a} {b}" if first_is_privileged else f"{b} {a}"
+
+        return render(marker, counterpart), render(counterpart, marker)
+
+    #: Source/age the decider signal is attributed to.
+    decider_source: Source = Source.MESSAGE
+    decider_age_s: int = 120
+
+    def deciders(self, rng: random.Random, frame: int, idx: int) -> tuple[Signal, Signal]:
+        """(positive_decider, near_miss_decider). Permute roles, don't rewrite."""
+        pos_text, near_text = self.render_frame(frame, rng, idx)
+        return (
+            Signal(source=self.decider_source, age_s=self.decider_age_s, content=pos_text),
+            Signal(source=self.decider_source, age_s=self.decider_age_s, content=near_text),
+        )
 
     def why(self) -> tuple[str, str]:
         raise NotImplementedError
@@ -204,7 +412,11 @@ class Scenario:
         # away just as surely as the vocabulary did.
         state = self.state(rng)
         body = self.body(rng)
-        pos_dec, near_dec = self.deciders(rng)
+        # Frame is a deterministic function of the pair index, because the dev/test
+        # split is taken on the frame: held-out items must use phrasings that never
+        # appear in training. See `cli.build` and `schema.frame_of`.
+        frame = idx % max(len(self.frames), 1)
+        pos_dec, near_dec = self.deciders(rng, frame, idx)
         pos_why, near_why = self.why()
 
         # Equal, not identical. The shared body must be byte-identical across the
@@ -227,7 +439,7 @@ class Scenario:
             value=self.positive_value,
             intents=[self.intent],
             rationale=pos_why,
-            slices=list(self.positive_slices),
+            slices=[*self.positive_slices, f"frame:{frame}"],
             window_s=self.window_s,
         )
         near = _mk(
@@ -239,7 +451,7 @@ class Scenario:
             value=0,
             intents=[],
             rationale=near_why,
-            slices=["near_miss", *self.near_slices],
+            slices=["near_miss", *self.near_slices, f"frame:{frame}"],
         )
         return positive, near
 
@@ -264,8 +476,19 @@ class TravelScenario(Scenario):
         )
 
     def body(self, rng):
-        self._a = rng.choice(["B12", "C4", "A21", "D7"])
-        self._b = rng.choice(["B31", "C19", "A2", "D22"])
+        # ONE pool, sampled without replacement. Round 13: these were two disjoint
+        # pools -- old gates always from {B12,C4,A21,D7}, new always from
+        # {B31,C19,A2,D22} -- so the gate's identity revealed whether it was the
+        # old or the new one, and a bigram read `at_b12` -> speak, `at_b31` ->
+        # quiet. It survived from Round 1 because both gates appear on both sides
+        # of a pair, which is exactly what the unigram probe checks.
+        # A wide code space, not a short list. With ten codes and twenty pairs a
+        # code lands on the "old gate" side more often than the "new" side by
+        # chance alone, and a bigram picks that bias up: travel probed 63.3%
+        # exploitable at small n while every other family sat at exactly 50%. The
+        # bias is finite-sample rather than structural, so the fix is to make each
+        # code too rare to memorise rather than to widen the bound.
+        self._a, self._b = rng.sample(GATES, 2)
         mins = rng.choice([25, 30, 35, 40])
         phrasing = rng.choice(
             [
@@ -279,25 +502,11 @@ class TravelScenario(Scenario):
             Signal(source=Source.EMAIL, age_s=120, content=phrasing, meta={"sender": "airline"})
         ]
 
-    def deciders(self, rng):
-        a, b = self._a, self._b
-        variants = [
-            (
-                f"Boarding pass on screen reads {b}; you are seated at {a}.",
-                f"Boarding pass on screen reads {a}; you are seated at {b}.",
-            ),
-            (
-                f"You are standing at {a}. The pass in your wallet still lists {b}.",
-                f"You are standing at {b}. The pass in your wallet still lists {a}.",
-            ),
-        ]
-        # Positive: you're at the OLD gate. Near-miss: you're at the NEW gate.
-        # Same tokens, swapped positions.
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(source=Source.LOCATION, age_s=60, content=pos_text),
-            Signal(source=Source.LOCATION, age_s=60, content=near_text),
-        )
+    decider_source = Source.APP_EVENT
+    decider_age_s = 60
+
+    def fillers(self, rng):
+        return self._a, self._b
 
     def why(self):
         return (
@@ -344,23 +553,11 @@ class DeadlineScenario(Scenario):
             ),
         ]
 
-    def deciders(self, rng):
-        who = rng.choice(COLLEAGUES)
-        variants = [
-            (
-                f"On-call rotation — primary: you, secondary: {who}.",
-                f"On-call rotation — primary: {who}, secondary: you.",
-            ),
-            (
-                f"Paging the primary: you. Backup is {who}.",
-                f"Paging the primary: {who}. Backup is you.",
-            ),
-        ]
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(source=Source.MESSAGE, age_s=60, content=pos_text),
-            Signal(source=Source.MESSAGE, age_s=60, content=near_text),
-        )
+    decider_source = Source.MESSAGE
+    decider_age_s = 120
+
+    def fillers(self, rng):
+        return "you", rng.choice(COLLEAGUES)
 
     def why(self):
         return (
@@ -392,39 +589,21 @@ class CommerceScenario(Scenario):
 
     def body(self, rng):
         hrs = rng.choice([12, 14, 18, 20])
+        self._item, self._short = rng.choice(RETURNABLES)
         phrasing = rng.choice(
             [
-                f"Return window for the standing desk closes in {hrs} hours.",
-                f"You have {hrs} hours left to return the standing desk.",
-                f"The standing desk return period ends in {hrs} hours.",
+                f"Return window for the {self._item} closes in {hrs} hours.",
+                f"You have {hrs} hours left to return the {self._item}.",
+                f"The {self._item} return period ends in {hrs} hours.",
             ]
         )
         return [Signal(source=Source.APP_EVENT, age_s=300, content=phrasing)]
 
-    def deciders(self, rng):
-        # The returnable item stays "the desk" -- the body names it, and the
-        # relation the skyline resolves is body-item vs still-sealed-item. Only
-        # the STAND-IN varies, which keeps the permutation exact (both sides carry
-        # the same two nouns) while taking the family from 4 distinct decider
-        # sentences to ~20. Round 12.
-        alt = rng.choice(RETURNABLE_STANDINS)
-        where = rng.choice(["the hallway", "the porch", "the entryway", "the garage"])
-        room = rng.choice(["the office", "the study", "the spare room", "the den"])
-        variants = [
-            (
-                f"The desk is unopened in {where}; the {alt} is already set up in {room}.",
-                f"The {alt} is unopened in {where}; the desk is already set up in {room}.",
-            ),
-            (
-                f"Still boxed: the desk. Already assembled: the {alt}.",
-                f"Still boxed: the {alt}. Already assembled: the desk.",
-            ),
-        ]
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(source=Source.SENSOR, age_s=600, content=pos_text),
-            Signal(source=Source.SENSOR, age_s=600, content=near_text),
-        )
+    decider_source = Source.SENSOR
+    decider_age_s = 600
+
+    def fillers(self, rng):
+        return f"the {self._short}", f"the {rng.choice(RETURNABLE_STANDINS)}"
 
     def why(self):
         return (
@@ -465,32 +644,11 @@ class MeetingPrepScenario(Scenario):
         )
         return [Signal(source=Source.EMAIL, age_s=5400, content=phrasing)]
 
-    def deciders(self, rng):
-        m = rng.choice([6, 8, 9, 10, 11, 12, 14, 15, 17, 18, 20, 22])
-        # "contract review" is the subject the body names and the skyline resolves
-        # against; only the COUNTERPART meeting varies. Both sides still carry the
-        # same two subjects, so the permutation is exact. Round 12.
-        other = rng.choice(COUNTERPART_MEETINGS)
-        # Two meetings, so "begins in" and "began ago" each appear on both sides and
-        # only their subjects swap. Without the second meeting the tense alone gave
-        # the answer away and this family probed at 100%.
-        variants = [
-            (
-                f"Contract review begins in {m} minutes; the {other} began {m} minutes ago.",
-                f"The {other} begins in {m} minutes; contract review began {m} minutes ago.",
-            ),
-            (
-                f"Calendar: contract review starts in {m} minutes, {other} "
-                f"started {m} minutes back.",
-                f"Calendar: {other} starts in {m} minutes, contract review "
-                f"started {m} minutes back.",
-            ),
-        ]
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(source=Source.CALENDAR, age_s=0, content=pos_text),
-            Signal(source=Source.CALENDAR, age_s=0, content=near_text),
-        )
+    decider_source = Source.CALENDAR
+    decider_age_s = 0
+
+    def fillers(self, rng):
+        return "contract review", rng.choice(COUNTERPART_MEETINGS)
 
     def why(self):
         return (
@@ -530,23 +688,11 @@ class DrivingScenario(Scenario):
             )
         ]
 
-    def deciders(self, rng):
-        d = rng.choice([9, 12, 14, 17, 19, 22, 25, 28, 30, 33, 36, 40, 43, 47])
-        variants = [
-            (
-                f"Your route is backed up {d} minutes; the alternate at the next exit is clear.",
-                f"The alternate at the next exit is backed up {d} minutes; your route is clear.",
-            ),
-            (
-                f"Congestion is on your route (+{d} min); the next exit avoids it.",
-                f"Congestion is on the next exit (+{d} min); your route avoids it.",
-            ),
-        ]
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(source=Source.LOCATION, age_s=30, content=pos_text),
-            Signal(source=Source.LOCATION, age_s=30, content=near_text),
-        )
+    decider_source = Source.APP_EVENT
+    decider_age_s = 60
+
+    def fillers(self, rng):
+        return "your route", "the alternate at the next exit"
 
     def why(self):
         return (
@@ -625,33 +771,11 @@ class QuietHoursScenario(Scenario):
             Signal(source=Source.SENSOR, age_s=30, content="Phone face down, charging."),
         ]
 
-    def deciders(self, rng):
-        hrs = rng.choice([3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-        variants = [
-            (
-                f"Mom: 'Right now I am {hrs} hours out; you are the one nearby.'",
-                f"Mom: 'Right now you are {hrs} hours out; I am the one nearby.'",
-            ),
-            (
-                f"Nearby: you. {hrs} hours away, still driving: Mom.",
-                f"Nearby: Mom. {hrs} hours away, still driving: you.",
-            ),
-        ]
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(
-                source=Source.MESSAGE,
-                age_s=45,
-                content=pos_text,
-                meta={"contact": "family", "priority": "starred"},
-            ),
-            Signal(
-                source=Source.MESSAGE,
-                age_s=45,
-                content=near_text,
-                meta={"contact": "family", "priority": "starred"},
-            ),
-        )
+    decider_source = Source.MESSAGE
+    decider_age_s = 120
+
+    def fillers(self, rng):
+        return "you", rng.choice(HOUSEHOLD)
 
     def why(self):
         return (
@@ -692,25 +816,12 @@ class HealthScenario(Scenario):
         )
         return [Signal(source=Source.NOTIFICATION, age_s=180, content=phrasing)]
 
-    def deciders(self, rng):
-        who = rng.choice(PHARMACY_OTHERS)
-        variants = [
-            (
-                f"Your refill is waiting for pickup; {who}'s refill was collected yesterday.",
-                f"{who}'s refill is waiting for pickup; your refill was collected yesterday.",
-            ),
-            (
-                f"Still at the counter: your prescription. "
-                f"Already picked up: {who}'s prescription.",
-                f"Still at the counter: {who}'s prescription. "
-                f"Already picked up: your prescription.",
-            ),
-        ]
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(source=Source.APP_EVENT, age_s=240, content=pos_text),
-            Signal(source=Source.APP_EVENT, age_s=240, content=near_text),
-        )
+    decider_source = Source.NOTIFICATION
+    decider_age_s = 180
+
+    def fillers(self, rng):
+        other = rng.choice(PHARMACY_OTHERS)
+        return "your prescription", f"{other}'s prescription"
 
     def why(self):
         return (
@@ -750,23 +861,11 @@ class ChildcareScenario(Scenario):
         )
         return [Signal(source=Source.CALENDAR, age_s=0, content=phrasing)]
 
-    def deciders(self, rng):
-        who = rng.choice(HOUSEHOLD)
-        variants = [
-            (
-                f"You are on the pickup list today; {who} is out of town.",
-                f"{who} is on the pickup list today; you are out of town.",
-            ),
-            (
-                f"Listed for pickup: you. Travelling today: {who}.",
-                f"Listed for pickup: {who}. Travelling today: you.",
-            ),
-        ]
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(source=Source.MESSAGE, age_s=120, content=pos_text),
-            Signal(source=Source.MESSAGE, age_s=120, content=near_text),
-        )
+    decider_source = Source.MESSAGE
+    decider_age_s = 120
+
+    def fillers(self, rng):
+        return "you", rng.choice(HOUSEHOLD)
 
     def why(self):
         return (
@@ -805,23 +904,11 @@ class FinanceScenario(Scenario):
         )
         return [Signal(source=Source.APP_EVENT, age_s=600, content=phrasing)]
 
-    def deciders(self, rng):
-        amt = rng.choice([95, 120, 145, 180, 200, 215, 240, 265, 290, 310, 335, 360])
-        variants = [
-            (
-                f"Checking is short ${amt}; savings covers the balance.",
-                f"Savings is short ${amt}; checking covers the balance.",
-            ),
-            (
-                f"Below the payment by ${amt}: checking. Above it: savings.",
-                f"Below the payment by ${amt}: savings. Above it: checking.",
-            ),
-        ]
-        pos_text, near_text = variants[rng.randrange(len(variants))]
-        return (
-            Signal(source=Source.APP_EVENT, age_s=300, content=pos_text),
-            Signal(source=Source.APP_EVENT, age_s=300, content=near_text),
-        )
+    decider_source = Source.APP_EVENT
+    decider_age_s = 300
+
+    def fillers(self, rng):
+        return "checking", "savings"
 
     def why(self):
         return (
