@@ -400,7 +400,11 @@ otherwise would defeat the purpose of building a benchmark:
   send. Eight frames per family is also still eight, and the scenarios remain a
   small hand-authored set — nine families is nine effective degrees of freedom,
   whatever the item count. Restoring prose phrasing while keeping the held-out
-  guarantee is open work.
+  guarantee is open work: Round 15 built it and rejected it, because a prose clause
+  opens with its subject and that puts the filler against the body/decider boundary
+  — the one bigram that transfers through a held-out frame. The rule for the next
+  attempt (**the filler must not be clause-initial**) and the measurement isolating
+  it are in `experiments/prose_decider_probe.py`.
 - **Cost is concentrated in `quiet_hours`** — 87% of the `always`-versus-silence
   gap from 11% of the moments, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and
