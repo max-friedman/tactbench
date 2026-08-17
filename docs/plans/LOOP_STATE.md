@@ -13,7 +13,7 @@ findings** below.
 
 ## Current status
 
-- **Round:** 14 complete
+- **Round:** 15 complete
 - **Gate:** green — **104 passed, no xfails**; the two strict xfails that recorded
   the surface-exploit defect were flipped to real assertions in R13. Ruff clean,
   **enforced by CI** on py3.11-3.13
@@ -212,7 +212,14 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Restore prose deciders without losing the held-out guarantee (R13).**
+1. **Restore prose deciders — re-specified by R15, which built and rejected the
+   obvious version.** The rule is now known: **the filler must not be
+   clause-initial**, because a prose clause opening with its subject puts the
+   filler against the body/decider boundary, and that junction bigram is the one
+   thing that transfers through a held-out frame (health 75% vs 50% decider-only).
+   Keep the two properties R15 validated — both clauses take the copula or neither
+   does, and equal skeleton length — and see
+   `experiments/prose_decider_probe.py`. Original framing:
    R13 bought validity with uniformity: every decider is now
    `Label: value. Label: value.`, which reads like a status line rather than
    something a person or an app would send. A benchmark about proactive assistance
@@ -220,7 +227,13 @@ halt the loop.**
    the thing. Needs prose frames that are still exact token permutations (English
    agreement is the trap -- "you are" vs "Dana is" breaks the multiset), with the
    audit and `test_the_two_sides_are_equal_but_not_the_same_objects` as the gate.
-2. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
+2. **Decide whether the probe should cross signal boundaries (new, R15).**
+   `item_tokens` joins every signal before tokenizing, so bigrams span the
+   body/decider junction. That adjacency is real for a policy that concatenates
+   the moment and absent for one that reads the signal list. R15 found the choice
+   is load-bearing — it is the entire difference between 75% and 50% on prose
+   deciders — and it is currently made implicitly. Pick one and say why.
+3. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
    state difference *is* the judgment under test? The invariant currently
@@ -758,6 +771,71 @@ and the 74% claim corrected in README, METRICS and DATASET.
 **Still true and still recorded:** per-family positional clears 60% on some seeds
 and is reported rather than gated there. A positional *policy* loses to silence by
 16 points, which is the standard that actually matters.
+
+---
+
+## Round 15 — prose deciders, built and rejected
+
+**Question:** R13's cost was uniformity -- every decider became
+`Label: value. Label: value.`, which reads like a status line rather than anything
+a person or an app would send. For a benchmark about *proactive assistance*, items
+that do not look like real messages measure something adjacent to the thing. It
+was the top queue item. *Can the deciders be prose again without reopening the
+surface exploit?*
+
+**Built in full, and it worked as prose.** Nine families x eight frames as clause
+templates with a `{who}` slot and a `{be}` copula:
+
+> *"You are collecting the kids today. Dana is catching the early flight."*
+> *"Dana is collecting the kids today. You are catching the early flight."*
+
+Two properties make that a legal permutation and both validated clean: **both
+clauses take the copula or neither does** (the verb travels with its subject, so a
+pair carries one "are" and one "is" whichever way the roles fall), and **equal
+skeleton length** with the filler removed. The skyline resolved all nine families
+from the templates -- built as regexes from `FRAMES`, so a new frame needs no
+resolver change -- with zero disagreements.
+
+**Rejected: it regresses the gated per-family bigram bound.**
+
+| family | unigram | bigram | positional |
+|---|---|---|---|
+| health | 50.0% | **75.0%** | 52.5% |
+| deadline | 50.0% | **60.0%** | 65.0% |
+| finance | 50.0% | 55.0% | 55.0% |
+
+against a 60% bound the shipped form passes.
+
+**The cause is structural, not a wording problem.** Restricting the probe to the
+decider signal alone puts health back at **exactly 50.0%**. The entire 75% comes
+from bigrams spanning the **body/decider boundary**: `item_tokens` joins every
+signal, and a prose clause *opens with its subject*, which is the filler -- so the
+junction bigram is `minutes_your` on one side and `minutes_otto's` on the other.
+Body phrasings are shared across all eight frames, so unlike every other
+discriminating bigram, **that one transfers straight through a held-out frame**.
+
+The `Label: value` form is immune by accident: its clauses open with a
+frame-specific label, so the junction bigram is identical on both sides.
+
+**The rule, which is the round's actual output:**
+
+> **The filler must not be clause-initial.**
+
+Prose is fine; prose whose clause starts with the subject is not. *"Today's pickup
+falls to {who}"* keeps the register while putting a frame-specific token against
+the body boundary. Mirror trap worth stating: a clause-*final* filler puts the
+filler against the next clause's opening instead -- only the **first** clause's
+opening matters, because that is the one touching the body.
+
+**Shipped:** `experiments/prose_decider_probe.py`, holding the rule, the
+mechanism, and the all-signals-vs-decider-only measurement that isolates it. No
+production code changed. The queue item is re-specified rather than closed.
+
+**A second question it raised, now queued:** should `item_tokens` tokenize signals
+separately instead of joining them? A cross-signal adjacency is real for a policy
+that concatenates and not for one that reads the list, and the probe currently
+makes that choice on the reader's behalf without saying so. Both answers are
+defensible; picking one silently is not.
 
 ---
 
