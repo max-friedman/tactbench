@@ -914,6 +914,7 @@ already covered or out of scope, and filing them would have wasted triage.
 
 | finding | evidence from this project | disposition |
 |---|---|---|
+| §D lets a session run 3 rounds but requires the reviewer be a different session | R16 shipped, then the sequence stopped: the only agent available to review its PR was the one that wrote it. Budget said 3 rounds remained; §D's independence requirement said 0. Provable from three lines of `LOOP.md` rather than from a run. | filed — [issue #29](https://github.com/max-friedman/agentic-coding-loop/issues/29) |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |
