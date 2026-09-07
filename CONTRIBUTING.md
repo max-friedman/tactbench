@@ -48,8 +48,8 @@ false.** A bag-of-words probe that never saw user state separated the two sides 
 Structural pairing is not lexical pairing. Swap roles instead of rewriting:
 
 ```
-positive:  On-call rotation — primary: you,   secondary: Priya Raman.
-near-miss: On-call rotation — primary: Priya Raman, secondary: you.
+positive:  Primary escalation goes to you. Secondary escalation goes to Priya Raman.
+near-miss: Primary escalation goes to Priya Raman. Secondary escalation goes to you.
 ```
 
 Identical token multiset. *Vocabulary* cannot separate them; only resolving

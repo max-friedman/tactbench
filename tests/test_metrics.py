@@ -11,6 +11,7 @@ import hashlib
 import itertools
 import re
 from collections import Counter
+from pathlib import Path
 
 import pytest
 
@@ -29,13 +30,20 @@ from tactbench.dataset.generate import (
     FRAMES,
     HELD_OUT_FRAMES,
     MIN_PAIRS_FOR_BALANCED_ORDER,
+    WHO,
     balanced_order,
     generate,
+    skeleton,
 )
 from tactbench.dataset.loader import load
 from tactbench.metrics import score, score_item
 from tactbench.policies.base import Policy
-from tactbench.policies.builtin import AlwaysPolicy, HeuristicPolicy, NeverPolicy
+from tactbench.policies.builtin import (
+    AlwaysPolicy,
+    HeuristicPolicy,
+    NeverPolicy,
+    registry,
+)
 from tactbench.policies.skyline import PartialSkylinePolicy, SkylinePolicy
 from tactbench.runner import evaluate, run_policy, silence_ics
 from tactbench.schema import (
@@ -1012,8 +1020,12 @@ class TestFrameDisjointness:
                 return word[: -len(suffix)]
         return word
 
-    def _content(self, label: str) -> set[str]:
-        return {self._stem(w) for w in re.findall(r"[a-z]+", label.lower()) if w not in self.STOP}
+    def _content(self, clause: str) -> set[str]:
+        # The filler slot is not vocabulary -- it is where the vocabulary is
+        # *absent*. Counting `{who}` would make every frame share "who" and turn
+        # this assertion into a permanent failure that says nothing.
+        text = " ".join(skeleton(clause)).lower()
+        return {self._stem(w) for w in re.findall(r"[a-z]+", text) if w not in self.STOP}
 
     @pytest.mark.parametrize("family", sorted(FRAMES))
     def test_every_frame_is_lexically_disjoint_from_every_other(self, family):
@@ -1031,6 +1043,87 @@ class TestFrameDisjointness:
         assert HELD_OUT_FRAMES == frozenset({5, 6, 7})
         for family, frames in FRAMES.items():
             assert max(HELD_OUT_FRAMES) < len(frames), family
+
+
+class TestProseFrameStructure:
+    """Where the filler sits, which is what decides whether prose leaks.
+
+    Round 13 bought validity with uniformity -- every decider became
+    ``Label: value.`` -- and Round 15 tried to buy the prose back. It built the
+    obvious version, clauses opening with their subject, and health's bigram probe
+    went to **75%** against a 60% bound. The cause was not wording.
+    ``item_tokens`` joins every signal before tokenizing, so the body's last token
+    sits against the decider's first; a clause opening with its subject puts the
+    *filler* there; and the body is shared across all eight frames, so unlike every
+    other discriminating bigram that one **transfers straight through a held-out
+    frame**.
+
+    Round 16 restored prose by putting the filler at the *end* of its clause, and
+    found Round 15's rule -- "the filler must not be clause-initial" -- necessary
+    but not sufficient. Two further properties close the mirror trap Round 15
+    flagged, and all three are asserted here because each one is invisible in a
+    diff and fatal in the audit:
+
+    1. The filler is never clause-initial (the body junction).
+    2. No clause *opens* with a stopword, so the second clause's opening is
+       frame-specific too -- otherwise the first clause's trailing filler sits
+       against a token every frame shares, and the internal junction transfers
+       exactly as the body junction did.
+    3. Within a frame, both clauses put the **same** token immediately before the
+       slot, so each filler bigram appears on both sides of the pair and
+       discriminates nothing.
+
+    Equal skeleton length is Round 13's lesson, kept: unequal clauses shift the
+    marker's position with the clause it occupies, which is what a position-tagged
+    probe reads.
+    """
+
+    STOP = TestFrameDisjointness.STOP
+
+    @staticmethod
+    def _before_slot(clause: str) -> str | None:
+        head = clause.split(WHO)[0].split()
+        return head[-1].lower() if head else None
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_the_filler_is_never_clause_initial(self, family):
+        for n, clauses in enumerate(FRAMES[family]):
+            for clause in clauses:
+                assert clause.count(WHO) == 1, f"{family} frame {n}: {clause!r}"
+                assert self._before_slot(clause) is not None, (
+                    f"{family} frame {n} opens with the filler: {clause!r}. The body's "
+                    "last token would sit against it, and the body is shared across "
+                    "frames, so that bigram transfers through a held-out frame."
+                )
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_no_clause_opens_with_a_stopword(self, family):
+        for n, clauses in enumerate(FRAMES[family]):
+            for clause in clauses:
+                first = skeleton(clause)[0].lower().strip(".,")
+                assert first not in self.STOP, (
+                    f"{family} frame {n} opens with the shared token {first!r}: "
+                    f"{clause!r}. The preceding clause's trailing filler would sit "
+                    "against it, and a token every frame shares transfers."
+                )
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_both_clauses_have_equal_skeletons(self, family):
+        for n, (a, b) in enumerate(FRAMES[family]):
+            assert len(skeleton(a)) == len(skeleton(b)), (
+                f"{family} frame {n}: {len(skeleton(a))} vs {len(skeleton(b))} tokens. "
+                "Unequal clauses shift the marker's position with the clause it occupies."
+            )
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_the_token_before_the_slot_is_shared_across_a_frames_clauses(self, family):
+        for n, (a, b) in enumerate(FRAMES[family]):
+            assert self._before_slot(a) == self._before_slot(b), (
+                f"{family} frame {n}: {self._before_slot(a)!r} vs "
+                f"{self._before_slot(b)!r}. A differing token before the slot makes the "
+                "filler's bigram asymmetric across the pair, and asymmetric is exactly "
+                "what a probe reads."
+            )
 
 
 class TestOrderBalancePrecondition:
@@ -1076,3 +1169,148 @@ class TestOrderBalancePrecondition:
                     counts.setdefault(key, set()).add(item.moment.signals[-1].content.split(":")[0])
         singles = [k for k, v in counts.items() if len(v) == 1]
         assert not singles, f"shipped data has single-order cells: {singles[:3]}"
+
+
+class TestReadmeResultsAreCurrent:
+    """The README leaderboard must equal what `tactbench eval` prints.
+
+    CLAUDE.md has said "after changing costs, the generator, or the heuristic,
+    re-run eval and update the results table -- a README quoting stale numbers is
+    worse than one quoting none" since Round 5. It has been violated twice, both
+    times by a round that changed the generator and checked only the rows it
+    expected to move:
+
+    - R13 let the heuristic's `vs silence` sit stale for three rounds.
+    - R16 changed the decider text, which changed where the heuristic's lexicons
+      fire, and left four of the heuristic row's seven columns stale -- including
+      one inside a parenthetical boasting that R13's slip had been caught.
+
+    Prose has now failed twice where a mechanism was available, which is the
+    rubric's own test for when to stop writing rules and start writing checks.
+    This is that check. It does not ask anyone to remember anything.
+    """
+
+    ROW = re.compile(
+        r"^\|\s*`(?P<policy>\w+(?:@[\d.]+)?)`[^|]*\|\s*\*{0,2}(?P<ics>[\d.]+)\*{0,2}\s*"
+        r"\|\s*\*{0,2}(?P<vs>[+−-][\d.]+|0\.0)\*{0,2}\s*"
+        r"\|\s*(?P<prec>[\d.]+|—)\s*\|\s*(?P<recall>[\d.]+)\s*"
+        r"\|\s*(?P<ece>[\d.]+)\s*\|\s*(?P<hv>\d+)\s*\|\s*(?P<spoke>\d+)/(?P<n>\d+)\s*\|",
+        re.MULTILINE,
+    )
+
+    @staticmethod
+    def _readme() -> str:
+        return (Path(__file__).resolve().parents[1] / "README.md").read_text()
+
+    def test_the_table_matches_a_fresh_eval(self):
+        rows = {m.group("policy"): m for m in self.ROW.finditer(self._readme())}
+        assert rows, "no results rows parsed from README.md -- the table shape changed"
+
+        items = load("v1", "dev")
+        silence = silence_ics(items)
+        cards = {
+            name: evaluate(p, items, reference=silence)
+            for name, p in registry().items()
+        }
+
+        missing = sorted(set(cards) - set(rows))
+        assert not missing, f"README results table is missing policies: {missing}"
+
+        stale: list[str] = []
+        for name, row in rows.items():
+            card = cards[name]
+            # Tolerance is per column, not global. A single absolute epsilon
+            # sized for ICS (hundreds) lets a rate in [0,1] drift silently: the
+            # first draft of this test used 0.05 everywhere and missed
+            # recall-hv moving 0.167 -> 0.127, a 24% relative change, because
+            # the absolute gap was 0.040. Each column is compared at the
+            # precision the README actually quotes it to.
+            for label, quoted, actual, tol in (
+                ("ICS", row.group("ics"), card.ics, 0.05),
+                ("vs silence", row.group("vs").replace("−", "-"), card.ics_normalized, 0.05),
+                ("prec@int", row.group("prec"), card.precision_at_interrupt, 0.0005),
+                ("recall-hv", row.group("recall"), card.recall_high_value, 0.0005),
+                ("ECE", row.group("ece"), card.ece, 0.0005),
+                ("hard viol.", row.group("hv"), card.hard_violations, 0),
+                ("spoke", row.group("spoke"), card.surfaced, 0),
+                # The denominator was captured and never compared, so `32/999`
+                # passed. A column parsed but unchecked is worse than one not
+                # parsed: it reads like coverage.
+                ("n", row.group("n"), card.n, 0),
+            ):
+                if actual is None or quoted == "—":
+                    continue
+                if abs(float(quoted) - float(actual)) > tol:
+                    stale.append(f"{name}.{label}: README {quoted}, eval {actual:.3f}")
+
+        assert not stale, (
+            "README.md quotes figures `tactbench eval` no longer produces:\n  "
+            + "\n  ".join(stale)
+            + "\n\nRe-run `uv run tactbench eval` and update the table."
+        )
+
+    #: Figures quoted in README *prose* rather than in the results table.
+    #:
+    #: R17 shipped this class and then wrote, in the same README paragraph, that
+    #: the check "fails the build instead of relying on anyone remembering". That
+    #: was false for the sentence containing it: the table regex matches the five
+    #: result rows and nothing else, so mutating the prose copy of the heuristic's
+    #: `vs silence` back to its stale value left the suite green. R18 measured
+    #: exactly that before fixing it.
+    #:
+    #: Each locator MUST match exactly once. A reworded sentence then fails the
+    #: check loudly, rather than silently covering nothing -- which is how a gate
+    #: like this rots without anyone noticing.
+    PROSE = (
+        (
+            "honest heuristic, vs silence",
+            re.compile(r"against the honest heuristic's \*{0,2}(−?\d+\.\d+)"),
+            "heuristic",
+        ),
+        (
+            "keyword-exploit policy, vs silence",
+            re.compile(r"that same policy scores \*{0,2}(−?\d+\.\d+)"),
+            "keyword",
+        ),
+    )
+
+    def test_prose_figures_match_a_fresh_eval(self):
+        """The figures quoted in sentences, not just the ones in the table.
+
+        The keyword-exploit figure is the reason this exists. It is not in
+        `registry()`, so the table check cannot reach it, and R17 recorded an
+        unmeasured value for it in the state file and queued a round to "verify or
+        remove" a claim that was correct all along. Computing it here removes the
+        question permanently.
+        """
+        readme = self._readme()
+        items = load("v1", "dev")
+        silence = silence_ics(items)
+        computed = {
+            "heuristic": evaluate(
+                registry()["heuristic"], items, reference=silence
+            ).ics_normalized,
+            "keyword": evaluate(
+                TestNoKeywordExploit._KeywordPolicy({"admitt"}, {"discharg"}),
+                items,
+                reference=silence,
+            ).ics_normalized,
+        }
+
+        stale: list[str] = []
+        for label, locator, key in self.PROSE:
+            found = locator.findall(readme)
+            assert len(found) == 1, (
+                f"the locator for '{label}' matched {len(found)} times in README.md, "
+                "expected exactly 1. If the sentence was reworded, update the locator "
+                "-- a locator that matches nothing silently stops checking."
+            )
+            quoted = float(found[0].replace("−", "-"))
+            actual = computed[key]
+            if abs(quoted - actual) > 0.05:
+                stale.append(f"{label}: README {quoted}, eval {actual:.1f}")
+
+        assert not stale, (
+            "README.md prose quotes figures `tactbench eval` no longer produces:\n  "
+            + "\n  ".join(stale)
+        )
