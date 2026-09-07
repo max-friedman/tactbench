@@ -197,8 +197,8 @@ def item_bigrams(item: Item) -> list[str]:
     Round 11: the unigram probe cannot see word order, and a role permutation is
     *only* a reordering::
 
-        SPEAK: Nearby: you. 7 hours away, still driving: Mom.
-        QUIET: Nearby: Mom. 7 hours away, still driving: you.
+        SPEAK: Nearby right now is you. Distant right now is Mom.
+        QUIET: Nearby right now is Mom. Distant right now is you.
 
     Identical token multiset. The bag-of-words probe is structurally incapable of
     separating these and reports 50.0% -- which was read as resistance for ten

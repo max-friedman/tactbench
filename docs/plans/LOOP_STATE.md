@@ -13,21 +13,18 @@ findings** below.
 
 ## Current status
 
-- **Round:** 15 complete
-- **Gate:** green — **104 passed, no xfails**; the two strict xfails that recorded
-  the surface-exploit defect were flipped to real assertions in R13. Ruff clean,
-  **enforced by CI** on py3.11-3.13
-- **Dataset:** `v1` — 360 items (**252 dev / 108 test**), 9 families × 20 pairs,
-  8 decider frames per family, split **on the frame** (0-4 train, 5-7 held out) so
-  held-out phrasings appear nowhere in training and no pair is divided
+- **Round:** 16 complete
+- **Gate:** green — **140 passed** (104 + 36 from `TestProseFrameStructure`), ruff
+  clean, **enforced by CI** on py3.11-3.13
+- **Dataset:** `v1` — 360 items (252 dev / 108 test), 9 families × 8 **prose**
+  decider frames, split on the frame (0-4 train, 5-7 held out) so held-out
+  phrasings appear nowhere in training and no pair is divided
 - **Headline:** silence (ICS 336) is unbeaten by any baseline; skyline (ICS 0)
-  proves the bar is clearable. **The surface-model exploit is closed** — a
-  bag-of-bigrams fit on `dev` now scores **+0.0** vs silence on held-out `test`
-  **two-sided** (best of the model and its negation) — it ties saying nothing and
-  never beats it, across 30 seeds — down from +99.4 (R11). The leaderboard caveat
-  that stood for two rounds is gone. All three probes -- unigram, bigram,
-  positional -- are gated overall as of R14; positional remains reported-only per
-  family.
+  proves the bar is clearable. The surface-model exploit stays closed. **R16
+  restored prose deciders** — *"Behind the screen is your prescription. Through the
+  till is Elena's prescription."* — with every family at **50.0% on unigram and
+  bigram**, unchanged from the `Label: value` form it replaced. R13's uniformity
+  cost is paid off; the README limitation it created is gone.
 
 ---
 
@@ -172,10 +169,10 @@ whenever costs, the generator, or a policy change.
 
 | area | last touched | probe / status |
 |---|---|---|
-| `dataset/generate.py` | R3 | 8/9 families at chance floor |
+| `dataset/generate.py` | **R16** | prose frames; 9/9 families at chance floor on unigram + bigram |
 | `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
-| `policies/skyline.py` | R3 | handles all 9 families; ICS 0 |
+| `policies/skyline.py` | **R16** | resolver built from the frame templates; ICS 0 |
 | `audit.py` | **R11** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict |
 | `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
 | `schema.pair_key` | **R10** | the single definition of a pair |
@@ -212,27 +209,19 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Restore prose deciders — re-specified by R15, which built and rejected the
-   obvious version.** The rule is now known: **the filler must not be
-   clause-initial**, because a prose clause opening with its subject puts the
-   filler against the body/decider boundary, and that junction bigram is the one
-   thing that transfers through a held-out frame (health 75% vs 50% decider-only).
-   Keep the two properties R15 validated — both clauses take the copula or neither
-   does, and equal skeleton length — and see
-   `experiments/prose_decider_probe.py`. Original framing:
-   R13 bought validity with uniformity: every decider is now
-   `Label: value. Label: value.`, which reads like a status line rather than
-   something a person or an app would send. A benchmark about proactive assistance
-   whose items do not look like real messages is measuring something adjacent to
-   the thing. Needs prose frames that are still exact token permutations (English
-   agreement is the trap -- "you are" vs "Dana is" breaks the multiset), with the
-   audit and `test_the_two_sides_are_equal_but_not_the_same_objects` as the gate.
-2. **Decide whether the probe should cross signal boundaries (new, R15).**
+1. **Decide whether the probe should cross signal boundaries (R15, now top).**
    `item_tokens` joins every signal before tokenizing, so bigrams span the
-   body/decider junction. That adjacency is real for a policy that concatenates
-   the moment and absent for one that reads the signal list. R15 found the choice
-   is load-bearing — it is the entire difference between 75% and 50% on prose
-   deciders — and it is currently made implicitly. Pick one and say why.
+   body/decider junction. That adjacency is real for a policy that concatenates the
+   moment and absent for one that reads the signal list. R15 found the choice is
+   load-bearing; **R16 depends on it** — the whole prose rule exists because the
+   join makes the junction reachable, so if the probe stops joining, two of
+   `TestProseFrameStructure`'s three properties are guarding nothing. Pick one and
+   say why. Whichever way it lands, re-derive whether those assertions still earn
+   their place.
+2. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
+   (*filler not clause-initial*) was necessary but not sufficient; clause-final
+   moves the leak to the internal junction. Three properties now asserted in
+   `TestProseFrameStructure`. See `experiments/prose_decider_probe.py`.
 3. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
@@ -839,6 +828,80 @@ defensible; picking one silently is not.
 
 ---
 
+## Round 16 — prose restored, and the rule was incomplete
+
+**Question:** R15 built prose deciders, rejected them, and left a rule:
+*the filler must not be clause-initial*. It was the top queue item and the rule was
+a prediction, not a measurement. **Is it sufficient?**
+
+**Falsification set before building:** any family at ≥60% exploitable bigram, or
+the all-signals column diverging from decider-only, rejects the attempt again.
+
+**Before-numbers, on the shipped form:** every family 50.0% unigram / 50.0% bigram;
+all-signals and decider-only agree at 50.0% for all nine — the junction carried
+nothing. Positional overall 54.4%.
+
+**Finding: the rule is necessary and not sufficient.** Putting the filler
+clause-*final* closes the body junction, and then moves the exposure to the
+**internal** junction — the first clause's trailing filler now sits against the
+second clause's opening. If that opening is a token every frame shares, it
+transfers exactly as the body did:
+
+    "...names you. The flight manifest names Dana."   -> bigram  you_the
+    "...names Dana. The flight manifest names you."   -> bigram  dana_the
+
+R15 flagged the mirror trap but concluded *"only the first clause's opening
+matters, because that is the one touching the body"* — true for a filler-initial
+design, wrong for a filler-final one. Two further properties are load-bearing:
+
+1. **No clause opens with a stopword**, so both openings are frame-specific.
+2. **Both clauses of a frame put the same token before the slot**, so every filler
+   bigram appears on both sides of the pair and discriminates nothing.
+
+A third thing fell out for free: with the filler clause-final the copula agrees
+with the *frame's* subject, never the filler, so R15's "both clauses take the
+copula or neither does" property is no longer needed. It was an artifact of
+filler-initial phrasing.
+
+**The check caught the author.** `TestProseFrameStructure` was written before the
+table was finished and immediately failed on two of my own frames —
+`meeting_prep` *"Due to convene..."* and `driving` *"At a standstill..."*, both
+opening with stopwords. Neither is visible by eye; both would have leaked.
+
+**Result — all nine families, held-out frames:**
+
+| probe | before (`Label: value`) | after (prose) |
+|---|---|---|
+| unigram, every family | 50.0% | 50.0% |
+| bigram, every family | 50.0% | 50.0% |
+| all-signals vs decider-only | agree | agree |
+| positional, overall | 54.4% | **58.0%** |
+
+Positional is gated overall (<70%) and reported-only per family; 58.0% passes but
+it moved 3.6 points and that is recorded rather than glossed.
+
+**Shipped:** prose `FRAMES` for all 9 families × 8 frames; `WHO` and `skeleton()`;
+a skyline resolver built *from* the templates by regex, so a new frame needs no
+resolver change; `TestProseFrameStructure` (3 properties × 9 families);
+`data/v1` rebuilt; README, `DATASET.md`, `CONTRIBUTING.md`, `audit.py` and the R15
+probe corrected.
+
+**Consequences, verified:** leaderboard unchanged — skyline ICS 0.0 (+100.0, zero
+hard violations, 1.000 precision/recall/intent), silence 336.0, heuristic 0.500
+precision and still below silence. 104 → 140 tests. `verbatim_overlap` still zero.
+
+**Noted, not built:** queue item 2 — whether `item_tokens` should tokenize signals
+separately rather than joining them — was deliberately left alone. This round
+*depends* on the join (the junction is only reachable because signals are joined),
+so deciding it here would have entangled two questions. It is now the top item.
+
+**Loop:** `nothing` blocking. One observation banked, not yet a pattern: this file
+is 907 lines and §0 requires reading it in full each round, growing ~60 lines per
+round. No cost incurred yet — recording it so a later round can tell whether it
+becomes one.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -894,6 +957,13 @@ dataset or the policy is wrong, not the assertion.
 - Heuristic lexicons stay single words, ≤ 20 entries — no phrase-lifting.
 - Silence and skyline stay invariant to `base_rate` (neither can false-positive).
 - Hard violations are never reweighted by `base_rate`.
+
+- **Prose deciders hold three structural properties**, all asserted in
+  `TestProseFrameStructure`: the filler is never clause-initial (the body junction),
+  no clause opens with a stopword (the internal junction), and both clauses of a
+  frame put the same token before the slot (filler bigrams stay symmetric). R15's
+  rule was only the first of the three, and R16's first draft violated the second
+  in two families. Equal skeleton length (R13) is kept alongside them.
 
 - A round may reject its own queue item. The evidence stays in `experiments/`.
 - **No single-number "comprehension" score.** Refuted in R8: ICS weights by

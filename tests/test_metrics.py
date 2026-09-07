@@ -29,8 +29,10 @@ from tactbench.dataset.generate import (
     FRAMES,
     HELD_OUT_FRAMES,
     MIN_PAIRS_FOR_BALANCED_ORDER,
+    WHO,
     balanced_order,
     generate,
+    skeleton,
 )
 from tactbench.dataset.loader import load
 from tactbench.metrics import score, score_item
@@ -1012,8 +1014,12 @@ class TestFrameDisjointness:
                 return word[: -len(suffix)]
         return word
 
-    def _content(self, label: str) -> set[str]:
-        return {self._stem(w) for w in re.findall(r"[a-z]+", label.lower()) if w not in self.STOP}
+    def _content(self, clause: str) -> set[str]:
+        # The filler slot is not vocabulary -- it is where the vocabulary is
+        # *absent*. Counting `{who}` would make every frame share "who" and turn
+        # this assertion into a permanent failure that says nothing.
+        text = " ".join(skeleton(clause)).lower()
+        return {self._stem(w) for w in re.findall(r"[a-z]+", text) if w not in self.STOP}
 
     @pytest.mark.parametrize("family", sorted(FRAMES))
     def test_every_frame_is_lexically_disjoint_from_every_other(self, family):
@@ -1031,6 +1037,87 @@ class TestFrameDisjointness:
         assert HELD_OUT_FRAMES == frozenset({5, 6, 7})
         for family, frames in FRAMES.items():
             assert max(HELD_OUT_FRAMES) < len(frames), family
+
+
+class TestProseFrameStructure:
+    """Where the filler sits, which is what decides whether prose leaks.
+
+    Round 13 bought validity with uniformity -- every decider became
+    ``Label: value.`` -- and Round 15 tried to buy the prose back. It built the
+    obvious version, clauses opening with their subject, and health's bigram probe
+    went to **75%** against a 60% bound. The cause was not wording.
+    ``item_tokens`` joins every signal before tokenizing, so the body's last token
+    sits against the decider's first; a clause opening with its subject puts the
+    *filler* there; and the body is shared across all eight frames, so unlike every
+    other discriminating bigram that one **transfers straight through a held-out
+    frame**.
+
+    Round 16 restored prose by putting the filler at the *end* of its clause, and
+    found Round 15's rule -- "the filler must not be clause-initial" -- necessary
+    but not sufficient. Two further properties close the mirror trap Round 15
+    flagged, and all three are asserted here because each one is invisible in a
+    diff and fatal in the audit:
+
+    1. The filler is never clause-initial (the body junction).
+    2. No clause *opens* with a stopword, so the second clause's opening is
+       frame-specific too -- otherwise the first clause's trailing filler sits
+       against a token every frame shares, and the internal junction transfers
+       exactly as the body junction did.
+    3. Within a frame, both clauses put the **same** token immediately before the
+       slot, so each filler bigram appears on both sides of the pair and
+       discriminates nothing.
+
+    Equal skeleton length is Round 13's lesson, kept: unequal clauses shift the
+    marker's position with the clause it occupies, which is what a position-tagged
+    probe reads.
+    """
+
+    STOP = TestFrameDisjointness.STOP
+
+    @staticmethod
+    def _before_slot(clause: str) -> str | None:
+        head = clause.split(WHO)[0].split()
+        return head[-1].lower() if head else None
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_the_filler_is_never_clause_initial(self, family):
+        for n, clauses in enumerate(FRAMES[family]):
+            for clause in clauses:
+                assert clause.count(WHO) == 1, f"{family} frame {n}: {clause!r}"
+                assert self._before_slot(clause) is not None, (
+                    f"{family} frame {n} opens with the filler: {clause!r}. The body's "
+                    "last token would sit against it, and the body is shared across "
+                    "frames, so that bigram transfers through a held-out frame."
+                )
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_no_clause_opens_with_a_stopword(self, family):
+        for n, clauses in enumerate(FRAMES[family]):
+            for clause in clauses:
+                first = skeleton(clause)[0].lower().strip(".,")
+                assert first not in self.STOP, (
+                    f"{family} frame {n} opens with the shared token {first!r}: "
+                    f"{clause!r}. The preceding clause's trailing filler would sit "
+                    "against it, and a token every frame shares transfers."
+                )
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_both_clauses_have_equal_skeletons(self, family):
+        for n, (a, b) in enumerate(FRAMES[family]):
+            assert len(skeleton(a)) == len(skeleton(b)), (
+                f"{family} frame {n}: {len(skeleton(a))} vs {len(skeleton(b))} tokens. "
+                "Unequal clauses shift the marker's position with the clause it occupies."
+            )
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_the_token_before_the_slot_is_shared_across_a_frames_clauses(self, family):
+        for n, (a, b) in enumerate(FRAMES[family]):
+            assert self._before_slot(a) == self._before_slot(b), (
+                f"{family} frame {n}: {self._before_slot(a)!r} vs "
+                f"{self._before_slot(b)!r}. A differing token before the slot makes the "
+                "filler's bigram asymmetric across the pair, and asymmetric is exactly "
+                "what a probe reads."
+            )
 
 
 class TestOrderBalancePrecondition:

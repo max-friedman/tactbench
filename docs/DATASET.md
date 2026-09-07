@@ -46,11 +46,27 @@ rule:
 | family | shared body | decider (positive → near-miss) |
 |---|---|---|
 | `travel` | gate moved A → B, boarding in *n* min | pass reads **B**, you're seated at **A** → pass reads **A**, you're seated at **B** |
-| `deadline` | deploy failed, auto-rolled back | primary: **you**, backup: **Priya** → primary: **Priya**, backup: **you** |
+| `deadline` | deploy failed, auto-rolled back | primary escalation goes to **you**, secondary to **Priya** → primary to **Priya**, secondary to **you** |
 | `commerce` | return window closes in *n* hours | **desk** boxed, **replacement** assembled → **replacement** boxed, **desk** assembled |
 | `meeting_prep` | revised contract unread, 90 min old | **review** begins in *n*, **standup** began *n* ago → **standup** begins in *n*, **review** began *n* ago |
 | `driving` | flight departs in *n* hours | **your route** backed up, **alternate** clear → **alternate** backed up, **your route** clear |
 | `quiet_hours` | *n*th message from Mom, **and the admission itself** | **you** are nearby / Mom is hours out → **Mom** is nearby / you are hours out |
+
+Deciders are **prose**, and the filler always sits at the *end* of its clause:
+
+```
+positive:  Behind the screen is your prescription. Through the till is Elena's prescription.
+near-miss: Behind the screen is Elena's prescription. Through the till is your prescription.
+```
+
+That position is not cosmetic. Round 15 built prose whose clauses opened with the
+subject and the bigram probe read **75%** on `health` against a 60% bound, because
+`item_tokens` joins signals before tokenizing: the body's last token lands against
+the decider's first, and the body is shared across all eight frames, so that one
+bigram transfers straight through a held-out frame. Round 16 moved the filler to
+clause-final and added two properties that close the mirror trap — no clause opens
+with a stopword, and both clauses of a frame put the same token before the slot.
+`TestProseFrameStructure` asserts all three.
 
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
