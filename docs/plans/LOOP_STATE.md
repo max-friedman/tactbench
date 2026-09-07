@@ -13,10 +13,10 @@ findings** below.
 
 ## Current status
 
-- **Round:** 17 complete
-- **Gate:** green — **141 passed**, ruff clean, **enforced by CI** on py3.11-3.13.
-  `TestReadmeResultsAreCurrent` (R17) now fails the build when the README results
-  table disagrees with `eval`
+- **Round:** 18 complete
+- **Gate:** green — **142 passed**, ruff clean, **enforced by CI** on py3.11-3.13.
+  `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
+  `eval` — the results table (R17) and the figures quoted in prose (R18)
 - **Dataset:** `v1` — 360 items (252 dev / 108 test), 9 families × 8 **prose**
   decider frames, split on the frame (0-4 train, 5-7 held out) so held-out
   phrasings appear nowhere in training and no pair is divided
@@ -220,13 +220,14 @@ halt the loop.**
    `TestProseFrameStructure`'s three properties are guarding nothing. Pick one and
    say why. Whichever way it lands, re-derive whether those assertions still earn
    their place.
-2. **Verify or remove the `−89.3` keyword-exploit figure in README (new, R17).**
-   The R16 reviewer could not reproduce it — a reconstruction from the documented
-   `admitt`/`discharg` substrings gave **−77.4**, on both `main` and the branch, so
-   R16 did not move it. Either that policy is not what the sentence describes, or
-   the figure is stale from an earlier round. `TestReadmeResultsAreCurrent` cannot
-   cover it because the policy is not in `registry()`. Resolve it by making the
-   policy reproducible (and covered) or by deleting the claim.
+2. **The `−89.3` keyword-exploit figure — RESOLVED in R18, and R17 was wrong
+   about it.** R17 recorded that a reviewer's reconstruction "gave **−77.4**" and
+   queued a round to *"verify or remove"* the README claim. R18 ran the
+   reconstruction — `_KeywordPolicy({"admitt"}, {"discharg"})` on `v1/dev`, the
+   policy already defined in this repo's own test file — and measured **−89.3 on
+   both `main` and the branch**. The README was correct all along, and a queue item
+   was standing that could have deleted a true claim. The figure is now covered by
+   `TestReadmeResultsAreCurrent.test_prose_figures_match_a_fresh_eval`.
 2. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
    (*filler not clause-initial*) was necessary but not sufficient; clause-final
    moves the leak to the internal junction. Three properties now asserted in
@@ -955,14 +956,80 @@ with the error left visible.
 touched, so audit, probe and leaderboard are unchanged from R16 by construction.
 
 **Noted, not built:** the `−89.3` keyword-exploit figure in the same README
-paragraph could not be reproduced by the reviewer, whose reconstruction gave −77.4
-on both `main` and the branch. It is therefore not R16's doing, and the new check
-does not cover it — that policy is not in `registry()`. Queued.
+paragraph was reported by the reviewer as not reproducing. Queued.
+
+> **Corrected in review (R18).** This entry originally recorded that the
+> reconstruction "gave −77.4". **That number was never produced by this round** — it
+> was taken from a reviewer's report and written down as fact, which is the hard
+> rule *never publish a number you did not measure*, broken in a round whose own
+> subject was figures going stale. R18 ran the reconstruction and measured
+> **−89.3**, matching the README exactly. The queue item built on the bad number
+> could have deleted a true claim.
 
 **Loop:** the R16 review caught a defect its author had verified and believed
 clean. That is direct evidence for §D's independent-review step, and it is worth
 recording alongside upstream issue #29, which questions how independence can be
 obtained at all when rounds run back-to-back in one session.
+
+---
+
+## Round 18 — a check that claimed more coverage than it had
+
+**Question:** R17's review failed check 1. R17 recorded that a reviewer's
+reconstruction of the keyword-exploit policy *"gave −77.4"* and queued a round to
+**"verify or remove"** the README's `−89.3`. It also wrote, in that same README
+paragraph, that the new check *"fails the build instead of relying on anyone
+remembering"* — while the check matched only the five table rows, not the prose
+figure in the very sentence making the claim. **Does the check cover what is
+claimed for it?**
+
+**Method — measure the number first, from this repo.** The lesson of the defect is
+not to trust a reported figure, and a reviewer's figure is still a reported figure.
+Ran `_KeywordPolicy({"admitt"}, {"discharg"})` — already defined in this repo's test
+file — on `v1/dev`, on both trees.
+
+**Before-numbers:**
+
+| | |
+|---|---|
+| keyword-exploit vs silence, `main` | **−89.3** |
+| keyword-exploit vs silence, this branch | **−89.3** |
+| prose figure mutated −47.6 → −44.6 | **141 passed** — gap confirmed |
+
+**Finding: the README was correct all along, and −77.4 was never measured by
+anyone here.** It came from a reviewer's report and R17 wrote it into the state
+file as fact, then built a queue item on it that could have deleted a true claim.
+That is the hard rule *never publish a number you did not measure* — broken in a
+round whose subject was figures going stale.
+
+The coverage gap was real too: a locator now exists for each prose figure, and each
+**must match exactly once**, so a reworded sentence fails loudly instead of silently
+covering nothing.
+
+**Verified by mutation** — the check was watched failing on each thing it exists to
+catch:
+
+| mutation | result |
+|---|---|
+| prose heuristic −47.6 → −44.6 | caught |
+| prose keyword −89.3 → −77.4 (the bad number) | caught |
+| sentence reworded so the locator misses | caught, as a locator error |
+
+**Shipped:** `test_prose_figures_match_a_fresh_eval`; the results-table check now
+compares the `/252` denominator it had been parsing and discarding (`32/999` passed
+before); R17's `−77.4` corrected in place with the error left visible; the queue
+item resolved rather than left standing.
+
+**Consequences, verified:** 141 → 142 tests, ruff clean. No production code touched.
+
+**Loop:** *a pattern is forming, and this is its second instance.* R16 claimed
+"leaderboard unchanged" having checked two of five rows. R17 claimed the check
+"fails the build instead of relying on anyone remembering" having covered the table
+but not the prose. Both times the writeup asserted coverage broader than what was
+actually measured, and both times a reviewer caught it rather than the gate. If a
+third round does this, it is a §C proposal — the protocol's §6 asks a round to
+record what it *did*, and nothing asks it to check whether its summarising sentence
+is narrower than its evidence.
 
 ---
 

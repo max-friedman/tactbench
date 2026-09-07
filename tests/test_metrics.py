@@ -1233,6 +1233,10 @@ class TestReadmeResultsAreCurrent:
                 ("ECE", row.group("ece"), card.ece, 0.0005),
                 ("hard viol.", row.group("hv"), card.hard_violations, 0),
                 ("spoke", row.group("spoke"), card.surfaced, 0),
+                # The denominator was captured and never compared, so `32/999`
+                # passed. A column parsed but unchecked is worse than one not
+                # parsed: it reads like coverage.
+                ("n", row.group("n"), card.n, 0),
             ):
                 if actual is None or quoted == "—":
                     continue
@@ -1243,4 +1247,70 @@ class TestReadmeResultsAreCurrent:
             "README.md quotes figures `tactbench eval` no longer produces:\n  "
             + "\n  ".join(stale)
             + "\n\nRe-run `uv run tactbench eval` and update the table."
+        )
+
+    #: Figures quoted in README *prose* rather than in the results table.
+    #:
+    #: R17 shipped this class and then wrote, in the same README paragraph, that
+    #: the check "fails the build instead of relying on anyone remembering". That
+    #: was false for the sentence containing it: the table regex matches the five
+    #: result rows and nothing else, so mutating the prose copy of the heuristic's
+    #: `vs silence` back to its stale value left the suite green. R18 measured
+    #: exactly that before fixing it.
+    #:
+    #: Each locator MUST match exactly once. A reworded sentence then fails the
+    #: check loudly, rather than silently covering nothing -- which is how a gate
+    #: like this rots without anyone noticing.
+    PROSE = (
+        (
+            "honest heuristic, vs silence",
+            re.compile(r"against the honest heuristic's \*{0,2}(−?\d+\.\d+)"),
+            "heuristic",
+        ),
+        (
+            "keyword-exploit policy, vs silence",
+            re.compile(r"that same policy scores \*{0,2}(−?\d+\.\d+)"),
+            "keyword",
+        ),
+    )
+
+    def test_prose_figures_match_a_fresh_eval(self):
+        """The figures quoted in sentences, not just the ones in the table.
+
+        The keyword-exploit figure is the reason this exists. It is not in
+        `registry()`, so the table check cannot reach it, and R17 recorded an
+        unmeasured value for it in the state file and queued a round to "verify or
+        remove" a claim that was correct all along. Computing it here removes the
+        question permanently.
+        """
+        readme = self._readme()
+        items = load("v1", "dev")
+        silence = silence_ics(items)
+        computed = {
+            "heuristic": evaluate(
+                registry()["heuristic"], items, reference=silence
+            ).ics_normalized,
+            "keyword": evaluate(
+                TestNoKeywordExploit._KeywordPolicy({"admitt"}, {"discharg"}),
+                items,
+                reference=silence,
+            ).ics_normalized,
+        }
+
+        stale: list[str] = []
+        for label, locator, key in self.PROSE:
+            found = locator.findall(readme)
+            assert len(found) == 1, (
+                f"the locator for '{label}' matched {len(found)} times in README.md, "
+                "expected exactly 1. If the sentence was reworded, update the locator "
+                "-- a locator that matches nothing silently stops checking."
+            )
+            quoted = float(found[0].replace("−", "-"))
+            actual = computed[key]
+            if abs(quoted - actual) > 0.05:
+                stale.append(f"{label}: README {quoted}, eval {actual:.1f}")
+
+        assert not stale, (
+            "README.md prose quotes figures `tactbench eval` no longer produces:\n  "
+            + "\n  ".join(stale)
         )
