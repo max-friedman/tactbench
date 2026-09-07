@@ -13,9 +13,10 @@ findings** below.
 
 ## Current status
 
-- **Round:** 16 complete
-- **Gate:** green — **140 passed** (104 + 36 from `TestProseFrameStructure`), ruff
-  clean, **enforced by CI** on py3.11-3.13
+- **Round:** 17 complete
+- **Gate:** green — **141 passed**, ruff clean, **enforced by CI** on py3.11-3.13.
+  `TestReadmeResultsAreCurrent` (R17) now fails the build when the README results
+  table disagrees with `eval`
 - **Dataset:** `v1` — 360 items (252 dev / 108 test), 9 families × 8 **prose**
   decider frames, split on the frame (0-4 train, 5-7 held out) so held-out
   phrasings appear nowhere in training and no pair is divided
@@ -174,6 +175,7 @@ whenever costs, the generator, or a policy change.
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | **R16** | resolver built from the frame templates; ICS 0 |
 | `audit.py` | **R11** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict |
+| `README.md` results | **R17** | `TestReadmeResultsAreCurrent` fails the build when it disagrees with `eval` |
 | `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
 | `schema.pair_key` | **R10** | the single definition of a pair |
 | `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
@@ -218,6 +220,13 @@ halt the loop.**
    `TestProseFrameStructure`'s three properties are guarding nothing. Pick one and
    say why. Whichever way it lands, re-derive whether those assertions still earn
    their place.
+2. **Verify or remove the `−89.3` keyword-exploit figure in README (new, R17).**
+   The R16 reviewer could not reproduce it — a reconstruction from the documented
+   `admitt`/`discharg` substrings gave **−77.4**, on both `main` and the branch, so
+   R16 did not move it. Either that policy is not what the sentence describes, or
+   the figure is stale from an earlier round. `TestReadmeResultsAreCurrent` cannot
+   cover it because the policy is not in `registry()`. Resolve it by making the
+   policy reproducible (and covered) or by deleting the claim.
 2. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
    (*filler not clause-initial*) was necessary but not sufficient; clause-final
    moves the leak to the internal junction. Three properties now asserted in
@@ -886,9 +895,17 @@ resolver change; `TestProseFrameStructure` (3 properties × 9 families);
 `data/v1` rebuilt; README, `DATASET.md`, `CONTRIBUTING.md`, `audit.py` and the R15
 probe corrected.
 
-**Consequences, verified:** leaderboard unchanged — skyline ICS 0.0 (+100.0, zero
-hard violations, 1.000 precision/recall/intent), silence 336.0, heuristic 0.500
-precision and still below silence. 104 → 140 tests. `verbatim_overlap` still zero.
+**Consequences, verified:** skyline ICS 0.0 (+100.0, zero hard violations,
+1.000 precision/recall/intent), silence 336.0. 104 → 140 tests. `verbatim_overlap`
+still zero. **The heuristic moved** — ICS 486.0 → 496.0, recall-hv 0.167 → 0.127,
+spoke 42 → 32 — because its lexicons meet different words in prose deciders. It
+holds 0.500 precision, well inside the `0.5 ± 0.15` invariant.
+
+> **Corrected in review.** This entry originally read *"leaderboard unchanged"*.
+> That was false, and it is left recorded rather than quietly rewritten. The author
+> checked silence and skyline against this file and generalised to the whole table
+> without diffing the heuristic row, so R16 also shipped a stale README. Caught by
+> the R16 review, fixed in R17.
 
 **Noted, not built:** queue item 2 — whether `item_tokens` should tokenize signals
 separately rather than joining them — was deliberately left alone. This round
@@ -899,6 +916,53 @@ so deciding it here would have entangled two questions. It is now the top item.
 is 907 lines and §0 requires reading it in full each round, growing ~60 lines per
 round. No cost incurred yet — recording it so a later round can tell whether it
 becomes one.
+
+---
+
+## Round 17 — the README went stale twice, so stop asking people to remember
+
+**Question:** R16's review (PR #13) failed check 5: the README quoted four
+heuristic figures `eval` no longer produced. `CLAUDE.md` has required re-running
+`eval` after a generator change since R5, and the rule has now been broken twice —
+R13 let `vs silence` sit stale for three rounds, R16 left four columns stale
+*inside a parenthetical boasting that R13's slip had been caught*. Prose failed
+twice where a mechanism was available. **Does a check catch it?**
+
+**Method:** wrote `TestReadmeResultsAreCurrent` before touching the README — it
+parses the results table and compares every column against a fresh `evaluate()`.
+Ran it on the unfixed tree.
+
+**Before-number:** the check failed and named four stale figures — heuristic ICS
+486.0 → 496.0, vs silence −44.6 → −47.6, recall-hv 0.167 → 0.127, spoke 42 → 32 —
+independently reproducing what the review had found by hand.
+
+**Finding: the first draft of the check was itself too weak.** It used one absolute
+tolerance of 0.05 for every column. That is right for ICS in the hundreds and far
+too loose for a rate in [0,1]: `|0.167 − 0.127| = 0.040` passed, hiding a **24%
+relative** move. It also compared neither `prec@int` nor `ECE` at all. Tolerance is
+now per column, at the precision the README quotes — 0.05 for ICS, 0.0005 for
+rates, exact for counts.
+
+That the check's own first draft reproduced the class of defect it was written to
+catch is the round's most useful output: a gate is not a gate until you have
+watched it fail on the specific thing you built it for.
+
+**Shipped:** `TestReadmeResultsAreCurrent`; README results row and the R13
+parenthetical corrected; R16's *"leaderboard unchanged"* claim corrected in place
+with the error left visible.
+
+**Consequences, verified:** 140 → 141 tests, ruff clean. No production code
+touched, so audit, probe and leaderboard are unchanged from R16 by construction.
+
+**Noted, not built:** the `−89.3` keyword-exploit figure in the same README
+paragraph could not be reproduced by the reviewer, whose reconstruction gave −77.4
+on both `main` and the branch. It is therefore not R16's doing, and the new check
+does not cover it — that policy is not in `registry()`. Queued.
+
+**Loop:** the R16 review caught a defect its author had verified and believed
+clean. That is direct evidence for §D's independent-review step, and it is worth
+recording alongside upstream issue #29, which questions how independence can be
+obtained at all when rounds run back-to-back in one session.
 
 ---
 

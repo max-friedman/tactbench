@@ -11,6 +11,7 @@ import hashlib
 import itertools
 import re
 from collections import Counter
+from pathlib import Path
 
 import pytest
 
@@ -37,7 +38,12 @@ from tactbench.dataset.generate import (
 from tactbench.dataset.loader import load
 from tactbench.metrics import score, score_item
 from tactbench.policies.base import Policy
-from tactbench.policies.builtin import AlwaysPolicy, HeuristicPolicy, NeverPolicy
+from tactbench.policies.builtin import (
+    AlwaysPolicy,
+    HeuristicPolicy,
+    NeverPolicy,
+    registry,
+)
 from tactbench.policies.skyline import PartialSkylinePolicy, SkylinePolicy
 from tactbench.runner import evaluate, run_policy, silence_ics
 from tactbench.schema import (
@@ -1163,3 +1169,78 @@ class TestOrderBalancePrecondition:
                     counts.setdefault(key, set()).add(item.moment.signals[-1].content.split(":")[0])
         singles = [k for k, v in counts.items() if len(v) == 1]
         assert not singles, f"shipped data has single-order cells: {singles[:3]}"
+
+
+class TestReadmeResultsAreCurrent:
+    """The README leaderboard must equal what `tactbench eval` prints.
+
+    CLAUDE.md has said "after changing costs, the generator, or the heuristic,
+    re-run eval and update the results table -- a README quoting stale numbers is
+    worse than one quoting none" since Round 5. It has been violated twice, both
+    times by a round that changed the generator and checked only the rows it
+    expected to move:
+
+    - R13 let the heuristic's `vs silence` sit stale for three rounds.
+    - R16 changed the decider text, which changed where the heuristic's lexicons
+      fire, and left four of the heuristic row's seven columns stale -- including
+      one inside a parenthetical boasting that R13's slip had been caught.
+
+    Prose has now failed twice where a mechanism was available, which is the
+    rubric's own test for when to stop writing rules and start writing checks.
+    This is that check. It does not ask anyone to remember anything.
+    """
+
+    ROW = re.compile(
+        r"^\|\s*`(?P<policy>\w+(?:@[\d.]+)?)`[^|]*\|\s*\*{0,2}(?P<ics>[\d.]+)\*{0,2}\s*"
+        r"\|\s*\*{0,2}(?P<vs>[+−-][\d.]+|0\.0)\*{0,2}\s*"
+        r"\|\s*(?P<prec>[\d.]+|—)\s*\|\s*(?P<recall>[\d.]+)\s*"
+        r"\|\s*(?P<ece>[\d.]+)\s*\|\s*(?P<hv>\d+)\s*\|\s*(?P<spoke>\d+)/(?P<n>\d+)\s*\|",
+        re.MULTILINE,
+    )
+
+    @staticmethod
+    def _readme() -> str:
+        return (Path(__file__).resolve().parents[1] / "README.md").read_text()
+
+    def test_the_table_matches_a_fresh_eval(self):
+        rows = {m.group("policy"): m for m in self.ROW.finditer(self._readme())}
+        assert rows, "no results rows parsed from README.md -- the table shape changed"
+
+        items = load("v1", "dev")
+        silence = silence_ics(items)
+        cards = {
+            name: evaluate(p, items, reference=silence)
+            for name, p in registry().items()
+        }
+
+        missing = sorted(set(cards) - set(rows))
+        assert not missing, f"README results table is missing policies: {missing}"
+
+        stale: list[str] = []
+        for name, row in rows.items():
+            card = cards[name]
+            # Tolerance is per column, not global. A single absolute epsilon
+            # sized for ICS (hundreds) lets a rate in [0,1] drift silently: the
+            # first draft of this test used 0.05 everywhere and missed
+            # recall-hv moving 0.167 -> 0.127, a 24% relative change, because
+            # the absolute gap was 0.040. Each column is compared at the
+            # precision the README actually quotes it to.
+            for label, quoted, actual, tol in (
+                ("ICS", row.group("ics"), card.ics, 0.05),
+                ("vs silence", row.group("vs").replace("−", "-"), card.ics_normalized, 0.05),
+                ("prec@int", row.group("prec"), card.precision_at_interrupt, 0.0005),
+                ("recall-hv", row.group("recall"), card.recall_high_value, 0.0005),
+                ("ECE", row.group("ece"), card.ece, 0.0005),
+                ("hard viol.", row.group("hv"), card.hard_violations, 0),
+                ("spoke", row.group("spoke"), card.surfaced, 0),
+            ):
+                if actual is None or quoted == "—":
+                    continue
+                if abs(float(quoted) - float(actual)) > tol:
+                    stale.append(f"{name}.{label}: README {quoted}, eval {actual:.3f}")
+
+        assert not stale, (
+            "README.md quotes figures `tactbench eval` no longer produces:\n  "
+            + "\n  ".join(stale)
+            + "\n\nRe-run `uv run tactbench eval` and update the table."
+        )
