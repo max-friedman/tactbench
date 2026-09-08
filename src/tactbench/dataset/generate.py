@@ -168,7 +168,9 @@ COUNTERPART_MEETINGS = [
 # Decider frames -- Round 13.
 #
 # Every family's decider names two roles and swaps which value occupies which.
-# A frame is ``(privileged_label, other_label)``: the privileged role is the one
+# A frame is ``(privileged_template, other_template)`` -- two prose clauses, each
+# carrying one ``{who}`` slot (R16; it was ``(privileged_label, other_label)`` while
+# deciders were ``Label: value``). The privileged role is the one
 # whose occupant decides the answer. Rendering puts the family's *marker* value in
 # one role and the counterpart in the other, and the pair's two sides swap them --
 # so both sides carry an identical token multiset by construction rather than by
@@ -178,8 +180,8 @@ COUNTERPART_MEETINGS = [
 # 5-7 appear only in the held-out split. Round 12 showed that varying the *entity*
 # buys nothing (91.2% -> 29.8% duplication moved the exploit 1.3 points) because
 # the frame carries the label. Varying the frame *and holding some out* is the
-# lever that was left: a bigram learned on "listed_you" does not fire on a test
-# frame that says "At the school gate".
+# lever that was left: a bigram learned on one frame's wording does not fire on a
+# held-out frame that words the same relation differently.
 #
 # This table is the single definition. `SkylinePolicy` imports it rather than
 # keeping its own copy of the phrasings -- two private notions of the same thing
@@ -188,96 +190,110 @@ COUNTERPART_MEETINGS = [
 
 FRAMES: dict[str, list[tuple[str, str]]] = {
     "childcare": [
-        ("Listed for pickup", "Booked on flights"),
-        ("Doing the school run", "Leaving the country tonight"),
-        ("Collecting at three", "Landing at midnight"),
-        ("Classroom door duty", "Departure lounge duty"),
-        ("Fetching kids", "Boarding planes"),
-        ("Minding bedtime", "Missing bedtime"),
-        ("Rostered for nursery", "Rostered for depot"),
-        ("Home by four", "Away till Sunday"),
+        ("Pickup today is listed for {who}", "Evening flights are booked for {who}"),
+        ("School run duty belongs to {who}", "Country exit duty belongs to {who}"),
+        ("Collecting at three falls to {who}", "Landing at midnight falls to {who}"),
+        ("Classroom door cover names {who}", "Departure lounge cover names {who}"),
+        ("Fetching kids comes down to {who}", "Boarding planes comes down to {who}"),
+        ("Minding bedtime rests with {who}", "Missing bedtime rests with {who}"),
+        ("Nursery rota shows {who}", "Depot rota shows {who}"),
+        ("Home before four suits {who}", "Away until Sunday suits {who}"),
     ],
     "deadline": [
-        ("Primary", "Secondary"),
-        ("Paged first", "Alerted second"),
-        ("Owns this rota", "Backs that rota"),
-        ("On point", "On standby"),
-        ("Carrying the pager", "Lacking the pager"),
-        ("Holding the bleeper", "Ignoring the bleeper"),
-        ("Accountable tonight", "Unavailable tonight"),
-        ("Named lead", "Named deputy"),
+        ("Primary escalation goes to {who}", "Secondary escalation goes to {who}"),
+        ("Paged first is {who}", "Alerted second is {who}"),
+        ("Rota ownership rests with {who}", "Rota backup rests with {who}"),
+        ("Point duty tonight covers {who}", "Standby duty tonight covers {who}"),
+        ("Carrying the pager means {who}", "Lacking the pager means {who}"),
+        ("Holding the bleeper marks {who}", "Ignoring the bleeper marks {who}"),
+        ("Accountable overnight is {who}", "Unavailable overnight is {who}"),
+        ("Named lead here is {who}", "Named deputy here is {who}"),
     ],
     "health": [
-        ("Still at counter", "Gone since Tuesday"),
-        ("Waiting for pickup", "Signed for already"),
-        ("Uncollected", "Claimed"),
-        ("On the shelf", "Out the door"),
-        ("Awaiting a bag", "Dispensed a month"),
-        ("Sitting unclaimed", "Taken home"),
-        ("Behind the screen", "Through the till"),
-        ("In the basket", "Off the premises"),
+        ("Waiting at the counter is {who}", "Gone since last Tuesday is {who}"),
+        ("Queued for pickup is {who}", "Signed for already is {who}"),
+        ("Uncollected today is {who}", "Claimed today is {who}"),
+        ("Sitting on the shelf is {who}", "Carried out the door is {who}"),
+        ("Awaiting a paper bag is {who}", "Dispensed a month back is {who}"),
+        ("Unclaimed on the rack is {who}", "Taken home weeks ago is {who}"),
+        ("Behind the screen is {who}", "Through the till is {who}"),
+        ("Inside the basket is {who}", "Beyond the premises is {who}"),
     ],
     "quiet_hours": [
-        ("Nearby", "Distant"),
-        ("Close enough", "Far enough"),
-        ("Arrives tonight", "Arrives Thursday"),
-        ("Minutes from hospital", "Counties from hospital"),
-        ("Still in town", "Deep in transit"),
-        ("Able to leave", "Stuck till dawn"),
-        ("Within reach", "Beyond reach"),
-        ("Walks in", "Drives Sunday"),
+        ("Nearby right now is {who}", "Distant right now is {who}"),
+        ("Close enough tonight is {who}", "Far enough away is {who}"),
+        ("Arriving before dawn is {who}", "Arriving next Thursday is {who}"),
+        ("Minutes from hospital is {who}", "Counties from hospital is {who}"),
+        ("Inside the city is {who}", "Deep in transit is {who}"),
+        ("Able to leave is {who}", "Stuck until morning is {who}"),
+        ("Within quick reach is {who}", "Beyond all reach is {who}"),
+        ("Walking in unaided is {who}", "Driving up Sunday is {who}"),
     ],
     "finance": [
-        ("Short of payment", "Clears the payment"),
-        ("Below the amount", "Above the amount"),
-        ("Underfunded", "Flush"),
-        ("Cannot carry autopay", "Happily carries autopay"),
-        ("Insufficient", "Ample"),
-        ("Lacking the money", "Holding the money"),
-        ("Empty by Friday", "Loaded by Friday"),
-        ("Will bounce", "Will settle"),
+        ("Short of the payment is {who}", "Clear of the payment is {who}"),
+        ("Below the amount is {who}", "Above the amount is {who}"),
+        ("Underfunded this month is {who}", "Overfunded this month is {who}"),
+        ("Unable to carry autopay is {who}", "Happy to carry autopay is {who}"),
+        ("Insufficient again is {who}", "Ample again is {who}"),
+        ("Lacking the money is {who}", "Holding the money is {who}"),
+        ("Empty come Friday is {who}", "Loaded come Friday is {who}"),
+        ("Set to bounce is {who}", "Set to settle is {who}"),
     ],
     "commerce": [
-        ("Still boxed", "Fully assembled"),
-        ("Unopened", "Installed"),
-        ("Shrink-wrapped", "Screwed together"),
-        ("Never cut", "Long used"),
-        ("In its carton", "Out of storage"),
-        ("Factory taped", "Bolted upright"),
-        ("Awaiting a knife", "Standing on legs"),
-        ("Untouched", "Working"),
+        ("Boxed and sealed is {who}", "Built and placed is {who}"),
+        ("Unopened so far is {who}", "Installed so far is {who}"),
+        ("Shrink wrapped tight is {who}", "Screwed together firmly is {who}"),
+        ("Never once cut is {who}", "Long since used is {who}"),
+        ("Inside a carton is {who}", "Outside the storage is {who}"),
+        ("Factory taped shut is {who}", "Bolted fully upright is {who}"),
+        ("Awaiting a knife is {who}", "Standing on legs is {who}"),
+        ("Untouched entirely is {who}", "Working daily is {who}"),
     ],
     "meeting_prep": [
-        ("Begins shortly", "Started already"),
-        ("Still ahead", "Long past"),
-        ("Not yet open", "Well into progress"),
-        ("Coming up", "Just finished"),
-        ("Due to convene", "Ran without you"),
-        ("Doors have not parted", "Doors parted an hour"),
-        ("Queued for later", "Wrapped at lunch"),
-        ("Scheduled after this", "Concluded before this"),
+        ("Beginning shortly is {who}", "Started earlier is {who}"),
+        ("Ahead of us is {who}", "Behind us now is {who}"),
+        ("Unopened as yet is {who}", "Well into progress is {who}"),
+        ("Convening at noon is {who}", "Ran without anyone is {who}"),
+        ("Arriving soon is {who}", "Wrapped early is {who}"),
+        ("Doors unparted is {who}", "Doors parted is {who}"),
+        ("Queued for later is {who}", "Closed at lunch is {who}"),
+        ("Scheduled after this is {who}", "Concluded before this is {who}"),
     ],
     "driving": [
-        ("Backed up", "Running clear"),
-        ("Congested", "Flowing"),
-        ("Jammed", "Moving"),
-        ("Slow", "Open"),
-        ("At a standstill", "At full speed"),
-        ("Crawling", "Sprinting"),
-        ("Gridlocked", "Empty"),
-        ("Snarled", "Untroubled"),
+        ("Backed up badly is {who}", "Running clear now is {who}"),
+        ("Congested heavily is {who}", "Flowing freely is {who}"),
+        ("Jammed solid is {who}", "Moving well is {who}"),
+        ("Slow throughout is {who}", "Open throughout is {who}"),
+        ("Standstill traffic is {who}", "Unimpeded traffic is {who}"),
+        ("Crawling along is {who}", "Sprinting ahead is {who}"),
+        ("Gridlocked entirely is {who}", "Empty entirely is {who}"),
+        ("Snarled tight is {who}", "Untroubled tonight is {who}"),
     ],
     "travel": [
-        ("Standing at", "Ticketed for"),
-        ("Physically by", "Printed as"),
-        ("Where you wait", "Where stubs point"),
-        ("Your actual position", "Your issued seat"),
-        ("Boots down at", "Ink says gate"),
-        ("Body near", "Barcode claims"),
-        ("Feet beside", "Paper insists"),
-        ("Currently parked", "Formally booked"),
+        ("Standing physically at {who}", "Ticketed formally at {who}"),
+        ("Boots planted at {who}", "Ink printed at {who}"),
+        ("Waiting in person at {who}", "Listed on paper at {who}"),
+        ("Actually positioned at {who}", "Officially issued at {who}"),
+        ("Body nearest to {who}", "Barcode pointing to {who}"),
+        ("Feet resting near {who}", "Stub insisting near {who}"),
+        ("Currently parked by {who}", "Formerly booked by {who}"),
+        ("Truly located at {who}", "Merely assigned at {who}"),
     ],
 }
+
+#: The filler slot every frame clause carries.
+WHO = "{who}"
+
+
+def skeleton(clause: str) -> list[str]:
+    """A clause's tokens with the filler slot removed.
+
+    Two clauses of a frame must have equal skeletons in length: an unequal pair
+    shifts the marker's position with the clause it occupies, which is what a
+    position-tagged probe reads (Round 13).
+    """
+    return [t for t in clause.replace(WHO, " ").split() if t]
+
 
 #: The smallest ``n_pairs_per_scenario`` at which clause order can balance.
 #:
@@ -358,10 +374,10 @@ class Scenario:
     #:
     #: Two properties make held-out frames actually hard, and both are load-bearing:
     #:
-    #: 1. **The label vocabulary changes per frame.** A bigram learned on dev
-    #:    frames ("listed_you") does not fire on a test frame that says "at the
-    #:    school gate today". Round 12 established that varying the *entity* buys
-    #:    nothing, because the frame carries the label; varying the frame is the
+    #: 1. **The clause vocabulary changes per frame.** A bigram learned on dev
+    #:    frames ("listed_for") does not fire on a held-out frame that says
+    #:    "Nursery rota shows". Round 12 established that varying the *entity* buys
+    #:    nothing, because the frame carries the wording; varying the frame is the
     #:    lever that was left.
     #: 2. **Clause order varies per pair, independently of the frame.** If the
     #:    privileged clause were always first, "you appears early" would answer the
@@ -400,8 +416,8 @@ class Scenario:
         first_is_privileged = (idx // max(len(self.frames), 1)) % 2 == 0
 
         def render(in_privileged: str, in_other: str) -> str:
-            a = f"{privileged}: {in_privileged}."
-            b = f"{other}: {in_other}."
+            a = privileged.format(who=in_privileged) + "."
+            b = other.format(who=in_other) + "."
             return f"{a} {b}" if first_is_privileged else f"{b} {a}"
 
         return render(marker, counterpart), render(counterpart, marker)

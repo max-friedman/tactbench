@@ -13,21 +13,19 @@ findings** below.
 
 ## Current status
 
-- **Round:** 15 complete
-- **Gate:** green — **104 passed, no xfails**; the two strict xfails that recorded
-  the surface-exploit defect were flipped to real assertions in R13. Ruff clean,
-  **enforced by CI** on py3.11-3.13
-- **Dataset:** `v1` — 360 items (**252 dev / 108 test**), 9 families × 20 pairs,
-  8 decider frames per family, split **on the frame** (0-4 train, 5-7 held out) so
-  held-out phrasings appear nowhere in training and no pair is divided
+- **Round:** 19 complete
+- **Gate:** green — **142 passed**, ruff clean, **enforced by CI** on py3.11-3.13.
+  `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
+  `eval` — the results table (R17) and the figures quoted in prose (R18)
+- **Dataset:** `v1` — 360 items (252 dev / 108 test), 9 families × 8 **prose**
+  decider frames, split on the frame (0-4 train, 5-7 held out) so held-out
+  phrasings appear nowhere in training and no pair is divided
 - **Headline:** silence (ICS 336) is unbeaten by any baseline; skyline (ICS 0)
-  proves the bar is clearable. **The surface-model exploit is closed** — a
-  bag-of-bigrams fit on `dev` now scores **+0.0** vs silence on held-out `test`
-  **two-sided** (best of the model and its negation) — it ties saying nothing and
-  never beats it, across 30 seeds — down from +99.4 (R11). The leaderboard caveat
-  that stood for two rounds is gone. All three probes -- unigram, bigram,
-  positional -- are gated overall as of R14; positional remains reported-only per
-  family.
+  proves the bar is clearable. The surface-model exploit stays closed. **R16
+  restored prose deciders** — *"Behind the screen is your prescription. Through the
+  till is Elena's prescription."* — with every family at **50.0% on unigram and
+  bigram**, unchanged from the `Label: value` form it replaced. R13's uniformity
+  cost is paid off; the README limitation it created is gone.
 
 ---
 
@@ -172,11 +170,12 @@ whenever costs, the generator, or a policy change.
 
 | area | last touched | probe / status |
 |---|---|---|
-| `dataset/generate.py` | R3 | 8/9 families at chance floor |
+| `dataset/generate.py` | **R16** | prose frames; 9/9 families at chance floor on unigram + bigram |
 | `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
-| `policies/skyline.py` | R3 | handles all 9 families; ICS 0 |
+| `policies/skyline.py` | **R16** | resolver built from the frame templates; ICS 0 |
 | `audit.py` | **R11** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict |
+| `README.md` results | **R17** | `TestReadmeResultsAreCurrent` fails the build when it disagrees with `eval` |
 | `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
 | `schema.pair_key` | **R10** | the single definition of a pair |
 | `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
@@ -212,34 +211,40 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Restore prose deciders — re-specified by R15, which built and rejected the
-   obvious version.** The rule is now known: **the filler must not be
-   clause-initial**, because a prose clause opening with its subject puts the
-   filler against the body/decider boundary, and that junction bigram is the one
-   thing that transfers through a held-out frame (health 75% vs 50% decider-only).
-   Keep the two properties R15 validated — both clauses take the copula or neither
-   does, and equal skeleton length — and see
-   `experiments/prose_decider_probe.py`. Original framing:
-   R13 bought validity with uniformity: every decider is now
-   `Label: value. Label: value.`, which reads like a status line rather than
-   something a person or an app would send. A benchmark about proactive assistance
-   whose items do not look like real messages is measuring something adjacent to
-   the thing. Needs prose frames that are still exact token permutations (English
-   agreement is the trap -- "you are" vs "Dana is" breaks the multiset), with the
-   audit and `test_the_two_sides_are_equal_but_not_the_same_objects` as the gate.
-2. **Decide whether the probe should cross signal boundaries (new, R15).**
+1. **Decide whether the probe should cross signal boundaries (R15, now top).**
    `item_tokens` joins every signal before tokenizing, so bigrams span the
-   body/decider junction. That adjacency is real for a policy that concatenates
-   the moment and absent for one that reads the signal list. R15 found the choice
-   is load-bearing — it is the entire difference between 75% and 50% on prose
-   deciders — and it is currently made implicitly. Pick one and say why.
-3. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
+   body/decider junction. That adjacency is real for a policy that concatenates the
+   moment and absent for one that reads the signal list. R15 found the choice is
+   load-bearing; **R16 depends on it** — the whole prose rule exists because the
+   join makes the junction reachable, so if the probe stops joining, two of
+   `TestProseFrameStructure`'s three properties are guarding nothing. Pick one and
+   say why. Whichever way it lands, re-derive whether those assertions still earn
+   their place.
+2. **The `−89.3` keyword-exploit figure — RESOLVED in R18, and R17 was wrong
+   about it.** R17 recorded that a reviewer's reconstruction "gave **−77.4**" and
+   queued a round to *"verify or remove"* the README claim. R18 ran the
+   reconstruction — `_KeywordPolicy({"admitt"}, {"discharg"})` on `v1/dev`, the
+   policy already defined in this repo's own test file — and measured **−89.3 on
+   both `main` and the branch**. The README was correct all along, and a queue item
+   was standing that could have deleted a true claim. The figure is now covered by
+   `TestReadmeResultsAreCurrent.test_prose_figures_match_a_fresh_eval`.
+3. **Cover the README figures the prose check still misses (new, R19).** The
+   R18 review named three: `−87.5 normalized` and `294 more ICS` (README:40),
+   `0.500 precision` (README:45), and the whole comprehension-sweep table, which
+   the `ROW` regex cannot match because those rows carry no backticked policy
+   name. All are correct today — recomputed on both trees — so this is a coverage
+   gap, not a stale number. Extend `PROSE`, or generalise the table regex.
+4. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
+   (*filler not clause-initial*) was necessary but not sufficient; clause-final
+   moves the leak to the internal junction. Three properties now asserted in
+   `TestProseFrameStructure`. See `experiments/prose_decider_probe.py`.
+5. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
    state difference *is* the judgment under test? The invariant currently
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
-3. **An order-sensitive shortcut probe (R10) — DONE in R11.** Kept here only as a
+6. **An order-sensitive shortcut probe (R10) — DONE in R11.** Kept here only as a
    pointer: the answer was that the audit had a structural blind spot.
    Superseded by item 1.
    <details><summary>original entry</summary> Every
@@ -250,12 +255,18 @@ halt the loop.**
    genuinely evidenced; if it separates families, the deciders leak in a way
    nine rounds of auditing could not see. Either result is worth the round.
    </details>
-4. **More families still welcome** — nine is better than six but still one
+7. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-5. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+8. **Type checking** — no mypy/pyright configured; worth adding to CI once the
    schema surface settles.
-6. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+9. **`CHANGELOG.md` has no entries for R15–R18**, still asserts *"Bigrams reach
+   97.2%"* against a current 50.0%, and its R13 block still lists the
+   `Label: value` uniformity as a live limitation that R16 removed. The tone rule
+   requires retiring a limitation when the capability ships; that was done in
+   README and not here. The 97.2% figure was already wrong on `main`, so it is not
+   R16's doing — but R16 moved bigram overall 51.1% → 50.0% and did not look.
+10. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
@@ -839,6 +850,274 @@ defensible; picking one silently is not.
 
 ---
 
+## Round 16 — prose restored, and the rule was incomplete
+
+**Question:** R15 built prose deciders, rejected them, and left a rule:
+*the filler must not be clause-initial*. It was the top queue item and the rule was
+a prediction, not a measurement. **Is it sufficient?**
+
+**Falsification set before building:** any family at ≥60% exploitable bigram, or
+the all-signals column diverging from decider-only, rejects the attempt again.
+
+**Before-numbers, on the shipped form:** every family 50.0% unigram / 50.0% bigram;
+all-signals and decider-only agree at 50.0% for all nine — the junction carried
+nothing. Positional overall 54.4%.
+
+**Finding: the rule is necessary and not sufficient.** Putting the filler
+clause-*final* closes the body junction, and then moves the exposure to the
+**internal** junction — the first clause's trailing filler now sits against the
+second clause's opening. If that opening is a token every frame shares, it
+transfers exactly as the body did:
+
+    "...names you. The flight manifest names Dana."   -> bigram  you_the
+    "...names Dana. The flight manifest names you."   -> bigram  dana_the
+
+R15 flagged the mirror trap but concluded *"only the first clause's opening
+matters, because that is the one touching the body"* — true for a filler-initial
+design, wrong for a filler-final one. Two further properties are load-bearing:
+
+1. **No clause opens with a stopword**, so both openings are frame-specific.
+2. **Both clauses of a frame put the same token before the slot**, so every filler
+   bigram appears on both sides of the pair and discriminates nothing.
+
+A third thing fell out for free: with the filler clause-final the copula agrees
+with the *frame's* subject, never the filler, so R15's "both clauses take the
+copula or neither does" property is no longer needed. It was an artifact of
+filler-initial phrasing.
+
+**The check caught the author.** `TestProseFrameStructure` was written before the
+table was finished and immediately failed on two of my own frames —
+`meeting_prep` *"Due to convene..."* and `driving` *"At a standstill..."*, both
+opening with stopwords. Neither is visible by eye; both would have leaked.
+
+**Result — all nine families, held-out frames:**
+
+| probe | before (`Label: value`) | after (prose) |
+|---|---|---|
+| unigram, every family | 50.0% | 50.0% |
+| bigram, every family | 50.0% | 50.0% |
+| all-signals vs decider-only | agree | agree |
+| positional, overall | 54.4% | **58.0%** |
+
+Positional is gated overall (<70%) and reported-only per family; 58.0% passes but
+it moved 3.6 points and that is recorded rather than glossed.
+
+**Shipped:** prose `FRAMES` for all 9 families × 8 frames; `WHO` and `skeleton()`;
+a skyline resolver built *from* the templates by regex, so a new frame needs no
+resolver change; `TestProseFrameStructure` (3 properties × 9 families);
+`data/v1` rebuilt; README, `DATASET.md`, `CONTRIBUTING.md`, `audit.py` and the R15
+probe corrected.
+
+**Consequences, verified:** skyline ICS 0.0 (+100.0, zero hard violations,
+1.000 precision/recall/intent), silence 336.0. 104 → 140 tests. `verbatim_overlap`
+still zero. **The heuristic moved** — ICS 486.0 → 496.0, recall-hv 0.167 → 0.127,
+spoke 42 → 32 — because its lexicons meet different words in prose deciders. It
+holds 0.500 precision, well inside the `0.5 ± 0.15` invariant.
+
+> **Corrected in review.** This entry originally read *"leaderboard unchanged"*.
+> That was false, and it is left recorded rather than quietly rewritten. The author
+> checked silence and skyline against this file and generalised to the whole table
+> without diffing the heuristic row, so R16 also shipped a stale README. Caught by
+> the R16 review, fixed in R17.
+
+**Noted, not built:** queue item 2 — whether `item_tokens` should tokenize signals
+separately rather than joining them — was deliberately left alone. This round
+*depends* on the join (the junction is only reachable because signals are joined),
+so deciding it here would have entangled two questions. It is now the top item.
+
+**Loop:** `nothing` blocking. One observation banked, not yet a pattern: this file
+is 907 lines and §0 requires reading it in full each round, growing ~60 lines per
+round. No cost incurred yet — recording it so a later round can tell whether it
+becomes one.
+
+---
+
+## Round 17 — the README went stale twice, so stop asking people to remember
+
+**Question:** R16's review (PR #13) failed check 5: the README quoted four
+heuristic figures `eval` no longer produced. `CLAUDE.md` has required re-running
+`eval` after a generator change since R5, and the rule has now been broken twice —
+R13 let `vs silence` sit stale for three rounds, R16 left four columns stale
+*inside a parenthetical boasting that R13's slip had been caught*. Prose failed
+twice where a mechanism was available. **Does a check catch it?**
+
+**Method:** wrote `TestReadmeResultsAreCurrent` before touching the README — it
+parses the results table and compares every column against a fresh `evaluate()`.
+Ran it on the unfixed tree.
+
+**Before-number:** the check failed and named four stale figures — heuristic ICS
+486.0 → 496.0, vs silence −44.6 → −47.6, recall-hv 0.167 → 0.127, spoke 42 → 32 —
+independently reproducing what the review had found by hand.
+
+**Finding: the first draft of the check was itself too weak.** It used one absolute
+tolerance of 0.05 for every column. That is right for ICS in the hundreds and far
+too loose for a rate in [0,1]: `|0.167 − 0.127| = 0.040` passed, hiding a **24%
+relative** move. It also compared neither `prec@int` nor `ECE` at all. Tolerance is
+now per column, at the precision the README quotes — 0.05 for ICS, 0.0005 for
+rates, exact for counts.
+
+That the check's own first draft reproduced the class of defect it was written to
+catch is the round's most useful output: a gate is not a gate until you have
+watched it fail on the specific thing you built it for.
+
+**Shipped:** `TestReadmeResultsAreCurrent`; README results row and the R13
+parenthetical corrected; R16's *"leaderboard unchanged"* claim corrected in place
+with the error left visible.
+
+**Consequences, verified:** 140 → 141 tests, ruff clean. No production code
+touched, so audit, probe and leaderboard are unchanged from R16 by construction.
+
+**Noted, not built:** the `−89.3` keyword-exploit figure in the same README
+paragraph was reported by the reviewer as not reproducing. Queued.
+
+> **Corrected in review (R18).** This entry originally recorded that the
+> reconstruction "gave −77.4". **That number was never produced by this round** — it
+> was taken from a reviewer's report and written down as fact, which is the hard
+> rule *never publish a number you did not measure*, broken in a round whose own
+> subject was figures going stale. R18 ran the reconstruction and measured
+> **−89.3**, matching the README exactly. The queue item built on the bad number
+> could have deleted a true claim.
+
+**Loop:** the R16 review caught a defect its author had verified and believed
+clean. That is direct evidence for §D's independent-review step, and it is worth
+recording alongside upstream issue #29, which questions how independence can be
+obtained at all when rounds run back-to-back in one session.
+
+---
+
+## Round 18 — a check that claimed more coverage than it had
+
+**Question:** R17's review failed check 1. R17 recorded that a reviewer's
+reconstruction of the keyword-exploit policy *"gave −77.4"* and queued a round to
+**"verify or remove"** the README's `−89.3`. It also wrote, in that same README
+paragraph, that the new check *"fails the build instead of relying on anyone
+remembering"* — while the check matched only the five table rows, not the prose
+figure in the very sentence making the claim. **Does the check cover what is
+claimed for it?**
+
+**Method — measure the number first, from this repo.** The lesson of the defect is
+not to trust a reported figure, and a reviewer's figure is still a reported figure.
+Ran `_KeywordPolicy({"admitt"}, {"discharg"})` — already defined in this repo's test
+file — on `v1/dev`, on both trees.
+
+**Before-numbers:**
+
+| | |
+|---|---|
+| keyword-exploit vs silence, `main` | **−89.3** |
+| keyword-exploit vs silence, this branch | **−89.3** |
+| prose figure mutated −47.6 → −44.6 | **141 passed** — gap confirmed |
+
+**Finding: the README was correct all along, and −77.4 was never measured by
+anyone here.** It came from a reviewer's report and R17 wrote it into the state
+file as fact, then built a queue item on it that could have deleted a true claim.
+That is the hard rule *never publish a number you did not measure* — broken in a
+round whose subject was figures going stale.
+
+The coverage gap was real too: a locator now exists for each prose figure, and each
+**must match exactly once**, so a reworded sentence fails loudly instead of silently
+covering nothing.
+
+**Verified by mutation** — the check was watched failing on each thing it exists to
+catch:
+
+| mutation | result |
+|---|---|
+| prose heuristic −47.6 → −44.6 | caught |
+| prose keyword −89.3 → −77.4 (the bad number) | caught |
+| sentence reworded so the locator misses | caught, as a locator error |
+
+> **Corrected in review (R19).** This entry claimed *"a locator now exists for each
+> prose figure"*. It does not: `PROSE` holds two locators, and at least three other
+> eval-derived figures in the README are uncovered — the `−87.5 normalized` and
+> `294 more ICS` at README:40, the `0.500 precision` at README:45, and the entire
+> comprehension-sweep table, whose rows the `ROW` regex cannot match. **This is the
+> third consecutive round whose writeup asserted broader coverage than it measured**,
+> which is the trigger this entry's own `Loop:` line set. R19 files it upstream.
+>
+> This rewrite also deleted a true, self-critical sentence from R17 — *"the new check
+> does not cover it — that policy is not in `registry()`"* — which was the line
+> showing R17 knew about the very gap R18 faulted it for. Restored here.
+
+**Shipped:** `test_prose_figures_match_a_fresh_eval`; the results-table check now
+compares the `/252` denominator it had been parsing and discarding (`32/999` passed
+before); R17's `−77.4` corrected in place with the error left visible; the queue
+item resolved rather than left standing.
+
+**Consequences, verified:** 141 → 142 tests, ruff clean. No production code touched.
+
+**Loop:** *a pattern is forming, and this is its second instance.* R16 claimed
+"leaderboard unchanged" having checked two of five rows. R17 claimed the check
+"fails the build instead of relying on anyone remembering" having covered the table
+but not the prose. Both times the writeup asserted coverage broader than what was
+actually measured, and both times a reviewer caught it rather than the gate. If a
+third round does this, it is a §C proposal — the protocol's §6 asks a round to
+record what it *did*, and nothing asks it to check whether its summarising sentence
+is narrower than its evidence.
+
+---
+
+## Round 19 — an invariant that had been hollow since R16
+
+**Question:** R18's review found a hard stop. `TestOrderBalancePrecondition` tagged
+clause order with `content.split(":")[0]` — the first clause's **label**, while
+deciders were `Label: value`. R16 replaced them with prose, which has no colon, so
+the expression began returning the **entire sentence** and the test silently changed
+meaning: *"does this cell hold 2+ distinct decider strings"* — entity-pool variety,
+not order. **Is R14's invariant still enforced anywhere?**
+
+**Before-numbers, measured two ways:**
+
+| mutation | old detector |
+|---|---|
+| remove clause alternation **globally** | caught — 4 failed |
+| remove it for **`travel` only** | **142 passed**, 14/14 travel positives privileged-first |
+| remove it for **`health` only** | **142 passed** |
+
+The global result is why this survived: the test is *partly* load-bearing. Families
+whose filler and counterpart are both constants (`driving`, `finance`) render a
+byte-identical sentence per cell, so their collapse is still caught. Families whose
+counterpart is drawn from a pool (`travel`, `health`, `commerce`, `quiet_hours`) are
+masked by that variation. A test that fails on the easy half and passes on the hard
+half reads exactly like a working test.
+
+**Finding: enforced for 5 of 9 families, silently, since R16.** Not by an assertion
+being relaxed — by a string operation quietly changing meaning underneath one. The
+diff that broke it added no test edit at all, which is why three reviews and the
+gate all missed it.
+
+**Shipped:** the tag now reads clause order directly, asking whether the first clause
+instantiates the frame's **privileged** template via `SkylinePolicy._filler_in` — one
+notion of "privileged clause", shared with the ceiling, built from `FRAMES`. Both
+call sites converted. The shipped-data check now merges per-split cells rather than
+`update()`-ing them, which would have silently discarded a cell if the splits ever
+stopped being frame-disjoint.
+
+**A defect in the fix, caught by the fix:** the first version put a *"the tag must
+take both values"* guard inside the shared helper. That is right at or above the
+minimum and **wrong below it** — below the minimum order genuinely does not
+alternate, so a constant tag is the correct observation there, and the guard fired
+on the very case `test_order_does_not_balance_below_it` exists to prove. Moved to the
+at-minimum test only.
+
+**After:** `travel` and `health` mutations now fail 2 tests each; clean tree 142
+passed, ruff clean.
+
+**Also cleared from the R18 review:** R18's claim that *"a locator now exists for
+each prose figure"* corrected (it holds two, and three figures plus a whole table are
+uncovered — queued); R17's deleted self-critical sentence restored; the `frames`
+docstring in `generate.py`, which still described `(privileged_label, other_label)`
+and gave `"listed_you"` as an example, corrected; queue renumbered.
+
+**Loop:** **the third instance fired, so the proposal is due.** R16 claimed
+"leaderboard unchanged" having checked 2 of 5 rows; R17 claimed a check removed the
+need to remember, having covered the table but not the prose; R18 claimed a locator
+per prose figure, having shipped two. Every one was caught by a reviewer, none by
+the gate. §6 asks a round to record what it *did* and never asks whether its
+summarising sentence is narrower than its evidence. Filed upstream.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -851,6 +1130,7 @@ already covered or out of scope, and filing them would have wasted triage.
 
 | finding | evidence from this project | disposition |
 |---|---|---|
+| §D lets a session run 3 rounds but requires the reviewer be a different session | R16 shipped, then the sequence stopped: the only agent available to review its PR was the one that wrote it. Budget said 3 rounds remained; §D's independence requirement said 0. Provable from three lines of `LOOP.md` rather than from a run. | filed — [issue #29](https://github.com/max-friedman/agentic-coding-loop/issues/29) |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |
@@ -894,6 +1174,13 @@ dataset or the policy is wrong, not the assertion.
 - Heuristic lexicons stay single words, ≤ 20 entries — no phrase-lifting.
 - Silence and skyline stay invariant to `base_rate` (neither can false-positive).
 - Hard violations are never reweighted by `base_rate`.
+
+- **Prose deciders hold three structural properties**, all asserted in
+  `TestProseFrameStructure`: the filler is never clause-initial (the body junction),
+  no clause opens with a stopword (the internal junction), and both clauses of a
+  frame put the same token before the slot (filler bigrams stay symmetric). R15's
+  rule was only the first of the three, and R16's first draft violated the second
+  in two families. Equal skeleton length (R13) is kept alongside them.
 
 - A round may reject its own queue item. The evidence stays in `experiments/`.
 - **No single-number "comprehension" score.** Refuted in R8: ICS weights by

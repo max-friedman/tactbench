@@ -33,7 +33,7 @@ Built-in policies on `v1/dev` (252 moments, 9 scenario families):
 | `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 126/252 |
 | `never` *(the bar)* | 336.0 | 0.0 | — | 0.000 | 0.500 | 0 | 0/252 |
 | `random@0.5` | 406.0 | −20.8 | 0.507 | 0.540 | 0.008 | 9 | 134/252 |
-| `heuristic` | 486.0 | −44.6 | 0.500 | 0.167 | 0.171 | 10 | 42/252 |
+| `heuristic` | 496.0 | −47.6 | 0.500 | 0.127 | 0.171 | 10 | 32/252 |
 | `always` | 630.0 | −87.5 | 0.500 | 1.000 | 0.500 | 28 | 252/252 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
@@ -138,8 +138,10 @@ and silence from 11% of the moments. Concentration plus exploitability meant a
 policy matching two substrings — `admitt` / `discharg` — and coin-flipping on the
 other eight families **beat silence at +28.0**, while the honest structural
 heuristic scored −22.9. On the current dataset that same policy scores **−89.3**,
-against the honest heuristic's −44.6. (Those two figures went three rounds without
-being re-run while the dataset was rebuilt underneath them — caught in review.)
+against the honest heuristic's −47.6. (The heuristic figure has now gone stale
+twice — three rounds in R13, and again in R16 — each time because a round changed
+the generator and checked only the rows it expected to move. `TestReadmeResultsAreCurrent`
+now fails the build instead of relying on anyone remembering.)
 
 There is no exempt family now. `TestNoKeywordExploit` fails the build if any
 keyword policy beats silence, and every family must probe under 60%.
@@ -392,19 +394,19 @@ otherwise would defeat the purpose of building a benchmark:
   than labeled by humans afterward. That makes them internally consistent but
   unvalidated against what people actually want. A human-agreement subset with
   reported inter-rater κ is the next priority.
-- **Moments are synthetic and template-generated, and the deciders are now
-  *uniform* in shape.** Round 13 rebuilt every decider as two `Label: value`
-  clauses so that the permutation holds by construction and the frames can be held
-  out cleanly. That bought validity at a real cost in naturalness: a decider now
-  reads like a status line, not like something a person or an app would actually
-  send. Eight frames per family is also still eight, and the scenarios remain a
-  small hand-authored set — nine families is nine effective degrees of freedom,
-  whatever the item count. Restoring prose phrasing while keeping the held-out
-  guarantee is open work: Round 15 built it and rejected it, because a prose clause
-  opens with its subject and that puts the filler against the body/decider boundary
-  — the one bigram that transfers through a held-out frame. The rule for the next
-  attempt (**the filler must not be clause-initial**) and the measurement isolating
-  it are in `experiments/prose_decider_probe.py`.
+- **Moments are synthetic and template-generated.** Eight frames per family is
+  still eight, and the scenarios remain a small hand-authored set — nine families
+  is nine effective degrees of freedom, whatever the item count. The deciders
+  themselves are no longer uniform: Round 16 restored prose phrasing
+  (*"Behind the screen is your prescription. Through the till is Elena's
+  prescription."*) while holding every family at the 50% chance floor on the
+  unigram **and** bigram probes. Round 13's `Label: value` shape, and the
+  naturalness cost it carried, are gone. Round 15 had built prose and rejected it —
+  a clause opening with its subject puts the filler against the body/decider
+  boundary, the one bigram that transfers through a held-out frame. The fix was to
+  put the filler at the *end* of its clause; the three structural properties that
+  keep it honest are asserted in `TestProseFrameStructure`, and the measurement
+  isolating the leak is in `experiments/prose_decider_probe.py`.
 - **Cost is concentrated in `quiet_hours`** — 87% of the `always`-versus-silence
   gap from 11% of the moments, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and

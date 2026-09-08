@@ -31,7 +31,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-from ..dataset.generate import FRAMES
+from ..dataset.generate import FRAMES, WHO
 from ..schema import Decision, Moment
 from .base import Policy
 
@@ -78,31 +78,36 @@ class SkylinePolicy(Policy):
     mislabelled a whole family the moment they did. A ceiling that is secretly a
     lookup overstates the headroom it is there to measure.
 
-    The resolver reads the decider's two ``LABEL: VALUE`` clauses, finds the one
-    whose label is the frame's **privileged** role, and asks whether the family's
-    marker occupies it. It imports ``FRAMES`` rather than restating the phrasings,
-    because two private notions of the same thing is how Round 10's split leak
-    survived nine rounds.
+    The resolver reads the decider's two prose clauses, matches one against the
+    frame's **privileged** template, and asks whether the family's marker occupies
+    that template's filler slot. It imports ``FRAMES`` rather than restating the
+    phrasings, because two private notions of the same thing is how Round 10's
+    split leak survived nine rounds -- and building the matcher *from* the template
+    means a new frame needs no resolver change.
     """
 
     name = "skyline"
 
     @staticmethod
-    def _clauses(text: str) -> list[tuple[str, str]]:
-        """Split a decider into (label, value) pairs."""
-        out = []
-        for part in text.split(". "):
-            part = part.strip().rstrip(".")
-            if ": " in part:
-                label, _, value = part.partition(": ")
-                out.append((label.strip().lower(), value.strip().lower()))
-        return out
+    def _clauses(text: str) -> list[str]:
+        """Split a decider into its clauses."""
+        return [p.strip().rstrip(".").strip() for p in text.split(". ") if p.strip()]
+
+    @staticmethod
+    def _filler_in(clause: str, template: str) -> str | None:
+        """The filler occupying ``template``'s slot in ``clause``, or None.
+
+        Built from the template rather than hand-written per family, so adding a
+        frame cannot leave the ceiling silently resolving nothing.
+        """
+        pattern = "^" + re.escape(template).replace(re.escape(WHO), "(.+?)") + "$"
+        match = re.match(pattern, clause, re.IGNORECASE)
+        return match.group(1).strip().lower() if match else None
 
     def _resolve(self, moment: Moment, text: str, low: str) -> bool:
         frames = FRAMES.get(moment.family)
         if not frames:
             return False
-        privileged = {p.lower() for p, _ in frames}
         marker = _MARKERS.get(moment.family)
         if marker is None:
             # The marker is not a constant -- read it out of the body, which is
@@ -123,8 +128,11 @@ class SkylinePolicy(Policy):
                 marker = "the " + phrase.split()[-1]
         marker = marker.lower()
 
-        for label, value in self._clauses(low):
-            if label in privileged:
+        for clause in self._clauses(low):
+            for privileged_template, _ in frames:
+                value = self._filler_in(clause, privileged_template)
+                if value is None:
+                    continue
                 # Exact, or a whole-word prefix. A bare startswith() made
                 # "a21".startswith("a2") true, so a travel pair drawing gates A2
                 # and A21 had its near-miss resolved as speak -- the ceiling
