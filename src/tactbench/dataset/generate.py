@@ -168,7 +168,9 @@ COUNTERPART_MEETINGS = [
 # Decider frames -- Round 13.
 #
 # Every family's decider names two roles and swaps which value occupies which.
-# A frame is ``(privileged_label, other_label)``: the privileged role is the one
+# A frame is ``(privileged_template, other_template)`` -- two prose clauses, each
+# carrying one ``{who}`` slot (R16; it was ``(privileged_label, other_label)`` while
+# deciders were ``Label: value``). The privileged role is the one
 # whose occupant decides the answer. Rendering puts the family's *marker* value in
 # one role and the counterpart in the other, and the pair's two sides swap them --
 # so both sides carry an identical token multiset by construction rather than by
@@ -178,8 +180,8 @@ COUNTERPART_MEETINGS = [
 # 5-7 appear only in the held-out split. Round 12 showed that varying the *entity*
 # buys nothing (91.2% -> 29.8% duplication moved the exploit 1.3 points) because
 # the frame carries the label. Varying the frame *and holding some out* is the
-# lever that was left: a bigram learned on "listed_you" does not fire on a test
-# frame that says "At the school gate".
+# lever that was left: a bigram learned on one frame's wording does not fire on a
+# held-out frame that words the same relation differently.
 #
 # This table is the single definition. `SkylinePolicy` imports it rather than
 # keeping its own copy of the phrasings -- two private notions of the same thing
@@ -372,10 +374,10 @@ class Scenario:
     #:
     #: Two properties make held-out frames actually hard, and both are load-bearing:
     #:
-    #: 1. **The label vocabulary changes per frame.** A bigram learned on dev
-    #:    frames ("listed_you") does not fire on a test frame that says "at the
-    #:    school gate today". Round 12 established that varying the *entity* buys
-    #:    nothing, because the frame carries the label; varying the frame is the
+    #: 1. **The clause vocabulary changes per frame.** A bigram learned on dev
+    #:    frames ("listed_for") does not fire on a held-out frame that says
+    #:    "Nursery rota shows". Round 12 established that varying the *entity* buys
+    #:    nothing, because the frame carries the wording; varying the frame is the
     #:    lever that was left.
     #: 2. **Clause order varies per pair, independently of the frame.** If the
     #:    privileged clause were always first, "you appears early" would answer the

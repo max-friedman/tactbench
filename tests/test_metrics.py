@@ -1141,17 +1141,59 @@ class TestOrderBalancePrecondition:
     probe, just pointing the other way.
     """
 
+    #: R19. The order tag was ``content.split(":")[0]``, which returned the first
+    #: clause's LABEL while deciders were ``Label: value``. R16 replaced them with
+    #: prose, which has no colon, so the expression began returning the entire
+    #: decider sentence and the test silently changed meaning: it measured "does
+    #: this cell contain 2+ distinct decider strings" -- entity-pool variety --
+    #: rather than clause order.
+    #:
+    #: It stayed green because it was still *partly* load-bearing. Families whose
+    #: filler and counterpart are both constants (`driving`, `finance`) produce a
+    #: byte-identical sentence per cell, so collapsing their order is still caught.
+    #: Families whose counterpart is drawn from a pool (`travel`, `health`,
+    #: `commerce`, `quiet_hours`) are masked by that variation: removing clause
+    #: alternation from `travel` entirely left the whole suite green with 14 of 14
+    #: travel positives privileged-clause-first, which is precisely the defect R14
+    #: wrote this test to prevent.
+    #:
+    #: The tag now reads the order itself, by asking whether the first clause
+    #: instantiates the frame's *privileged* template -- reusing the matcher the
+    #: skyline already builds from `FRAMES`, so there is one notion of what a
+    #: privileged clause is.
     @staticmethod
-    def _single_order_cells(n_pairs: int) -> int:
-        orders: dict[tuple[str, int], set[str]] = {}
-        for item in generate(n_pairs_per_scenario=n_pairs):
+    def _privileged_first(item: Item) -> bool:
+        frames = FRAMES[item.moment.family]
+        privileged_template = frames[frame_of(item.moment) % len(frames)][0]
+        first_clause = item.moment.signals[-1].content.split(". ")[0].rstrip(".")
+        return SkylinePolicy._filler_in(first_clause, privileged_template) is not None
+
+    @classmethod
+    def _order_cells(cls, items) -> dict[tuple[str, int], set[bool]]:
+        orders: dict[tuple[str, int], set[bool]] = {}
+        for item in items:
             if item.label.should_surface:
                 key = (item.moment.family, frame_of(item.moment))
-                orders.setdefault(key, set()).add(item.moment.signals[-1].content.split(":")[0])
-        return sum(1 for v in orders.values() if len(v) == 1)
+                orders.setdefault(key, set()).add(cls._privileged_first(item))
+        return orders
+
+    @classmethod
+    def _single_order_cells(cls, n_pairs: int) -> int:
+        cells = cls._order_cells(generate(n_pairs_per_scenario=n_pairs))
+        return sum(1 for v in cells.values() if len(v) == 1)
 
     def test_order_balances_at_the_documented_minimum(self):
-        assert self._single_order_cells(MIN_PAIRS_FOR_BALANCED_ORDER) == 0
+        cells = self._order_cells(generate(n_pairs_per_scenario=MIN_PAIRS_FOR_BALANCED_ORDER))
+        # The tag must actually vary here, or "zero single-order cells" would be
+        # satisfiable by a tag that reads nothing. This guard belongs at the
+        # minimum and NOT in the shared helper: below the minimum, order genuinely
+        # does not alternate, so a constant tag is the correct observation there
+        # rather than a broken one.
+        assert {v for s in cells.values() for v in s} == {True, False}, (
+            "the order tag is constant across the whole generated set -- it is not "
+            "reading clause order"
+        )
+        assert sum(1 for v in cells.values() if len(v) == 1) == 0
 
     def test_order_does_not_balance_below_it(self):
         """The precondition is real, not defensive. If this ever passes, the
@@ -1161,12 +1203,13 @@ class TestOrderBalancePrecondition:
     def test_the_shipped_dataset_uses_a_legal_size(self):
         """20 pairs, which is what `tactbench build` defaults to."""
         assert balanced_order(20)
-        counts: dict[tuple[str, int], set[str]] = {}
+        counts: dict[tuple[str, int], set[bool]] = {}
         for split in ("dev", "test"):
-            for item in load("v1", split):
-                if item.label.should_surface:
-                    key = (item.moment.family, frame_of(item.moment))
-                    counts.setdefault(key, set()).add(item.moment.signals[-1].content.split(":")[0])
+            # Merge, don't update: the splits are frame-disjoint today, so their
+            # keys never collide, but `update` would silently discard a cell if
+            # that ever stopped being true.
+            for key, orders in self._order_cells(load("v1", split)).items():
+                counts.setdefault(key, set()).update(orders)
         singles = [k for k, v in counts.items() if len(v) == 1]
         assert not singles, f"shipped data has single-order cells: {singles[:3]}"
 

@@ -13,7 +13,7 @@ findings** below.
 
 ## Current status
 
-- **Round:** 18 complete
+- **Round:** 19 complete
 - **Gate:** green — **142 passed**, ruff clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -228,17 +228,23 @@ halt the loop.**
    both `main` and the branch**. The README was correct all along, and a queue item
    was standing that could have deleted a true claim. The figure is now covered by
    `TestReadmeResultsAreCurrent.test_prose_figures_match_a_fresh_eval`.
-2. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
+3. **Cover the README figures the prose check still misses (new, R19).** The
+   R18 review named three: `−87.5 normalized` and `294 more ICS` (README:40),
+   `0.500 precision` (README:45), and the whole comprehension-sweep table, which
+   the `ROW` regex cannot match because those rows carry no backticked policy
+   name. All are correct today — recomputed on both trees — so this is a coverage
+   gap, not a stale number. Extend `PROSE`, or generalise the table regex.
+4. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
    (*filler not clause-initial*) was necessary but not sufficient; clause-final
    moves the leak to the internal junction. Three properties now asserted in
    `TestProseFrameStructure`. See `experiments/prose_decider_probe.py`.
-3. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
+5. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
    state difference *is* the judgment under test? The invariant currently
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
-3. **An order-sensitive shortcut probe (R10) — DONE in R11.** Kept here only as a
+6. **An order-sensitive shortcut probe (R10) — DONE in R11.** Kept here only as a
    pointer: the answer was that the audit had a structural blind spot.
    Superseded by item 1.
    <details><summary>original entry</summary> Every
@@ -249,12 +255,18 @@ halt the loop.**
    genuinely evidenced; if it separates families, the deciders leak in a way
    nine rounds of auditing could not see. Either result is worth the round.
    </details>
-4. **More families still welcome** — nine is better than six but still one
+7. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-5. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+8. **Type checking** — no mypy/pyright configured; worth adding to CI once the
    schema surface settles.
-6. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+9. **`CHANGELOG.md` has no entries for R15–R18**, still asserts *"Bigrams reach
+   97.2%"* against a current 50.0%, and its R13 block still lists the
+   `Label: value` uniformity as a live limitation that R16 removed. The tone rule
+   requires retiring a limitation when the capability ships; that was done in
+   README and not here. The 97.2% figure was already wrong on `main`, so it is not
+   R16's doing — but R16 moved bigram overall 51.1% → 50.0% and did not look.
+10. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
@@ -1015,6 +1027,18 @@ catch:
 | prose keyword −89.3 → −77.4 (the bad number) | caught |
 | sentence reworded so the locator misses | caught, as a locator error |
 
+> **Corrected in review (R19).** This entry claimed *"a locator now exists for each
+> prose figure"*. It does not: `PROSE` holds two locators, and at least three other
+> eval-derived figures in the README are uncovered — the `−87.5 normalized` and
+> `294 more ICS` at README:40, the `0.500 precision` at README:45, and the entire
+> comprehension-sweep table, whose rows the `ROW` regex cannot match. **This is the
+> third consecutive round whose writeup asserted broader coverage than it measured**,
+> which is the trigger this entry's own `Loop:` line set. R19 files it upstream.
+>
+> This rewrite also deleted a true, self-critical sentence from R17 — *"the new check
+> does not cover it — that policy is not in `registry()`"* — which was the line
+> showing R17 knew about the very gap R18 faulted it for. Restored here.
+
 **Shipped:** `test_prose_figures_match_a_fresh_eval`; the results-table check now
 compares the `/252` denominator it had been parsing and discarding (`32/999` passed
 before); R17's `−77.4` corrected in place with the error left visible; the queue
@@ -1030,6 +1054,67 @@ actually measured, and both times a reviewer caught it rather than the gate. If 
 third round does this, it is a §C proposal — the protocol's §6 asks a round to
 record what it *did*, and nothing asks it to check whether its summarising sentence
 is narrower than its evidence.
+
+---
+
+## Round 19 — an invariant that had been hollow since R16
+
+**Question:** R18's review found a hard stop. `TestOrderBalancePrecondition` tagged
+clause order with `content.split(":")[0]` — the first clause's **label**, while
+deciders were `Label: value`. R16 replaced them with prose, which has no colon, so
+the expression began returning the **entire sentence** and the test silently changed
+meaning: *"does this cell hold 2+ distinct decider strings"* — entity-pool variety,
+not order. **Is R14's invariant still enforced anywhere?**
+
+**Before-numbers, measured two ways:**
+
+| mutation | old detector |
+|---|---|
+| remove clause alternation **globally** | caught — 4 failed |
+| remove it for **`travel` only** | **142 passed**, 14/14 travel positives privileged-first |
+| remove it for **`health` only** | **142 passed** |
+
+The global result is why this survived: the test is *partly* load-bearing. Families
+whose filler and counterpart are both constants (`driving`, `finance`) render a
+byte-identical sentence per cell, so their collapse is still caught. Families whose
+counterpart is drawn from a pool (`travel`, `health`, `commerce`, `quiet_hours`) are
+masked by that variation. A test that fails on the easy half and passes on the hard
+half reads exactly like a working test.
+
+**Finding: enforced for 5 of 9 families, silently, since R16.** Not by an assertion
+being relaxed — by a string operation quietly changing meaning underneath one. The
+diff that broke it added no test edit at all, which is why three reviews and the
+gate all missed it.
+
+**Shipped:** the tag now reads clause order directly, asking whether the first clause
+instantiates the frame's **privileged** template via `SkylinePolicy._filler_in` — one
+notion of "privileged clause", shared with the ceiling, built from `FRAMES`. Both
+call sites converted. The shipped-data check now merges per-split cells rather than
+`update()`-ing them, which would have silently discarded a cell if the splits ever
+stopped being frame-disjoint.
+
+**A defect in the fix, caught by the fix:** the first version put a *"the tag must
+take both values"* guard inside the shared helper. That is right at or above the
+minimum and **wrong below it** — below the minimum order genuinely does not
+alternate, so a constant tag is the correct observation there, and the guard fired
+on the very case `test_order_does_not_balance_below_it` exists to prove. Moved to the
+at-minimum test only.
+
+**After:** `travel` and `health` mutations now fail 2 tests each; clean tree 142
+passed, ruff clean.
+
+**Also cleared from the R18 review:** R18's claim that *"a locator now exists for
+each prose figure"* corrected (it holds two, and three figures plus a whole table are
+uncovered — queued); R17's deleted self-critical sentence restored; the `frames`
+docstring in `generate.py`, which still described `(privileged_label, other_label)`
+and gave `"listed_you"` as an example, corrected; queue renumbered.
+
+**Loop:** **the third instance fired, so the proposal is due.** R16 claimed
+"leaderboard unchanged" having checked 2 of 5 rows; R17 claimed a check removed the
+need to remember, having covered the table but not the prose; R18 claimed a locator
+per prose figure, having shipped two. Every one was caught by a reviewer, none by
+the gate. §6 asks a round to record what it *did* and never asks whether its
+summarising sentence is narrower than its evidence. Filed upstream.
 
 ---
 
