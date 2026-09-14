@@ -181,16 +181,17 @@ Two rounds of fixing established *why*:
 **A surface model no longer beats silence.** Getting there took four properties,
 and only the first was foreseen — the other three came out of measurement:
 
-1. **The label vocabulary changes per frame**, so a bigram learned on `listed_you`
-   does not fire on a frame that says *"Fetching kids"*.
+1. **The clause vocabulary changes per frame**, so a bigram learned on
+   *"Pickup today is listed for"* does not fire on a frame that says
+   *"Nursery rota shows"*.
 2. **All eight frames of a family are pairwise lexically disjoint**, on stems. The
    weaker rule — held-out frames differ from training frames — is not enough:
-   `collected` was the *other* label in health frames 0 and 2, both training
-   frames, and a bigram learned on one answered the other through the fold.
-3. **Both labels in a frame carry the same token count.** Otherwise the marker's
-   position shifts with which clause it occupies, and a position-tagged probe read
-   five of nine families above the per-family bound while every gated check stayed
-   green.
+   `collected` appeared in health frames 0 and 2, both training frames, and a
+   bigram learned on one answered the other through the fold.
+3. **Both clauses of a frame carry the same token count**, counted with the filler
+   slot removed. Otherwise the marker's position shifts with which clause it
+   occupies, and a position-tagged probe read five of nine families above the
+   per-family bound while every gated check stayed green.
 4. **Clause order alternates within each frame.** Drawing it from a digest of the
    pair id left a third of the (family, frame) cells single-order, and inside such
    a cell "the marker is in clause 0" answers the item outright.

@@ -13,7 +13,7 @@ findings** below.
 
 ## Current status
 
-- **Round:** 19 complete
+- **Round:** 20 complete
 - **Gate:** green — **142 passed**, ruff clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -1081,10 +1081,20 @@ counterpart is drawn from a pool (`travel`, `health`, `commerce`, `quiet_hours`)
 masked by that variation. A test that fails on the easy half and passes on the hard
 half reads exactly like a working test.
 
-**Finding: enforced for 5 of 9 families, silently, since R16.** Not by an assertion
+**Finding: enforced for 6 of 9 families, silently, since R16.** Not by an assertion
 being relaxed — by a string operation quietly changing meaning underneath one. The
 diff that broke it added no test edit at all, which is why three reviews and the
 gate all missed it.
+
+> **Corrected in review (R20).** This entry said **5 of 9** and named `travel`,
+> `health`, `commerce` and `quiet_hours` as masked. Both are wrong: it is **6 of 9**,
+> and `quiet_hours` was caught. The count rested on three measurements — global,
+> travel, health — and was extrapolated to nine families by a mechanism
+> ("counterparts drawn from a pool are masked") that R20 measured and falsified:
+> `childcare`, `deadline`, `meeting_prep` and `quiet_hours` all draw pool
+> counterparts and all were caught. **This round shipped the §C finding about
+> writeups claiming broader coverage than they measured, inside a writeup doing
+> exactly that.** See Round 20 for the measured table and the real mechanism.
 
 **Shipped:** the tag now reads clause order directly, asking whether the first clause
 instantiates the frame's **privileged** template via `SkylinePolicy._filler_in` — one
@@ -1115,6 +1125,74 @@ need to remember, having covered the table but not the prose; R18 claimed a loca
 per prose figure, having shipped two. Every one was caught by a reviewer, none by
 the gate. §6 asks a round to record what it *did* and never asks whether its
 summarising sentence is narrower than its evidence. Filed upstream.
+
+---
+
+## Round 20 — measuring the claim R19 extrapolated
+
+**Question:** R19's review failed check 1. R19 claimed the broken order detector had
+been *"enforced for 5 of 9 families"* and named four as masked, on the strength of
+three measurements — global, `travel`, `health`. **What do all nine actually show?**
+
+**Method:** force `first_is_privileged = True` for one family at a time, rebuild
+`data/v1`, and count single-order cells under both the old tag
+(`content.split(":")[0]`) and the new one. Nine families, both detectors.
+
+**A measurement artifact, caught before it became a finding.** The first sweep
+reported `finance` and `health` as *not collapsing at all* — which contradicted the
+suite run minutes earlier. The cause was this loop rewriting `generate.py` and
+re-running inside the same second: Python's mtime-based bytecode invalidation has
+one-second granularity, so `uv run` reused a stale `__pycache__`. Clearing the cache
+between iterations fixed it. Recorded because the wrong numbers were two keystrokes
+from being written up as a result, in a round about exactly that.
+
+**Measured — single-order cells of 8, with that family's order collapsed:**
+
+| family | old tag | new tag |
+|---|---|---|
+| `driving` | **8/8** | 8/8 |
+| `finance` | **8/8** | 8/8 |
+| `meeting_prep` | 3/8 | 8/8 |
+| `childcare` | 2/8 | 8/8 |
+| `deadline` | 1/8 | 8/8 |
+| `commerce` | 0/8 | 8/8 |
+| `health` | 0/8 | 8/8 |
+| `quiet_hours` | 0/8 | 8/8 |
+| `travel` | 0/8 | 8/8 |
+
+**Findings, three of them:**
+
+1. **R19's count was wrong: 6 of 9, not 5.** `quiet_hours` shows 0/8 at n=16 but
+   trips the shipped-data check at n=20, where the two tests use different sizes.
+   R19 listed it as masked.
+2. **R19's mechanism was wrong.** It said families drawing pool counterparts are
+   masked. `childcare`, `deadline`, `meeting_prep` and `quiet_hours` all draw pool
+   counterparts and all were caught.
+3. **The truth is worse than R19 claimed.** Only `driving` and `finance` read 8/8 —
+   full structural detection, because both their fillers are constants, so a
+   collapsed cell renders a byte-identical sentence. The middle four read **1–3 of
+   8**: partial detection from coincidental entity collisions, not from measuring
+   order. A detector that catches 1 cell in 8 is not enforcing an invariant.
+   **Structurally enforced for 2 of 9.**
+
+**The new tag reads 8/8 for every family** — order collapse is detected uniformly,
+by construction rather than by coincidence. Confirmed independently at suite level:
+all nine per-family mutations fail 2 tests each.
+
+**Shipped:** R19's finding corrected in place with the error visible; the
+`(privileged_label, other_label)` description finished in `generate.py:367` and
+`CONTRIBUTING.md:81` — R19 claimed to have corrected it and fixed only one of three
+sites; `CONTRIBUTING.md` now also names the three `TestProseFrameStructure`
+properties a new family must satisfy, since that file is what a contributor follows.
+
+**Consequences, verified:** 142 passed, ruff clean. No production behaviour changed —
+docstrings and the state file only.
+
+**Loop:** fourth consecutive round where a writeup claimed more than it measured, and
+the first where the round *knew about the pattern and did it anyway*. R19 shipped the
+§C trigger inside a writeup that extrapolated nine families from three. The proposal
+is drafted and awaiting approval; this round is now its strongest evidence, because
+it shows naming the pattern does not stop it.
 
 ---
 

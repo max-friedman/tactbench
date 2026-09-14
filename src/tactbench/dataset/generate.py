@@ -364,7 +364,9 @@ class Scenario:
 
     #: Structural phrasings of the decider. Round 13.
     #:
-    #: Each entry is ``(privileged_label, other_label)``. The decider always names
+    #: Each entry is ``(privileged_template, other_template)`` — two prose clauses,
+    #: each carrying exactly one ``{who}`` slot, never clause-initial (R16). The
+    #: decider always names
     #: two roles; the **privileged** one is the role whose occupant decides the
     #: answer (the parent doing pickup, the on-call primary, the account autopay
     #: draws from). Rendering fills one role with ``you`` and the other with an
