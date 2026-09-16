@@ -10,6 +10,13 @@ to the thing, so "restore prose" went to the top of the queue.
 Round 15 built it and **rejected it**. The evidence is here so the next attempt
 starts from the rule rather than rediscovering it.
 
+**Round 16 shipped it.** The rule below was necessary but not sufficient: putting
+the filler clause-*final* closes the body junction, and two further properties close
+the mirror trap this module already flagged — no clause may open with a stopword,
+and both clauses of a frame must put the same token before the slot. All three are
+asserted in ``TestProseFrameStructure``. Every family now reads 50.0% on both
+columns below. The rest of this docstring is the Round 15 record that got there.
+
 What was built
 --------------
 A full prose frame table -- nine families x eight frames -- as clause templates
@@ -138,14 +145,17 @@ def main() -> None:
         print(f"{family:<14} {a:>12.1%} {d:>13.1%}")
 
     print(
-        "\nOn the SHIPPED `Label: value` deciders these two columns agree, because a\n"
-        "clause opens with a frame-specific label and the body/decider junction\n"
-        "carries nothing. On the prose deciders Round 15 built and rejected, health\n"
-        "read 75.0% under 'all signals' and exactly 50.0% under 'decider only' --\n"
-        "the whole leak was the junction, because a prose clause opens with its\n"
+        "\nThese two columns agreeing is the property that matters: it means the\n"
+        "body/decider junction carries nothing, so no bigram can ride the shared\n"
+        "body through a held-out frame.\n\n"
+        "They agreed on Round 13's `Label: value` deciders by accident -- those\n"
+        "clauses opened with a frame-specific label. They did NOT agree on the prose\n"
+        "Round 15 built and rejected: health read 75.0% under 'all signals' and\n"
+        "exactly 50.0% under 'decider only', because a prose clause opens with its\n"
         "subject, which is the filler.\n\n"
-        "Rule for the next attempt: THE FILLER MUST NOT BE CLAUSE-INITIAL.\n"
-        "See this module's docstring."
+        "Round 16 shipped prose that agrees on purpose, by putting the filler at the\n"
+        "END of its clause. The rule is now three properties, asserted in\n"
+        "TestProseFrameStructure -- see this module's docstring."
     )
 
 

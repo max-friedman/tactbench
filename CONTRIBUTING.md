@@ -48,8 +48,8 @@ false.** A bag-of-words probe that never saw user state separated the two sides 
 Structural pairing is not lexical pairing. Swap roles instead of rewriting:
 
 ```
-positive:  On-call rotation — primary: you,   secondary: Priya Raman.
-near-miss: On-call rotation — primary: Priya Raman, secondary: you.
+positive:  Primary escalation goes to you. Secondary escalation goes to Priya Raman.
+near-miss: Primary escalation goes to Priya Raman. Secondary escalation goes to you.
 ```
 
 Identical token multiset. *Vocabulary* cannot separate them; only resolving
@@ -78,8 +78,12 @@ item is worded in a way that appears nowhere in training. A bag-of-bigrams now
 ties silence at **+0.0 two-sided**, down from +99.4.
 
 **What this means for adding a family.** Add eight entries to `FRAMES[your_family]`
-in `dataset/generate.py`, as `(privileged_label, other_label)` pairs, plus a
-`fillers()` returning `(marker, counterpart)`. The permutation then holds by
+in `dataset/generate.py`, as `(privileged_template, other_template)` pairs — two
+prose clauses, each carrying exactly one `{who}` slot — plus a `fillers()` returning
+`(marker, counterpart)`. `TestProseFrameStructure` enforces three properties on
+those clauses: the slot is never clause-initial, no clause opens with a stopword,
+and both clauses of a frame put the same token immediately before the slot. Each
+exists because breaking it reopens a measured leak; see `docs/DATASET.md`. The permutation then holds by
 construction — you cannot accidentally write two sentences instead of one
 permutation, which is the mistake the old free-text templates invited. Vary the
 label vocabulary genuinely across the eight: frames 5–7 are the held-out ones, and
