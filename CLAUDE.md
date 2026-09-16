@@ -128,6 +128,7 @@ rater count and agreement. Never present a constructed label as validated.
 ```bash
 uv run pytest -q          # must be green before any commit
 uv run ruff check .
+uv run ruff format --check .   # CI's lint job runs this too; `ruff check` alone is not the gate
 uv run tactbench eval     # sanity-check the leaderboard still makes sense
 uv run tactbench serve    # look at actual failures, not just the number
 ```

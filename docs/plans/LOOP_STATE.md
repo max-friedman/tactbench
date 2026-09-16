@@ -14,7 +14,8 @@ findings** below.
 ## Current status
 
 - **Round:** 20 complete
-- **Gate:** green — **142 passed**, ruff clean, **enforced by CI** on py3.11-3.13.
+- **Gate:** green — **142 passed**, `ruff check` **and** `ruff format --check` both
+  clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
 - **Dataset:** `v1` — 360 items (252 dev / 108 test), 9 families × 8 **prose**
@@ -964,7 +965,7 @@ watched it fail on the specific thing you built it for.
 parenthetical corrected; R16's *"leaderboard unchanged"* claim corrected in place
 with the error left visible.
 
-**Consequences, verified:** 140 → 141 tests, ruff clean. No production code
+**Consequences, verified:** 140 → 141 tests, `ruff check` clean. No production code
 touched, so audit, probe and leaderboard are unchanged from R16 by construction.
 
 **Noted, not built:** the `−89.3` keyword-exploit figure in the same README
@@ -1044,7 +1045,7 @@ compares the `/252` denominator it had been parsing and discarding (`32/999` pas
 before); R17's `−77.4` corrected in place with the error left visible; the queue
 item resolved rather than left standing.
 
-**Consequences, verified:** 141 → 142 tests, ruff clean. No production code touched.
+**Consequences, verified:** 141 → 142 tests, `ruff check` clean. No production code touched.
 
 **Loop:** *a pattern is forming, and this is its second instance.* R16 claimed
 "leaderboard unchanged" having checked two of five rows. R17 claimed the check
@@ -1111,7 +1112,7 @@ on the very case `test_order_does_not_balance_below_it` exists to prove. Moved t
 at-minimum test only.
 
 **After:** `travel` and `health` mutations now fail 2 tests each; clean tree 142
-passed, ruff clean.
+passed, `ruff check` clean.
 
 **Also cleared from the R18 review:** R18's claim that *"a locator now exists for
 each prose figure"* corrected (it holds two, and three figures plus a whole table are
@@ -1185,7 +1186,7 @@ all nine per-family mutations fail 2 tests each.
 sites; `CONTRIBUTING.md` now also names the three `TestProseFrameStructure`
 properties a new family must satisfy, since that file is what a contributor follows.
 
-**Consequences, verified:** 142 passed, ruff clean. No production behaviour changed —
+**Consequences, verified:** 142 passed, `ruff check` clean. No production behaviour changed —
 docstrings and the state file only.
 
 **Loop:** fourth consecutive round where a writeup claimed more than it measured, and
@@ -1193,6 +1194,18 @@ the first where the round *knew about the pattern and did it anyway*. R19 shippe
 §C trigger inside a writeup that extrapolated nine families from three. The proposal
 is drafted and awaiting approval; this round is now its strongest evidence, because
 it shows naming the pattern does not stop it.
+
+> **Corrected in review (pre-merge).** R17–R20 each recorded "ruff clean" and the
+> status line at the top of this file said the gate was green. Neither was true:
+> `uv run ruff format --check .` had been failing since R17 (`tests/test_metrics.py`,
+> two hunks), and CI's `lint` job runs it. **Every one of those four rounds ran
+> `ruff check` and none ran the second command**, because `CLAUDE.md`'s "Working on
+> this" block listed only the first — the four claims are now narrowed to what was
+> actually run. Fixed in place on this branch rather than as a new round: `ruff
+> format .` applied, the status line now names both commands, and `CLAUDE.md` gained
+> `ruff format --check .` so the omission cannot recur. The lesson is not about ruff.
+> **A status line that says "gate green" is a claim about a specific command set, and
+> four consecutive reviews read it without checking that the set matched CI's.**
 
 ---
 

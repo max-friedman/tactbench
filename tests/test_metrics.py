@@ -1251,10 +1251,7 @@ class TestReadmeResultsAreCurrent:
 
         items = load("v1", "dev")
         silence = silence_ics(items)
-        cards = {
-            name: evaluate(p, items, reference=silence)
-            for name, p in registry().items()
-        }
+        cards = {name: evaluate(p, items, reference=silence) for name, p in registry().items()}
 
         missing = sorted(set(cards) - set(rows))
         assert not missing, f"README results table is missing policies: {missing}"
@@ -1330,9 +1327,7 @@ class TestReadmeResultsAreCurrent:
         items = load("v1", "dev")
         silence = silence_ics(items)
         computed = {
-            "heuristic": evaluate(
-                registry()["heuristic"], items, reference=silence
-            ).ics_normalized,
+            "heuristic": evaluate(registry()["heuristic"], items, reference=silence).ics_normalized,
             "keyword": evaluate(
                 TestNoKeywordExploit._KeywordPolicy({"admitt"}, {"discharg"}),
                 items,
