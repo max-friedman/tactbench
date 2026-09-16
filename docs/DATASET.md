@@ -68,6 +68,30 @@ clause-final and added two properties that close the mirror trap — no clause o
 with a stopword, and both clauses of a frame put the same token before the slot.
 `TestProseFrameStructure` asserts all three.
 
+Round 21 ruled on the join itself, which Round 15 had flagged as unresolved and
+load-bearing. **It stays.** A submitter picks their own representation, so the probe
+takes the upper bound over representations rather than modelling one reader: a policy
+serializing the moment into a single prompt genuinely sees that junction, and
+tokenizing signals separately would report "clean" for a leak an LLM baseline could
+take. Keeping it costs nothing, and `TestSignalJoinIsFree` asserts that the cost is
+zero **exactly** — joined and per-signal bigram accuracy must be identical, with no
+tolerance, because across 270 family-seed cells the gap is not merely small but
+always zero.
+
+The same round re-derived the three properties by mutating each in turn, and kept
+all three. Two results are worth recording:
+
+- On the shipped seed, a clause-initial filler reaches only **53.6% exploitable** —
+  *under* the 60% bound, so the gate would stay green. `TestSignalJoinIsFree` catches
+  it anyway. The bound does catch it on other seeds (up to 69.3%), which means the
+  gate's detection of Round 15's defect had been **seed-dependent**.
+- Violating the stopword rule moves nothing at all on `health`, and it is the only
+  family where that is true: its fillers (`your prescription` / `Elena's
+  prescription`) share a final token, so the internal junction bigram is identical
+  whichever role each noun plays. Across all nine, the violation is worth up to
+  **+16.1%** and breaches the bound for `commerce`. Measuring it on `health` alone
+  would have justified deleting a live assertion.
+
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
 audit** — which is exactly what a token permutation guarantees, since that probe

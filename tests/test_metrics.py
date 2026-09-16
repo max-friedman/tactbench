@@ -17,6 +17,7 @@ import pytest
 
 from tactbench.audit import (
     LeakageReport,
+    _frame_key,
     _NaiveBayes,
     item_bigrams,
     item_positional,
@@ -24,6 +25,7 @@ from tactbench.audit import (
     lexical_leakage,
     ngram_leakage,
     positional_leakage,
+    tokenize,
     verbatim_overlap,
 )
 from tactbench.dataset.generate import (
@@ -1043,6 +1045,110 @@ class TestFrameDisjointness:
         assert HELD_OUT_FRAMES == frozenset({5, 6, 7})
         for family, frames in FRAMES.items():
             assert max(HELD_OUT_FRAMES) < len(frames), family
+
+
+class TestSignalJoinIsFree:
+    """The audit joins signals before tokenizing. This asserts the join costs nothing.
+
+    ``item_tokens`` concatenates every signal, so bigrams span the boundary between
+    the **shared body** signal and the **discriminating decider**. Round 15 flagged
+    that as load-bearing and unresolved; Round 21 ruled on it and kept it, because a
+    submitter picks their own representation and the probe should take the upper
+    bound over representations rather than model one particular reader.
+
+    The junction matters more than any other adjacency: body text is identical across
+    all eight frames of a family, so a bigram anchored there **survives a held-out
+    frame**. Every other discriminating bigram dies with its frame. It is the one
+    place the dev/test split can be defeated.
+
+    So the join is kept, and its cost is asserted rather than assumed: if the deciders
+    are well-formed, joining buys the probe nothing and the two tokenizations must
+    score the *same*.
+
+    **Exactly the same.** This assertion carries no tolerance, which is unusual here
+    and is a measurement, not an aspiration: across 270 family-seed cells (9 families
+    x 30 seeds) the gap is identically zero, at every dataset size tried. When the
+    junction carries no signal the two feature sets differ only by bigrams constant
+    across both classes, and a constant feature cannot move a Naive Bayes decision.
+
+    Inverting health's clauses to put the filler clause-initial -- Round 15's defect
+    -- breaks it in **30 of 30 seeds at this size**. Detection is *not* monotonic in
+    ``n_pairs_per_scenario``: the same mutation is caught in 25/30 seeds at 16 pairs
+    and 28/30 at 40, because which frames land in which fold shifts with the size. So
+    this is a strong detector of the clause-initial defect, not a proof against it.
+    What is exact at every size is the **zero false-positive rate** -- which is the
+    property that lets the assertion run without a tolerance.
+
+    **Why this is not redundant with the 60% per-family bound.** On the shipped seed
+    that same defect reaches only 53.6% exploitable. The bound passes it; this fails
+    it. The bound does catch it on other seeds (up to 69.3%), which means the gate's
+    detection of Round 15's defect was seed-dependent. This check is not.
+
+    It is complementary, not a replacement, and deliberately narrow --- it sees the
+    *body* junction only. A differing token before the slot lives at the internal
+    clause-to-clause junction, which both tokenizations cross, so this check is blind
+    to it; the 60% bound catches that one at 100% exploitable. All three
+    ``TestProseFrameStructure`` properties still earn their place. See
+    ``experiments/signal_join_probe.py`` for the full mutation matrix.
+    """
+
+    @staticmethod
+    def _separated_bigrams(item: Item) -> list[str]:
+        """Each signal tokenized alone -- no bigram crosses a signal boundary."""
+        out: list[str] = []
+        for signal in item.moment.signals:
+            toks = tokenize(signal.content)
+            out.extend(f"{a}_{b}" for a, b in zip(toks, toks[1:], strict=False))
+        return out
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_join_buys_the_probe_nothing(self, family):
+        # 30 rather than MIN_PAIRS_FOR_BALANCED_ORDER: at the 16-pair minimum this
+        # check still never false-positives, but it catches the clause-initial
+        # mutation in only 25 of 30 seeds. 30 pairs takes it to 30 of 30 for ~0.1s.
+        items = [i for i in generate(n_pairs_per_scenario=30) if i.moment.family == family]
+        joined = lexical_leakage(items, features=item_bigrams, group=_frame_key)
+        separate = lexical_leakage(items, features=self._separated_bigrams, group=_frame_key)
+
+        assert joined.accuracy == separate.accuracy, (
+            f"{family}: joining signals moves the bigram probe "
+            f"{separate.accuracy:.1%} -> {joined.accuracy:.1%}. Something in the "
+            "decider is discriminating *at the body boundary*, and the body is shared "
+            "by all eight frames, so that bigram transfers straight through a held-out "
+            "frame. Check that no decider clause opens with its filler. Fix the frames "
+            "in dataset/generate.py -- do not add a tolerance here, and do not stop "
+            "joining: the join is the upper bound over how a submitter might serialize "
+            "the moment (see audit.item_tokens)."
+        )
+
+    def test_the_check_would_notice_a_clause_initial_filler(self):
+        """The assertion above is worthless if nothing can fail it.
+
+        Round 15's defect, reintroduced in one family and nothing else: each shipped
+        ``health`` clause reads ``"<skeleton> is {who}"``, and inverting it to
+        ``"{who} is <skeleton>"`` moves the filler to clause-initial while keeping all
+        eight frames distinctly worded, the permutation intact and the token multiset
+        unchanged. The only thing that moves is which token sits against the body.
+        """
+        original = FRAMES["health"]
+        FRAMES["health"] = [
+            tuple(
+                "{who} is "
+                + c.removesuffix(" is {who}")[0].lower()
+                + c.removesuffix(" is {who}")[1:]
+                for c in frame
+            )
+            for frame in original
+        ]
+        try:
+            with pytest.raises(AssertionError, match="at the body boundary"):
+                self.test_join_buys_the_probe_nothing("health")
+        finally:
+            FRAMES["health"] = original
+
+        # And the guard restores cleanly -- a mutation test that leaks state would
+        # make every later test in the session meaningless.
+        self.test_join_buys_the_probe_nothing("health")
 
 
 class TestProseFrameStructure:

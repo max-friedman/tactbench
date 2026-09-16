@@ -9,7 +9,7 @@ README doesn't hold.
 Everything must pass before a PR merges. CI runs all of it on Python 3.11–3.13.
 
 ```bash
-uv run pytest -q          # 60 tests
+uv run pytest -q
 uv run ruff check .
 uv run ruff format --check .
 uv run tactbench audit    # per-family shortcut probe
@@ -83,7 +83,17 @@ prose clauses, each carrying exactly one `{who}` slot — plus a `fillers()` ret
 `(marker, counterpart)`. `TestProseFrameStructure` enforces three properties on
 those clauses: the slot is never clause-initial, no clause opens with a stopword,
 and both clauses of a frame put the same token immediately before the slot. Each
-exists because breaking it reopens a measured leak; see `docs/DATASET.md`. The permutation then holds by
+exists because breaking it reopens a measured leak; see `docs/DATASET.md`.
+Round 21 re-derived all three by mutation and kept all three — the stopword rule
+alone is worth up to **+16.1%** to a bigram probe, and breaches the 60% bound for
+`commerce`.
+
+A fourth check, `TestSignalJoinIsFree`, comes free with them: the audit joins
+signals before tokenizing, so it asserts that joining and *not* joining score
+**exactly** the same. If your family fails it, a bigram in your decider is
+discriminating at the boundary with the shared body text — which every frame of
+the family shares, so it will survive the held-out split. That assertion has no
+tolerance on purpose; fix the frames rather than loosening it. The permutation then holds by
 construction — you cannot accidentally write two sentences instead of one
 permutation, which is the mistake the old free-text templates invited. Vary the
 label vocabulary genuinely across the eight: frames 5–7 are the held-out ones, and
@@ -119,6 +129,8 @@ assertion. A PR that loosens a threshold to go green will be sent back.
 - Heuristic lexicons stay single words, ≤ 20 entries — no phrase-lifting from the
   generator.
 - Hard violations are never averaged into ICS or reweighted by `--base-rate`.
+- Joining signals before tokenizing buys the shortcut probe **exactly nothing** —
+  joined and per-signal bigram accuracy must be bit-identical, no tolerance.
 
 ## Two rules about honesty
 
