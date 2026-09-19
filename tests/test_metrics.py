@@ -1092,8 +1092,7 @@ class TestSignalJoinIsFree:
     it did.** Round 21 originally justified it that way and the claim was wrong.
     ``TestProseFrameStructure.test_the_filler_is_never_clause_initial`` already fails
     on a clause-initial filler -- deterministically, on every family, with no dataset
-    and no seed -- and ``TestOrderSensitiveShortcut`` fails on it too, sweeping seeds
-    1-8 and taking the worst. Against that mutation this check is strictly weaker: a
+    and no seed. Against that mutation this check is strictly weaker: a
     Naive Bayes estimate that fires on 7 of 9 families where the structural assertion
     fires on 9 of 9. It is only the *60% per-family bound* that lets the defect
     through (2 of 9), not the gate.

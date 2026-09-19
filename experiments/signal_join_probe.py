@@ -122,10 +122,11 @@ protecting eight families -- the same shape of error as Round 17 queueing the re
 of a README claim that turned out to be true. **A property measured on one family is
 not measured.**
 
-The round then broke that rule **seven more times** in its own writeup and in the
-commits fixing it -- including twice *inside the sentence written to fix the previous
-instance*. Seven of the eight were caught by a reviewer, one by the round itself. The
-full list is in ``docs/plans/LOOP_STATE.md`` under Round 21.
+The round then broke that rule repeatedly in its own writeup and in the commits
+fixing it, several times *inside the sentence written to fix the previous instance*.
+The instances the reviews named are tabulated in ``docs/plans/LOOP_STATE.md`` under
+Round 21; no total is claimed there, because three drafts of that paragraph each gave
+a count and each was wrong.
 
 Tables 2, 3 and 4 exist because of it: every figure quoted above was prose with no
 code path until someone checked.

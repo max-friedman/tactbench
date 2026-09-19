@@ -237,8 +237,7 @@ halt the loop.**
    **Read this before acting on it: the *gate* is not at risk.** An earlier draft of
    this item said the gate would have admitted a known defect. That was false and
    would have cost a round — `TestProseFrameStructure` catches all three frame-shape
-   defects on all nine families deterministically, with no dataset and no seed, and
-   `TestOrderSensitiveShortcut` already sweeps seeds 1–8 and takes the worst.
+   defects on all nine families deterministically, with no dataset and no seed.
    What *is* seed-dependent is the **60% per-family bound**: the clause-initial
    defect breaches it for **2 of 9** families on `seed=20260726` and **5 of 9** at its
    worst over eight seeds; the stopword defect, 0 of 9 versus 1 of 9. The audit
@@ -1270,8 +1269,7 @@ prints every table quoted in this entry; none of them is prose-only.
 it.** It claimed the check caught Round 15's clause-initial defect where the gate did
 not. It does not: `TestProseFrameStructure.test_the_filler_is_never_clause_initial`
 already fails on that mutation — deterministically, all nine families, no dataset, no
-seed — and `TestOrderSensitiveShortcut` fails on it too, sweeping seeds 1–8 and
-taking the worst. Against P1 the new check is strictly *weaker*. What let the defect
+seed. Against P1 the new check is strictly *weaker*. What let the defect
 through was the **60% per-family bound**, never the gate. The original wording is
 preserved below the correction so the error stays visible.
 
@@ -1304,7 +1302,7 @@ three properties still pass under the same mutation.
 **Stated precisely — two successive drafts of this sentence undercounted, and both
 were overclaims.** "Nothing else in the suite catches it" was false; so was the
 correction, which named one test. Appending the signal to every item turns the suite
-red in **six** places, four deterministic: the per-family 60% bound (`quiet_hours`,
+red in **six** places: the per-family 60% bound (`quiet_hours`,
 61.6%), the overall `< 70%` bound, three tests that fail because the suite hard-codes
 the decider as the **last** signal — split disjointness, object identity, order
 balance — and dataset reproducibility, which fails on *any* generator change and so
@@ -1343,35 +1341,38 @@ another reading of the same nine points.
 
 **Loop — the pattern did not break; it got one layer deeper.** The round caught
 itself generalising from one family on P2, wrote that lesson down in bold, and then
-broke the same rule repeatedly. Every item below is a sentence that claimed more than
-its evidence, in a round whose own headline was *"a property measured on one family
-is not measured"*:
+broke the same rule repeatedly. Below are the instances the four reviews named, plus
+two the round found itself. **This is not asserted to be the complete list** — three
+earlier drafts of this paragraph each claimed a total and each was wrong, so the
+count is not the point and is no longer given:
 
-| # | the claim | the truth | caught by |
-|---|---|---|---|
-| 1 | *"all three properties earn their place"* | P1 and P3 measured on `health` alone | reviewer |
-| 2 | *"the **gate's** detection ... was seed-dependent"* | the **bound's** was; the gate is deterministic. Built queue item 2 on the wide version, which would have sent R22 chasing a premise one `pytest -q` falsifies | reviewer |
-| 3 | *"Nothing here is prose-only"* | its own `structural` column and both sweeps had no code path | reviewer |
-| 4 | a commit correcting an unverified claim cited an **unverified test name** | `test_lexical_leakage_stays_near_chance` passes under that mutation | reviewer |
-| 5 | *"nothing else in the suite catches it"* | the 60% bound does, via `quiet_hours` | **author** |
-| 6 | the sentence correcting (5) named **one** test | **six** fail | reviewer |
-| 7 | *"One mutation is used everywhere now"* | the sensitivity test still used a `health`-specific inversion | reviewer |
-| 8 | *"four tests fail only because the decider is last"* | three; reproducibility fails on any generator change | reviewer |
+| the claim | the truth | caught by |
+|---|---|---|
+| the check *"catches R15's defect where the gate does not"* | `TestProseFrameStructure` already catches it, 9 of 9, deterministically | reviewer |
+| *"all three properties earn their place"* | P1 and P3 measured on `health` alone | reviewer |
+| *"the **gate's** detection … was seed-dependent"* | the **bound's** was. Built queue item 2 on the wide version, which would have sent R22 chasing a premise one `pytest -q` falsifies | reviewer |
+| *"Nothing here is prose-only"* | its own `structural` column and both sweeps had no code path | reviewer |
+| a commit correcting an unverified claim cited an **unverified test name** | `test_lexical_leakage_stays_near_chance` passes under that mutation | reviewer |
+| *"nothing else in the suite catches it"* | the 60% bound does, via `quiet_hours` | **author** |
+| the sentence correcting the above named **one** test | **six** fail | reviewer |
+| *"One mutation is used everywhere now"* | the sensitivity test still used a `health`-specific inversion | reviewer |
+| *"four tests fail only because the decider is last"* | three; reproducibility fails on any generator change | reviewer |
+| *"`TestOrderSensitiveShortcut` fails on it too"* | it **passes** under the generic mutation; taken from a review that had applied a different one | **author** |
+| *"deleted"* — that same sentence | deleted at one of three sites | reviewer |
 
 It also claimed to be *"the first round where the failure mode appeared and did not
 reach the page"* — a self-assessment stated as a result, false on the page it was
 written on. Deleted, along with a running "score" line whose arithmetic was wrong
-twice; a tally that keeps needing correction is the same defect in miniature.
+twice.
 
-**(6) and (7) are the instructive ones.** Each occurred *inside the fix for the
-previous one*, after review cycles had named the pattern for this round specifically.
-The failure mode survived being named, corrected, named again, and corrected again.
+**Several of these occurred inside the fix for the one above them**, after reviews
+had named the pattern for this round specifically. The failure mode survived being
+named, corrected, named again, and corrected again.
 
-One of eight was caught by the round that produced it; seven needed a reviewer.
 Writing the lesson down in the same document you then break does not work —
 **naming a pattern is not a control for it.** That is the strongest evidence yet for
 the pending §C proposal, and this entry is its exhibit: the rule was stated, in bold,
-in the same file as all eight violations.
+in the same file as every violation above it.
 
 ---
 
