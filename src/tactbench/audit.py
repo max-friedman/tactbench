@@ -79,7 +79,7 @@ def item_tokens(item: Item) -> list[str]:
     The case it is for is a signal placed **after** the decider, which puts the
     decider's trailing filler against text every frame shares; the three frame
     properties constrain clause *openings* only, so they are blind to it. Note that
-    the suite is not blind to that mutation overall -- six tests fail on it, four
+    the suite is not blind to that mutation overall -- six tests fail on it, three
     because the code hard-codes the decider as the last signal. This check is the
     one that **localizes** it as a junction leak, on 8 of 9 families against the
     bound's 1. See ``experiments/signal_join_probe.py``.

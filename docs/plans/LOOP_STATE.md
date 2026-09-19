@@ -1305,9 +1305,10 @@ three properties still pass under the same mutation.
 were overclaims.** "Nothing else in the suite catches it" was false; so was the
 correction, which named one test. Appending the signal to every item turns the suite
 red in **six** places, four deterministic: the per-family 60% bound (`quiet_hours`,
-61.6%), the overall `< 70%` bound, and four tests that fail only because the suite
-hard-codes the decider as the **last** signal — split disjointness, reproducibility,
-object identity, order balance.
+61.6%), the overall `< 70%` bound, three tests that fail because the suite hard-codes
+the decider as the **last** signal — split disjointness, object identity, order
+balance — and dataset reproducibility, which fails on *any* generator change and so
+carries no information about signal position.
 
 A family placing a signal after the decider is therefore a *loud* failure, not a
 silent one. The claim that survives is smaller than either draft: this check is the
@@ -1342,37 +1343,35 @@ another reading of the same nine points.
 
 **Loop — the pattern did not break; it got one layer deeper.** The round caught
 itself generalising from one family on P2, wrote that lesson down in bold, and then
-broke the same rule **three times**:
+broke the same rule repeatedly. Every item below is a sentence that claimed more than
+its evidence, in a round whose own headline was *"a property measured on one family
+is not measured"*:
 
-1. measured P1 and P3 on `health` alone and wrote *"all three properties earn their
-   place"*;
-2. widened *"the **bound's** detection is seed-dependent"* into *"the **gate's**"* at
-   four of six sites — and built queue item 2 on the wide version, where it would have
-   sent R22 chasing a premise one `pytest -q` falsifies;
-3. after the review, justified the corrected check with *"nothing else in the suite
-   catches it"* — false, the 60% bound catches the same mutation on `quiet_hours`;
-4. and then, in the sentence written to correct **that**, named **one** test where
-   **six** fail — four of them deterministic, because the suite already hard-codes
-   the decider as the last signal. The correction to the correction was itself an
-   overclaim.
+| # | the claim | the truth | caught by |
+|---|---|---|---|
+| 1 | *"all three properties earn their place"* | P1 and P3 measured on `health` alone | reviewer |
+| 2 | *"the **gate's** detection ... was seed-dependent"* | the **bound's** was; the gate is deterministic. Built queue item 2 on the wide version, which would have sent R22 chasing a premise one `pytest -q` falsifies | reviewer |
+| 3 | *"Nothing here is prose-only"* | its own `structural` column and both sweeps had no code path | reviewer |
+| 4 | a commit correcting an unverified claim cited an **unverified test name** | `test_lexical_leakage_stays_near_chance` passes under that mutation | reviewer |
+| 5 | *"nothing else in the suite catches it"* | the 60% bound does, via `quiet_hours` | **author** |
+| 6 | the sentence correcting (5) named **one** test | **six** fail | reviewer |
+| 7 | *"One mutation is used everywhere now"* | the sensitivity test still used a `health`-specific inversion | reviewer |
+| 8 | *"four tests fail only because the decider is last"* | three; reproducibility fails on any generator change | reviewer |
 
 It also claimed to be *"the first round where the failure mode appeared and did not
 reach the page"* — a self-assessment stated as a result, false on the page it was
-written on. Deleted.
+written on. Deleted, along with a running "score" line whose arithmetic was wrong
+twice; a tally that keeps needing correction is the same defect in miniature.
 
-Reviewers caught (1), (2) and (4). The author caught (3) — the first time this
-failure mode has been caught by the round that produced it, which is a far smaller
-claim than the one deleted above and the only one the evidence supports.
+**(6) and (7) are the instructive ones.** Each occurred *inside the fix for the
+previous one*, after review cycles had named the pattern for this round specifically.
+The failure mode survived being named, corrected, named again, and corrected again.
 
-**(4) is the important one.** It happened *inside the sentence written to correct
-(3)*, after two review cycles had already named the pattern for this round
-specifically. The failure mode survived being named, corrected, and named again.
-
-Five consecutive rounds, and the score is reviewers 6, ritual 0. Writing the lesson
-down in the same document you then break does not work; **naming a pattern is not a
-control for it.** That is the strongest evidence yet for the pending §C proposal, and
-this entry is its exhibit: the round stated the rule, in bold, three paragraphs above
-each violation.
+One of eight was caught by the round that produced it; seven needed a reviewer.
+Writing the lesson down in the same document you then break does not work —
+**naming a pattern is not a control for it.** That is the strongest evidence yet for
+the pending §C proposal, and this entry is its exhibit: the rule was stated, in bold,
+in the same file as all eight violations.
 
 ---
 

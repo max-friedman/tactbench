@@ -90,12 +90,14 @@ trailing junction is what it covers.
 
 **It is not the only thing that would notice, and the first two drafts of this
 paragraph both undercounted.** Appending that signal to every item turns the suite
-red in **six** places, four of them deterministic: the per-family 60% bound
-(`quiet_hours`, 61.6%), the overall `< 70%` bound, and four tests that fail simply
-because the suite already hard-codes the decider as the **last** signal
-(`signals[-1]`, `signals[:-1]`) — split disjointness, dataset reproducibility,
-object identity and order balance. A family placing a signal after the decider is
-not a silent hole; it is a loud one.
+red in **six** places, three of them a direct consequence of the last-signal
+convention: the per-family 60% bound
+(`quiet_hours`, 61.6%), the overall `< 70%` bound, three tests that fail because the
+suite already hard-codes the decider as the **last** signal (`signals[-1]`,
+`signals[:-1]`) — split disjointness, object identity and order balance — and dataset
+reproducibility, which fails on *any* generator change and so says nothing about
+signal position. A family placing a signal after the decider is not a silent hole;
+it is a loud one.
 
 What the join check adds is **localization and breadth**: it is the only assertion
 that identifies the failure *as a junction leak*, and it fires on 8 of 9 families

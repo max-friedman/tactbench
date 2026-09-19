@@ -1085,7 +1085,8 @@ class TestSignalJoinIsFree:
     ``experiments/signal_join_probe.py`` runs across all nine families. An earlier
     draft quoted a ladder from a *health-specific* inversion and placed it next to
     nine-family numbers from the generic one -- two mutations, one table, no
-    signposting. One mutation is used everywhere now.
+    signposting. The same generic mutation is used by the probe and by
+    ``test_the_check_would_notice_a_clause_initial_filler`` below.
 
     **This check does NOT catch Round 15's defect first, and must not be sold as if
     it did.** Round 21 originally justified it that way and the claim was wrong.
@@ -1111,10 +1112,11 @@ class TestSignalJoinIsFree:
     That is the case this check exists for. **The honest form of the claim, after two
     drafts that undercounted it:** the suite is not blind to that mutation. Appending
     the signal to every item turns it red in **six** places -- the per-family 60%
-    bound (``quiet_hours``, 61.6%), the overall ``< 70%`` bound, and four tests that
-    fail only because the suite hard-codes the decider as the last signal
-    (``signals[-1]``): split disjointness, dataset reproducibility, object identity
-    and order balance.
+    bound (``quiet_hours``, 61.6%), the overall ``< 70%`` bound, three tests that fail
+    because the suite hard-codes the decider as the last signal (``signals[-1]``) --
+    split disjointness, object identity and order balance -- and dataset
+    reproducibility, which fails on *any* generator change and so says nothing about
+    signal position.
 
     What this check adds is **localization and breadth**. It is the only assertion
     that names the failure as a *junction leak* rather than as a downstream symptom,
@@ -1161,21 +1163,19 @@ class TestSignalJoinIsFree:
     def test_the_check_would_notice_a_clause_initial_filler(self):
         """The assertion above is worthless if nothing can fail it.
 
-        Round 15's defect, reintroduced in one family and nothing else: each shipped
-        ``health`` clause reads ``"<skeleton> is {who}"``, and inverting it to
-        ``"{who} is <skeleton>"`` moves the filler to clause-initial while keeping all
-        eight frames distinctly worded, the permutation intact and the token multiset
-        unchanged. The only thing that moves is which token sits against the body.
+        Round 15's defect, reintroduced in one family and nothing else: the slot moves
+        to the front of each clause, keeping the tokens, the skeleton length, the
+        permutation and all eight distinct wordings. The only thing that moves is
+        which token sits against the body.
+
+        This is the *same* mutation ``experiments/signal_join_probe.py`` applies
+        across all nine families, so the sensitivity figures quoted above describe
+        what this test actually performs. An earlier version used a health-specific
+        inversion here while quoting figures from the generic one.
         """
         original = FRAMES["health"]
         FRAMES["health"] = [
-            tuple(
-                "{who} is "
-                + c.removesuffix(" is {who}")[0].lower()
-                + c.removesuffix(" is {who}")[1:]
-                for c in frame
-            )
-            for frame in original
+            tuple(WHO + " " + " ".join(skeleton(c)) for c in frame) for frame in original
         ]
         try:
             with pytest.raises(AssertionError, match="at the body boundary"):

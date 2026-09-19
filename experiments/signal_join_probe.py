@@ -5,7 +5,12 @@ bigrams span the junction between the shared body signal and the discriminating
 decider signal. Round 15 found that choice is **load-bearing** and left it
 unresolved; this module is the measurement Round 21 used to settle it.
 
-Every table quoted below is printed by ``main()``. Nothing here is prose-only.
+Every **number** quoted below is computed by ``main()``, with one exception, named
+here because an earlier draft of this line claimed "nothing here is prose-only" and
+was wrong twice. The exception is the list of six suite tests that fail under the
+trailing-signal mutation, and the 70.7% beside it: those come from running the suite
+with that mutation applied, not from this module. Reproduce them by appending a
+shared ``Signal`` to every item in ``generate`` and running ``uv run pytest -q``.
 
 Why it is not a detail
 ----------------------
@@ -36,16 +41,15 @@ the sizes 16, 20, 24, 30 and 40 -- **1350** in total -- plus a wider **1296**-ce
 sweep (8 seeds x 6 sizes x 3 fold counts x 9 families). The gap is identically zero
 in every one. Not small -- zero. When the junction carries nothing the two feature
 sets differ only by bigrams constant across both classes, and a constant cannot move
-a Naive Bayes decision. ``main()`` prints the 1296-cell sweep; the 1350 is the same
-measurement at the five ladder sizes.
+a Naive Bayes decision. ``main()`` computes both sweeps.
 
 **Round 21 first justified this check by saying it caught Round 15's clause-initial
 defect where the gate did not. That was wrong**, and it is recorded here because the
 wrong version nearly shipped. ``TestProseFrameStructure`` already asserts the
 clause-initial property directly -- deterministically, every family, no dataset, no
-seed -- and ``TestOrderSensitiveShortcut`` fails on that mutation too, sweeping
-seeds 1-8 and taking the worst. Against P1 this check is strictly *weaker*. What
-lets P1 through is the **60% per-family bound**, not the gate.
+seed (the ``structural`` column below, printed by ``main()``). Against P1 this check
+is strictly *weaker*. What lets P1 through is the **60% per-family bound**, not the
+gate.
 
 Per-property, across all nine families (table 2 below). The bound is reported twice
 because the two disagree, which is a finding in its own right::
@@ -83,14 +87,15 @@ and unlike the original one it is exhibited rather than asserted.
 
 Stated precisely, because two successive drafts of this sentence undercounted it.
 The suite is **not** blind to that mutation. Appending the signal to every item turns
-it red in **six** places, four of them deterministic::
+it red in **six** places::
 
     per-family 60% bound            quiet_hours at 61.6%
     overall < 70% bound             70.7% at n=10 (size-dependent, marginal)
-    split disjointness              \
-    dataset reproducibility          |  these four fail only because the suite
-    object identity                  |  hard-codes the decider as the LAST signal
-    order balance                   /   (``signals[-1]``, ``signals[:-1]``)
+    split disjointness              \  these THREE fail because the suite
+    object identity                  >  hard-codes the decider as the last
+    order balance                   /   signal (``signals[-1]``, ``signals[:-1]``)
+    dataset reproducibility             fails on ANY generator change, so it
+                                        says nothing about signal position
 
 So a family placing a signal after the decider is a loud failure, not a silent one.
 What this check adds is **localization and breadth**: it is the only assertion that
@@ -117,13 +122,13 @@ protecting eight families -- the same shape of error as Round 17 queueing the re
 of a README claim that turned out to be true. **A property measured on one family is
 not measured.**
 
-The round then broke that rule **four more times** in its own writeup: measuring P1
-and P3 on ``health`` alone while claiming all three properties earned their place;
-widening *"the bound's detection is seed-dependent"* to *"the gate's"*; asserting
-*"nothing else in the suite catches"* the trailing leak; and then, in the sentence
-correcting that, naming one test where six fail. Reviewers caught three, the author
-one. Tables 2, 3 and 4 are the repair, and they exist because the numbers were
-quoted in prose with no code path until someone checked.
+The round then broke that rule **seven more times** in its own writeup and in the
+commits fixing it -- including twice *inside the sentence written to fix the previous
+instance*. Seven of the eight were caught by a reviewer, one by the round itself. The
+full list is in ``docs/plans/LOOP_STATE.md`` under Round 21.
+
+Tables 2, 3 and 4 exist because of it: every figure quoted above was prose with no
+code path until someone checked.
 
 Run::
 
@@ -363,6 +368,27 @@ def main() -> None:
 
     print("TABLE 4 -- the zero-gap sweep the no-tolerance assertion rests on, and the")
     print("sensitivity ladder. Both were prose-only until a reviewer said so.\n")
+    # The ladder sweep: 270 family-seed cells (9 x 30) at each of the five sizes the
+    # sensitivity ladder below uses.
+    per_size = {}
+    for n in (16, 20, 24, 30, 40):
+        cells = nonzero = 0
+        for k in range(30):
+            items = generate(n_pairs_per_scenario=n, seed=SHIPPED_SEED + k)
+            for family in sorted(FRAMES):
+                sub = [i for i in items if i.moment.family == family]
+                j = frame_folded_accuracy(sub, joined_bigrams)
+                s = frame_folded_accuracy(sub, separated_bigrams)
+                cells += 1
+                nonzero += abs(j - s) > 0
+        per_size[n] = (cells, nonzero)
+    total = sum(c for c, _ in per_size.values())
+    bad = sum(z for _, z in per_size.values())
+    sizes = ", ".join(f"n={n}: {c} cells / {z} nonzero" for n, (c, z) in per_size.items())
+    print(f"  ladder sweep, shipped frames -- {sizes}")
+    print(f"  ({total} cells in total, {bad} nonzero)\n")
+
+    # The wider sweep: other seeds, odd sizes, and fold counts other than 5.
     cells = nonzero = 0
     for seed in (1, 7, 42, 999, 123456, SHIPPED_SEED, 88888888, 2**31 - 1):
         for n in (16, 17, 23, 30, 31, 50):
@@ -374,7 +400,7 @@ def main() -> None:
                     s = frame_folded_accuracy(sub, separated_bigrams, folds)
                     cells += 1
                     nonzero += abs(j - s) > 0
-    print(f"  shipped frames: {cells} cells (8 seeds x 6 sizes x 3 fold counts x 9")
+    print(f"  wider sweep: {cells} cells (8 seeds x 6 sizes x 3 fold counts x 9")
     print(f"  families) -- nonzero gaps: {nonzero}\n")
 
     original = FRAMES["health"]
