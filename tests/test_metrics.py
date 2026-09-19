@@ -1075,10 +1075,17 @@ class TestSignalJoinIsFree:
     tolerance.
 
     Sensitivity is weaker than that and is stated honestly. Inverting health's clauses
-    to put the filler clause-initial is caught in **30 of 30 seeds at this size**, but
-    detection is *not* monotonic in ``n_pairs_per_scenario`` -- 25/30 at 16, 30/30 at
-    20, 25/30 at 24, 28/30 at 40 -- because which frames land in which fold shifts
+    to put the filler clause-initial is caught in **29 of 30 seeds at this size**, but
+    detection is *not* monotonic in ``n_pairs_per_scenario`` -- 24/30 at 16, 29/30 at
+    20, 26/30 at 24, 28/30 at 40 -- because which frames land in which fold shifts
     with the size. A strong detector, not a proof.
+
+    Those figures are for the **generic** clause-initial mutation (move the slot to
+    the front of every clause, tokens and skeleton length preserved), which is what
+    ``experiments/signal_join_probe.py`` runs across all nine families. An earlier
+    draft quoted a ladder from a *health-specific* inversion and placed it next to
+    nine-family numbers from the generic one -- two mutations, one table, no
+    signposting. One mutation is used everywhere now.
 
     **This check does NOT catch Round 15's defect first, and must not be sold as if
     it did.** Round 21 originally justified it that way and the claim was wrong.
@@ -1101,13 +1108,19 @@ class TestSignalJoinIsFree:
         appended trailing signal   gap check fires   60% bound fails
         across nine families              8 of 9            1 of 9
 
-    That is the case this check exists for. Note the honest form of the claim: the
-    suite is not *blind* to that mutation -- the 60% bound catches it through
-    ``quiet_hours`` at 61.6% -- but it is caught on one family out of nine, by a
-    threshold this round separately found to be a point estimate sampled once. No
-    frame-shape assertion sees it at all. ``health`` is the one family this check
-    misses, for the same reason it is immune to the stopword violation: its two
-    fillers share a final token.
+    That is the case this check exists for. **The honest form of the claim, after two
+    drafts that undercounted it:** the suite is not blind to that mutation. Appending
+    the signal to every item turns it red in **six** places -- the per-family 60%
+    bound (``quiet_hours``, 61.6%), the overall ``< 70%`` bound, and four tests that
+    fail only because the suite hard-codes the decider as the last signal
+    (``signals[-1]``): split disjointness, dataset reproducibility, object identity
+    and order balance.
+
+    What this check adds is **localization and breadth**. It is the only assertion
+    that names the failure as a *junction leak* rather than as a downstream symptom,
+    and it fires on 8 of 9 families where the bound fires on 1. No frame-shape
+    property sees it at all. ``health`` is the family it misses, for the same reason
+    it is immune to the stopword violation: its two fillers share a final token.
 
     It stays deliberately narrow. A differing token before the slot lives at the
     *internal* clause-to-clause junction, which both tokenizations cross, so this is
@@ -1129,7 +1142,7 @@ class TestSignalJoinIsFree:
     def test_join_buys_the_probe_nothing(self, family):
         # 30 rather than MIN_PAIRS_FOR_BALANCED_ORDER: at the 16-pair minimum this
         # check still never false-positives, but it catches the clause-initial
-        # mutation in only 25 of 30 seeds. 30 pairs takes it to 30 of 30 for ~0.1s.
+        # mutation in only 24 of 30 seeds. 30 pairs takes it to 29 of 30 for ~0.1s.
         items = [i for i in generate(n_pairs_per_scenario=30) if i.moment.family == family]
         joined = lexical_leakage(items, features=item_bigrams, group=_frame_key)
         separate = lexical_leakage(items, features=self._separated_bigrams, group=_frame_key)
@@ -1208,11 +1221,16 @@ class TestSignalJoinIsFree:
             "why before deleting either."
         )
 
-        # The structural properties are untouched by this mutation, which is the
-        # whole point: they pass while the leak is real.
+        # All three structural properties are untouched by this mutation, which is
+        # the whole point: they pass while the leak is real. Property 3 is asserted
+        # here too -- an earlier version of this test checked only the first two
+        # while the writeup claimed all three, which is the same overclaim this
+        # round kept making in prose.
+        structure = TestProseFrameStructure()
         for family in sorted(FRAMES):
-            TestProseFrameStructure().test_the_filler_is_never_clause_initial(family)
-            TestProseFrameStructure().test_no_clause_opens_with_a_stopword(family)
+            structure.test_the_filler_is_never_clause_initial(family)
+            structure.test_no_clause_opens_with_a_stopword(family)
+            structure.test_the_token_before_the_slot_is_shared_across_a_frames_clauses(family)
 
 
 class TestProseFrameStructure:

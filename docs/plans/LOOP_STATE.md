@@ -1301,12 +1301,19 @@ it transfers through a held-out frame exactly as the body junction would.
 `test_it_catches_what_the_frame_properties_cannot` asserts it, and asserts that the
 three properties still pass under the same mutation.
 
-**Stated precisely — the loose version was this round's third overclaim, caught by
-its own author after the review.** "Nothing else in the suite catches it" is false:
-the 60% bound catches the trailing mutation through `quiet_hours` at 61.6%. What is
-true is narrower and still sufficient: **no frame-shape property sees that junction
-at all**, and the bound sees it on 1 family of 9 via a threshold this same round
-found to be a point estimate sampled once, where this check sees it on 8.
+**Stated precisely — two successive drafts of this sentence undercounted, and both
+were overclaims.** "Nothing else in the suite catches it" was false; so was the
+correction, which named one test. Appending the signal to every item turns the suite
+red in **six** places, four deterministic: the per-family 60% bound (`quiet_hours`,
+61.6%), the overall `< 70%` bound, and four tests that fail only because the suite
+hard-codes the decider as the **last** signal — split disjointness, reproducibility,
+object identity, order balance.
+
+A family placing a signal after the decider is therefore a *loud* failure, not a
+silent one. The claim that survives is smaller than either draft: this check is the
+only assertion that **localizes** the failure as a junction leak rather than a
+downstream symptom, and it fires on **8 of 9** families where the bound fires on 1.
+No frame-shape property sees it at all.
 
 **Consequences, verified:** 142 → 153 tests. `ruff check` and `ruff format --check`
 both clean. No production behaviour changed — one docstring in `audit.py`, plus
@@ -1314,9 +1321,9 @@ tests, docs and an experiment — so the leaderboard, the audit table and the da
 are unchanged by construction, and `data/` still reproduces from `tactbench build`.
 Audit still 50.0% unigram and bigram for all nine families.
 
-**Detection is honest about its limits.** The mutation is caught in 30/30 seeds at
+**Detection is honest about its limits.** The mutation is caught in 29/30 seeds at
 the size the test runs (30 pairs), but detection is *not monotonic* in that size —
-25/30 at 16, 30/30 at 20, 25/30 at 24, 28/30 at 40 — because fold membership shifts
+24/30 at 16, 29/30 at 20, 26/30 at 24, 28/30 at 40 — because fold membership shifts
 with it. Strong detector, not a proof. What is exact everywhere is the zero
 false-positive rate, which is what the no-tolerance assertion actually rests on.
 
@@ -1343,17 +1350,25 @@ broke the same rule **three times**:
    four of six sites — and built queue item 2 on the wide version, where it would have
    sent R22 chasing a premise one `pytest -q` falsifies;
 3. after the review, justified the corrected check with *"nothing else in the suite
-   catches it"* — false, the 60% bound catches the same mutation on `quiet_hours`.
+   catches it"* — false, the 60% bound catches the same mutation on `quiet_hours`;
+4. and then, in the sentence written to correct **that**, named **one** test where
+   **six** fail — four of them deterministic, because the suite already hard-codes
+   the decider as the last signal. The correction to the correction was itself an
+   overclaim.
 
 It also claimed to be *"the first round where the failure mode appeared and did not
 reach the page"* — a self-assessment stated as a result, false on the page it was
 written on. Deleted.
 
-The reviewer caught (1) and (2). The author caught (3), which is the first time this
-failure mode has been caught by the round that produced it — a genuinely smaller
-claim than the one deleted above, and the only one the evidence supports.
+Reviewers caught (1), (2) and (4). The author caught (3) — the first time this
+failure mode has been caught by the round that produced it, which is a far smaller
+claim than the one deleted above and the only one the evidence supports.
 
-Five consecutive rounds, and the score is reviewer 4½, ritual 0. Writing the lesson
+**(4) is the important one.** It happened *inside the sentence written to correct
+(3)*, after two review cycles had already named the pattern for this round
+specifically. The failure mode survived being named, corrected, and named again.
+
+Five consecutive rounds, and the score is reviewers 6, ritual 0. Writing the lesson
 down in the same document you then break does not work; **naming a pattern is not a
 control for it.** That is the strongest evidence yet for the pending §C proposal, and
 this entry is its exhibit: the round stated the rule, in bold, three paragraphs above

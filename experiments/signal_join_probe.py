@@ -31,11 +31,13 @@ The check, and what it is NOT for
 ---------------------------------
 If the deciders are well-formed the join buys the probe **nothing**, so joined and
 separated tokenizations must score the same. ``TestSignalJoinIsFree`` asserts that
-with **no tolerance**: across 270 family-seed cells (9 families x 30 seeds) at sizes
-16, 20, 24, 30 and 40, and a wider 1296-cell sweep (8 seeds x 6 sizes x 3 fold
-counts x 9 families), the gap is identically zero. Not small -- zero. When the
-junction carries nothing the two feature sets differ only by bigrams constant across
-both classes, and a constant cannot move a Naive Bayes decision.
+with **no tolerance**: **270** family-seed cells (9 families x 30 seeds) at each of
+the sizes 16, 20, 24, 30 and 40 -- **1350** in total -- plus a wider **1296**-cell
+sweep (8 seeds x 6 sizes x 3 fold counts x 9 families). The gap is identically zero
+in every one. Not small -- zero. When the junction carries nothing the two feature
+sets differ only by bigrams constant across both classes, and a constant cannot move
+a Naive Bayes decision. ``main()`` prints the 1296-cell sweep; the 1350 is the same
+measurement at the five ladder sizes.
 
 **Round 21 first justified this check by saying it caught Round 15's clause-initial
 defect where the gate did not. That was wrong**, and it is recorded here because the
@@ -79,12 +81,22 @@ abutting text every frame shares (table 3 below)::
 No frame-shape assertion constrains that junction. This is the check's justification,
 and unlike the original one it is exhibited rather than asserted.
 
-Stated precisely, because the loose version of this sentence was the round's third
-overclaim: the suite is **not** blind to that mutation. The 60% bound catches it
-through ``quiet_hours`` at 61.6% -- one family of nine, via a threshold this same
-round found to be a point estimate sampled once. The claim that survives is narrower:
-no frame-shape property sees the trailing junction at all, and this check is the only
-assertion that catches it broadly.
+Stated precisely, because two successive drafts of this sentence undercounted it.
+The suite is **not** blind to that mutation. Appending the signal to every item turns
+it red in **six** places, four of them deterministic::
+
+    per-family 60% bound            quiet_hours at 61.6%
+    overall < 70% bound             70.7% at n=10 (size-dependent, marginal)
+    split disjointness              \
+    dataset reproducibility          |  these four fail only because the suite
+    object identity                  |  hard-codes the decider as the LAST signal
+    order balance                   /   (``signals[-1]``, ``signals[:-1]``)
+
+So a family placing a signal after the decider is a loud failure, not a silent one.
+What this check adds is **localization and breadth**: it is the only assertion that
+names the failure as a *junction leak* rather than as a downstream symptom, and it
+fires on 8 of 9 families where the bound fires on 1. No frame-shape property sees it
+at all.
 
 A near-miss worth recording
 ---------------------------
@@ -103,8 +115,15 @@ trailing-signal leak in table 3, which is an independent test of the same mechan
 Had this round stopped at the one-family table it would have deleted a live assertion
 protecting eight families -- the same shape of error as Round 17 queueing the removal
 of a README claim that turned out to be true. **A property measured on one family is
-not measured.** The round then made that error twice more in its own writeup, on P1
-and P3, and a reviewer caught it; tables 2 and 3 are the repair.
+not measured.**
+
+The round then broke that rule **four more times** in its own writeup: measuring P1
+and P3 on ``health`` alone while claiming all three properties earned their place;
+widening *"the bound's detection is seed-dependent"* to *"the gate's"*; asserting
+*"nothing else in the suite catches"* the trailing leak; and then, in the sentence
+correcting that, naming one test where six fail. Reviewers caught three, the author
+one. Tables 2, 3 and 4 are the repair, and they exist because the numbers were
+quoted in prose with no code path until someone checked.
 
 Run::
 
@@ -194,6 +213,68 @@ def measure(family: str, seed: int = SHIPPED_SEED, n: int = 30) -> tuple[float, 
 SEEDS = [SHIPPED_SEED + k for k in range(8)]
 
 
+def structural_catches(mutate) -> int:
+    """How many of the nine families ``TestProseFrameStructure`` rejects outright.
+
+    The point of the comparison: these are deterministic predicates over the frame
+    text -- no dataset, no seed, no classifier. Printed rather than asserted in prose
+    because the round's first draft quoted this column without producing it.
+    """
+    original = {k: list(v) for k, v in FRAMES.items()}
+    caught = 0
+    try:
+        for family in sorted(original):
+            frames = [mutate(f) for f in original[family]]
+            bad = False
+            for privileged, other in frames:
+                for clause in (privileged, other):
+                    head = clause.split(WHO)[0].split()
+                    if not head:  # filler is clause-initial
+                        bad = True
+                    elif skeleton(clause)[0].lower().strip(".,") in _STOP:
+                        bad = True
+                a_head = privileged.split(WHO)[0].split()
+                b_head = other.split(WHO)[0].split()
+                if a_head and b_head and a_head[-1].lower() != b_head[-1].lower():
+                    bad = True
+            caught += bad
+    finally:
+        for family, frames in original.items():
+            FRAMES[family] = frames
+    return caught
+
+
+#: Mirrors ``TestFrameDisjointness.STOP``; duplicated so this module stays runnable
+#: on its own rather than importing from the test suite.
+_STOP = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "has",
+    "in",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "out",
+    "that",
+    "the",
+    "to",
+    "was",
+    "with",
+    "you",
+    "your",
+    "home",
+}
+
+
 def mutated_table(mutate, heading: str) -> None:
     """Apply `mutate` to every family's frames in turn and report both detectors.
 
@@ -229,7 +310,9 @@ def mutated_table(mutate, heading: str) -> None:
             FRAMES[family] = frames
     print(
         f"  -> gap fires in {fires} of 9; the 60% bound fails in {at_ship} of 9 on the "
-        f"shipped seed, {at_max} of 9 at its worst over 8\n"
+        f"shipped seed, {at_max} of 9 at its worst over 8;\n"
+        f"     TestProseFrameStructure rejects {structural_catches(mutate)} of 9 "
+        f"deterministically (no dataset, no seed)\n"
     )
 
 
@@ -278,13 +361,52 @@ def main() -> None:
         )
     print(f"  -> gap fires in {fires} of 9; the 60% bound fails in {breaches} of 9\n")
 
+    print("TABLE 4 -- the zero-gap sweep the no-tolerance assertion rests on, and the")
+    print("sensitivity ladder. Both were prose-only until a reviewer said so.\n")
+    cells = nonzero = 0
+    for seed in (1, 7, 42, 999, 123456, SHIPPED_SEED, 88888888, 2**31 - 1):
+        for n in (16, 17, 23, 30, 31, 50):
+            items = generate(n_pairs_per_scenario=n, seed=seed)
+            for folds in (3, 5, 8):
+                for family in sorted(FRAMES):
+                    sub = [i for i in items if i.moment.family == family]
+                    j = frame_folded_accuracy(sub, joined_bigrams, folds)
+                    s = frame_folded_accuracy(sub, separated_bigrams, folds)
+                    cells += 1
+                    nonzero += abs(j - s) > 0
+    print(f"  shipped frames: {cells} cells (8 seeds x 6 sizes x 3 fold counts x 9")
+    print(f"  families) -- nonzero gaps: {nonzero}\n")
+
+    original = FRAMES["health"]
+    FRAMES["health"] = [p1_clause_initial(f) for f in original]
+    try:
+        ladder = []
+        for n in (16, 20, 24, 30, 40):
+            hit = 0
+            for k in range(30):
+                sub = [
+                    i
+                    for i in generate(n_pairs_per_scenario=n, seed=SHIPPED_SEED + k)
+                    if i.moment.family == "health"
+                ]
+                j = frame_folded_accuracy(sub, joined_bigrams)
+                s = frame_folded_accuracy(sub, separated_bigrams)
+                hit += abs(j - s) > 0
+            ladder.append(f"n={n}: {hit}/30")
+    finally:
+        FRAMES["health"] = original
+    print("  detection of the clause-initial mutation, 30 seeds per size:")
+    print(f"    {'   '.join(ladder)}")
+    print("  -> not monotonic in size; a strong detector, not a proof. What IS exact")
+    print("     at every size is the zero false-positive rate above.\n")
+
     print(
-        "TABLE 4 is TABLE 2's P2 block: read the per-family moves there against\n"
-        "TABLE 1's shipped 50.0% baseline. health is the only family immune, and it\n"
-        "is also the only one immune in TABLE 3 -- two independent confirmations that\n"
-        "the mechanism is its fillers sharing a final token.\n\n"
+        "health is the only family immune in TABLE 2's P2 block and the only one\n"
+        "immune in TABLE 3 -- two independent confirmations that the mechanism is its\n"
+        "fillers sharing a final token.\n\n"
         "The headline: against P1, P2 and P3 the structural properties dominate and\n"
-        "this check is redundant. TABLE 3 is the one place it is not."
+        "this check is redundant. TABLE 3 is the one place it is not -- and even there\n"
+        "it is not the only thing that notices; see this module's docstring."
     )
 
 

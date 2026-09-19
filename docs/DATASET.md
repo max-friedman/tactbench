@@ -86,21 +86,30 @@ sits against, and that is sufficient only because the decider is currently the *
 signal. Append one shared signal after it — leaving the frames untouched, so all three
 properties still pass — and the decider's trailing filler abuts text every frame shares:
 the join check then fires for **8 of 9** families while the 60% bound fires for 1. That
-trailing junction is what it covers. It is not the *only* thing that would notice —
-the 60% bound catches the same mutation via `quiet_hours` at 61.6% — but it is the
-only assertion that catches it broadly, and no frame-shape property sees it at all.
+trailing junction is what it covers.
+
+**It is not the only thing that would notice, and the first two drafts of this
+paragraph both undercounted.** Appending that signal to every item turns the suite
+red in **six** places, four of them deterministic: the per-family 60% bound
+(`quiet_hours`, 61.6%), the overall `< 70%` bound, and four tests that fail simply
+because the suite already hard-codes the decider as the **last** signal
+(`signals[-1]`, `signals[:-1]`) — split disjointness, dataset reproducibility,
+object identity and order balance. A family placing a signal after the decider is
+not a silent hole; it is a loud one.
+
+What the join check adds is **localization and breadth**: it is the only assertion
+that identifies the failure *as a junction leak*, and it fires on 8 of 9 families
+where the bound fires on 1. No frame-shape property sees it at all.
 
 The same round re-derived the three properties by mutating each across all nine
 families, and kept all three. Three results are worth recording:
 
-- On the shipped seed, a clause-initial filler reaches only **53.6% exploitable** —
-  *under* the 60% bound. It does breach on other seeds (up to 69.3%), and across the
-  nine families the bound catches that defect for 2 on `seed=20260726` but 5 at its
-  worst over eight seeds. **The bound is a point estimate sampled once**, so every
-  leakage figure here carries unquantified spread. This is a property of the bound,
-  **not of the gate**: `TestProseFrameStructure` catches a clause-initial filler on
-  all nine families deterministically, with no dataset and no seed, so `pytest -q`
-  was never at risk of passing that defect.
+- A clause-initial filler breaches the 60% bound for **2 of 9** families on
+  `seed=20260726` but **5 of 9** at its worst over eight seeds. **The bound is a
+  point estimate sampled once**, so every leakage figure here carries unquantified
+  spread. This limits the bound, **not the gate**: `TestProseFrameStructure` rejects
+  that defect on all nine families deterministically, with no dataset and no seed,
+  so `pytest -q` was never at risk of passing it.
 - Violating the stopword rule moves nothing at all on `health`, and it is the only
   family where that is true: its fillers (`your prescription` / `Elena's
   prescription`) share a final token, so the internal junction bigram is identical
