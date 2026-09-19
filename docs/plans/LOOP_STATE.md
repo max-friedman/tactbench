@@ -1297,9 +1297,16 @@ decider is currently the **last** signal. Append one shared signal after it, lea
 | across nine families | **8 of 9** | 1 of 9 |
 
 The decider's trailing token is the filler, now abutting text every frame shares, so
-it transfers through a held-out frame exactly as the body junction would. No
-frame-shape assertion constrains that junction. `test_it_catches_what_the_frame_properties_cannot`
-asserts it, and asserts that the three properties still pass under the same mutation.
+it transfers through a held-out frame exactly as the body junction would.
+`test_it_catches_what_the_frame_properties_cannot` asserts it, and asserts that the
+three properties still pass under the same mutation.
+
+**Stated precisely — the loose version was this round's third overclaim, caught by
+its own author after the review.** "Nothing else in the suite catches it" is false:
+the 60% bound catches the trailing mutation through `quiet_hours` at 61.6%. What is
+true is narrower and still sufficient: **no frame-shape property sees that junction
+at all**, and the bound sees it on 1 family of 9 via a threshold this same round
+found to be a point estimate sampled once, where this check sees it on 8.
 
 **Consequences, verified:** 142 → 153 tests. `ruff check` and `ruff format --check`
 both clean. No production behaviour changed — one docstring in `audit.py`, plus
@@ -1327,19 +1334,30 @@ another reading of the same nine points.
 **A property measured on one family is not measured.**
 
 **Loop — the pattern did not break; it got one layer deeper.** The round caught
-itself generalising from one family on P2, wrote that lesson down, and then broke it
-twice in the same document: it measured P1 and P3 on `health` alone and wrote *"all
-three properties earn their place"*, and it widened *"the bound's detection is
-seed-dependent"* into *"the gate's"* at four of six sites. It then claimed to be
-**"the first round where the failure mode appeared and did not reach the page"** — a
-self-assessment, stated as a result, and false on the page it was written on.
+itself generalising from one family on P2, wrote that lesson down in bold, and then
+broke the same rule **three times**:
 
-Four rounds of this were caught by reviewers. This is the fifth, and the first where
-the round had explicitly named the failure mode in its own writeup before committing
-it. Naming a pattern does not stop it; only the reviewer has stopped it, every time.
-That is now five for five, and it is the strongest evidence yet for the §C proposal —
-the loop has no mechanism that catches this, and the round-level ritual of writing
-down the lesson demonstrably does not substitute for one.
+1. measured P1 and P3 on `health` alone and wrote *"all three properties earn their
+   place"*;
+2. widened *"the **bound's** detection is seed-dependent"* into *"the **gate's**"* at
+   four of six sites — and built queue item 2 on the wide version, where it would have
+   sent R22 chasing a premise one `pytest -q` falsifies;
+3. after the review, justified the corrected check with *"nothing else in the suite
+   catches it"* — false, the 60% bound catches the same mutation on `quiet_hours`.
+
+It also claimed to be *"the first round where the failure mode appeared and did not
+reach the page"* — a self-assessment stated as a result, false on the page it was
+written on. Deleted.
+
+The reviewer caught (1) and (2). The author caught (3), which is the first time this
+failure mode has been caught by the round that produced it — a genuinely smaller
+claim than the one deleted above, and the only one the evidence supports.
+
+Five consecutive rounds, and the score is reviewer 4½, ritual 0. Writing the lesson
+down in the same document you then break does not work; **naming a pattern is not a
+control for it.** That is the strongest evidence yet for the pending §C proposal, and
+this entry is its exhibit: the round stated the rule, in bold, three paragraphs above
+each violation.
 
 ---
 

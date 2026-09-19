@@ -1090,7 +1090,7 @@ class TestSignalJoinIsFree:
     fires on 9 of 9. It is only the *60% per-family bound* that lets the defect
     through (2 of 9), not the gate.
 
-    **What it actually covers that nothing else does.** All three structural
+    **What it covers that the frame properties cannot.** All three structural
     properties constrain the decider's *clause openings*, which protects the junction
     the **body** sits against. That is sufficient today only because the decider
     happens to be the **last** signal. Append one shared signal after it and the
@@ -1101,9 +1101,13 @@ class TestSignalJoinIsFree:
         appended trailing signal   gap check fires   60% bound fails
         across nine families              8 of 9            1 of 9
 
-    That is the case this check exists for, and no frame-shape assertion constrains
-    it. ``health`` is the one family immune, for the same reason it is immune to the
-    stopword violation: its two fillers share a final token.
+    That is the case this check exists for. Note the honest form of the claim: the
+    suite is not *blind* to that mutation -- the 60% bound catches it through
+    ``quiet_hours`` at 61.6% -- but it is caught on one family out of nine, by a
+    threshold this round separately found to be a point estimate sampled once. No
+    frame-shape assertion sees it at all. ``health`` is the one family this check
+    misses, for the same reason it is immune to the stopword violation: its two
+    fillers share a final token.
 
     It stays deliberately narrow. A differing token before the slot lives at the
     *internal* clause-to-clause junction, which both tokenizations cross, so this is

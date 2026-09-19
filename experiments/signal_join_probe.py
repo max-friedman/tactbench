@@ -79,6 +79,13 @@ abutting text every frame shares (table 3 below)::
 No frame-shape assertion constrains that junction. This is the check's justification,
 and unlike the original one it is exhibited rather than asserted.
 
+Stated precisely, because the loose version of this sentence was the round's third
+overclaim: the suite is **not** blind to that mutation. The 60% bound catches it
+through ``quiet_hours`` at 61.6% -- one family of nine, via a threshold this same
+round found to be a point estimate sampled once. The claim that survives is narrower:
+no frame-shape property sees the trailing junction at all, and this check is the only
+assertion that catches it broadly.
+
 A near-miss worth recording
 ---------------------------
 Mutating P2 on ``health`` alone moves nothing -- 0.00% gap, 50.0% exploitable -- and

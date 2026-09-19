@@ -86,7 +86,9 @@ sits against, and that is sufficient only because the decider is currently the *
 signal. Append one shared signal after it — leaving the frames untouched, so all three
 properties still pass — and the decider's trailing filler abuts text every frame shares:
 the join check then fires for **8 of 9** families while the 60% bound fires for 1. That
-trailing junction is what it covers, and nothing else in the suite does.
+trailing junction is what it covers. It is not the *only* thing that would notice —
+the 60% bound catches the same mutation via `quiet_hours` at 61.6% — but it is the
+only assertion that catches it broadly, and no frame-shape property sees it at all.
 
 The same round re-derived the three properties by mutating each across all nine
 families, and kept all three. Three results are worth recording:
