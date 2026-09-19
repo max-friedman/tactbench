@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 20 complete
-- **Gate:** green — **142 passed**, `ruff check` **and** `ruff format --check` both
+- **Round:** 21 complete
+- **Gate:** green — **153 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -175,7 +175,7 @@ whenever costs, the generator, or a policy change.
 | `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | **R16** | resolver built from the frame templates; ICS 0 |
-| `audit.py` | **R11** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict |
+| `audit.py` | **R21** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict. R21 ruled the signal **join** deliberate and asserted its cost is exactly zero (`TestSignalJoinIsFree` — redundant against frame-shape defects, load-bearing only for the **trailing** junction). Known limit: the 60% bound is a **point estimate sampled once** — queue item 2 |
 | `README.md` results | **R17** | `TestReadmeResultsAreCurrent` fails the build when it disagrees with `eval` |
 | `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
 | `schema.pair_key` | **R10** | the single definition of a pair |
@@ -212,16 +212,43 @@ halt the loop.**
 
 ## Queue — next rounds
 
-1. **Decide whether the probe should cross signal boundaries (R15, now top).**
-   `item_tokens` joins every signal before tokenizing, so bigrams span the
-   body/decider junction. That adjacency is real for a policy that concatenates the
-   moment and absent for one that reads the signal list. R15 found the choice is
-   load-bearing; **R16 depends on it** — the whole prose rule exists because the
-   join makes the junction reachable, so if the probe stops joining, two of
-   `TestProseFrameStructure`'s three properties are guarding nothing. Pick one and
-   say why. Whichever way it lands, re-derive whether those assertions still earn
-   their place.
-2. **The `−89.3` keyword-exploit figure — RESOLVED in R18, and R17 was wrong
+1. **Decide whether the probe should cross signal boundaries — DONE in R21.**
+   Kept as a pointer: the join **stays**, because the probe takes the upper bound
+   over serializations rather than modelling one reader. All three
+   `TestProseFrameStructure` properties were re-derived by mutation and all three
+   kept — the stopword rule is worth up to +16.1% across eight families, though
+   exactly 0.0% on `health`, which is why measuring it there alone would have
+   deleted it. `TestSignalJoinIsFree` now asserts the join costs exactly nothing.
+   **Note for anyone extending it:** that check is redundant against all three
+   frame-shape defects — `TestProseFrameStructure` catches each on 9 of 9
+   deterministically. Its one non-redundant job is the **trailing** junction, which
+   opens if a family ever places a signal *after* the decider (8 of 9 there, versus
+   1 of 9 for the bound). Do not delete it on a redundancy argument without
+   re-reading that case. See `experiments/signal_join_probe.py`.
+   <details><summary>original entry</summary> `item_tokens` joins every signal
+   before tokenizing, so bigrams span the body/decider junction. That adjacency is
+   real for a policy that concatenates the moment and absent for one that reads the
+   signal list. R15 found the choice is load-bearing; **R16 depends on it** — the
+   whole prose rule exists because the join makes the junction reachable, so if the
+   probe stops joining, two of `TestProseFrameStructure`'s three properties are
+   guarding nothing. Pick one and say why. Whichever way it lands, re-derive whether
+   those assertions still earn their place. </details>
+2. **The 60% per-family bound is a point estimate sampled once (new, R21).**
+   **Read this before acting on it: the *gate* is not at risk.** An earlier draft of
+   this item said the gate would have admitted a known defect. That was false and
+   would have cost a round — `TestProseFrameStructure` catches all three frame-shape
+   defects on all nine families deterministically, with no dataset and no seed.
+   What *is* seed-dependent is the **60% per-family bound**: the clause-initial
+   defect breaches it for **2 of 9** families on `seed=20260726` and **5 of 9** at its
+   worst over eight seeds; the stopword defect, 0 of 9 versus 1 of 9. The audit
+   samples that seed exactly once, so published leakage figures carry unquantified
+   spread. Options: gate the max over *k* seeds; gate a seed-averaged figure with a
+   tighter bound; or keep one seed and say so plainly in `DATASET.md`.
+   **Measure the spread on *shipped* frames first** — if it is more than a point or
+   two, several published figures are quoted with more precision than they have. Note
+   this is a precision-of-reported-numbers problem, not a hole in the gate; scope the
+   round accordingly.
+3. **The `−89.3` keyword-exploit figure — RESOLVED in R18, and R17 was wrong
    about it.** R17 recorded that a reviewer's reconstruction "gave **−77.4**" and
    queued a round to *"verify or remove"* the README claim. R18 ran the
    reconstruction — `_KeywordPolicy({"admitt"}, {"discharg"})` on `v1/dev`, the
@@ -229,23 +256,23 @@ halt the loop.**
    both `main` and the branch**. The README was correct all along, and a queue item
    was standing that could have deleted a true claim. The figure is now covered by
    `TestReadmeResultsAreCurrent.test_prose_figures_match_a_fresh_eval`.
-3. **Cover the README figures the prose check still misses (new, R19).** The
+4. **Cover the README figures the prose check still misses (new, R19).** The
    R18 review named three: `−87.5 normalized` and `294 more ICS` (README:40),
    `0.500 precision` (README:45), and the whole comprehension-sweep table, which
    the `ROW` regex cannot match because those rows carry no backticked policy
    name. All are correct today — recomputed on both trees — so this is a coverage
    gap, not a stale number. Extend `PROSE`, or generalise the table regex.
-4. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
+5. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
    (*filler not clause-initial*) was necessary but not sufficient; clause-final
    moves the leak to the internal junction. Three properties now asserted in
    `TestProseFrameStructure`. See `experiments/prose_decider_probe.py`.
-5. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
+6. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
    state difference *is* the judgment under test? The invariant currently
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
-6. **An order-sensitive shortcut probe (R10) — DONE in R11.** Kept here only as a
+7. **An order-sensitive shortcut probe (R10) — DONE in R11.** Kept here only as a
    pointer: the answer was that the audit had a structural blind spot.
    Superseded by item 1.
    <details><summary>original entry</summary> Every
@@ -256,18 +283,18 @@ halt the loop.**
    genuinely evidenced; if it separates families, the deciders leak in a way
    nine rounds of auditing could not see. Either result is worth the round.
    </details>
-7. **More families still welcome** — nine is better than six but still one
+8. **More families still welcome** — nine is better than six but still one
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
-8. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+9. **Type checking** — no mypy/pyright configured; worth adding to CI once the
    schema surface settles.
-9. **`CHANGELOG.md` has no entries for R15–R18**, still asserts *"Bigrams reach
+10. **`CHANGELOG.md` has no entries for R15–R18**, still asserts *"Bigrams reach
    97.2%"* against a current 50.0%, and its R13 block still lists the
    `Label: value` uniformity as a live limitation that R16 removed. The tone rule
    requires retiring a limitation when the capability ships; that was done in
    README and not here. The 97.2% figure was already wrong on `main`, so it is not
    R16's doing — but R16 moved bigram overall 51.1% → 50.0% and did not look.
-10. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+11. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
 ---
@@ -1209,6 +1236,146 @@ it shows naming the pattern does not stop it.
 
 ---
 
+## Round 21 — the join is deliberate, and its cost is zero
+
+**Queue item 1**, standing since R15 and marked load-bearing: `audit.item_tokens`
+joins every signal before tokenizing, so bigrams span the body/decider junction. R15
+never ruled. The item warned that if the probe stops joining, **two of
+`TestProseFrameStructure`'s three properties guard nothing** — so the ruling had to
+come with a re-derivation of all three.
+
+**The ruling: keep the join.** Not because the average policy concatenates, but
+because a submitter picks their own representation. A shortcut reachable under *any*
+reasonable serialization is a shortcut in the dataset, so the probe takes the upper
+bound over representations. Tokenizing signals separately would report "clean" for a
+leak the LLM baselines — which serialize into one prompt — could take. Recorded on
+`item_tokens` itself, where the choice lives.
+
+**Before-number.** The junction is the only place a discriminating bigram can anchor
+to text *shared across all eight frames*, so it is the only one that survives a
+held-out frame. R15 measured the consequence: health at 75.0% joined, 50.0%
+separated.
+
+**Shipped:** `TestSignalJoinIsFree` — joined and per-signal bigram accuracy must be
+**exactly** equal, no tolerance. The absence of a tolerance is a measurement, not a
+preference: across 270 family-seed cells (9 families × 30 seeds) at sizes **16, 20,
+24, 30 and 40**, and a wider 1296-cell sweep (8 seeds × 6 sizes × 3 fold counts × 9
+families), the gap is identically zero — because when the junction carries nothing
+the two feature sets differ only by bigrams constant across both classes, and a
+constant cannot move a Naive Bayes decision. `experiments/signal_join_probe.py`
+prints every table quoted in this entry; none of them is prose-only.
+
+**The round's first justification for this check was wrong, and a reviewer caught
+it.** It claimed the check caught Round 15's clause-initial defect where the gate did
+not. It does not: `TestProseFrameStructure.test_the_filler_is_never_clause_initial`
+already fails on that mutation — deterministically, all nine families, no dataset, no
+seed. Against P1 the new check is strictly *weaker*. What let the defect
+through was the **60% per-family bound**, never the gate. The original wording is
+preserved below the correction so the error stays visible.
+
+Re-measured across **all nine families**, not the one the first pass used:
+
+| mutation | gap fires | bound @ship | bound worst/8 | `TestProseFrameStructure` |
+|---|---|---|---|---|
+| P1 filler clause-initial | 7 of 9 | 2 of 9 | 5 of 9 | **9 of 9** |
+| P2 clause opens with a stopword | 0 of 9 | 0 of 9 | 1 of 9 | **9 of 9** |
+| P3 differing token before slot | 0 of 9 | 8 of 9 | 8 of 9 | **9 of 9** |
+
+The structural properties dominate all three. **Against every mutation the round
+tested, the new check is redundant.**
+
+**What does justify it** — found only after the review, and exhibited rather than
+asserted. All three properties constrain the decider's clause *openings*, which
+protects the junction the **body** sits against. That is sufficient only because the
+decider is currently the **last** signal. Append one shared signal after it, leaving
+`FRAMES` untouched so all three properties still pass:
+
+| appended trailing signal | gap fires | 60% bound fails |
+|---|---|---|
+| across nine families | **8 of 9** | 1 of 9 |
+
+The decider's trailing token is the filler, now abutting text every frame shares, so
+it transfers through a held-out frame exactly as the body junction would.
+`test_it_catches_what_the_frame_properties_cannot` asserts it, and asserts that the
+three properties still pass under the same mutation.
+
+**Stated precisely — two successive drafts of this sentence undercounted, and both
+were overclaims.** "Nothing else in the suite catches it" was false; so was the
+correction, which named one test. Appending the signal to every item turns the suite
+red in **six** places: the per-family 60% bound (`quiet_hours`,
+61.6%), the overall `< 70%` bound, three tests that fail because the suite hard-codes
+the decider as the **last** signal — split disjointness, object identity, order
+balance — and dataset reproducibility, which fails on *any* generator change and so
+carries no information about signal position.
+
+A family placing a signal after the decider is therefore a *loud* failure, not a
+silent one. The claim that survives is smaller than either draft: this check is the
+only assertion that **localizes** the failure as a junction leak rather than a
+downstream symptom, and it fires on **8 of 9** families where the bound fires on 1.
+No frame-shape property sees it at all.
+
+**Consequences, verified:** 142 → 153 tests. `ruff check` and `ruff format --check`
+both clean. No production behaviour changed — one docstring in `audit.py`, plus
+tests, docs and an experiment — so the leaderboard, the audit table and the dataset
+are unchanged by construction, and `data/` still reproduces from `tactbench build`.
+Audit still 50.0% unigram and bigram for all nine families.
+
+**Detection is honest about its limits.** The mutation is caught in 29/30 seeds at
+the size the test runs (30 pairs), but detection is *not monotonic* in that size —
+24/30 at 16, 29/30 at 20, 26/30 at 24, 28/30 at 40 — because fold membership shifts
+with it. Strong detector, not a proof. What is exact everywhere is the zero
+false-positive rate, which is what the no-tolerance assertion actually rests on.
+
+**A mistake the round nearly shipped.** Mutating P2 on `health` alone moves
+*nothing* — 0.00% gap, 50.0% exploitable — and the obvious reading is *the stopword
+property guards nothing, delete it*. That reading is **false**. Across all nine
+families the same violation moves eight of them, by up to **+16.1%** (`commerce`,
+50.0% → 66.1% at its worst over eight seeds, the one cell that breaches the bound).
+`health` is the sole exception because its fillers (`your prescription` / `Elena's
+prescription`) share a final token, so the internal junction bigram is identical
+whichever role each noun plays — and `health` is *also* the only family immune to the
+trailing-signal leak, which is an independent test of that same mechanism rather than
+another reading of the same nine points.
+
+**A property measured on one family is not measured.**
+
+**Loop — the pattern did not break; it got one layer deeper.** The round caught
+itself generalising from one family on P2, wrote that lesson down in bold, and then
+broke the same rule repeatedly. Below are the instances the four reviews named, plus
+two the round found itself. **This is not asserted to be the complete list** —
+earlier drafts of this paragraph each claimed a total and each was wrong, so the
+count is not the point and is no longer given:
+
+| the claim | the truth | caught by |
+|---|---|---|
+| the check *"catches R15's defect where the gate does not"* | `TestProseFrameStructure` already catches it, 9 of 9, deterministically | reviewer |
+| *"all three properties earn their place"* | P1 and P3 measured on `health` alone | reviewer |
+| *"the **gate's** detection … was seed-dependent"* | the **bound's** was. Built queue item 2 on the wide version, which would have sent R22 chasing a premise one `pytest -q` falsifies | reviewer |
+| *"Nothing here is prose-only"* | its own `structural` column and both sweeps had no code path | reviewer |
+| a commit correcting an unverified claim cited an **unverified test name** | `test_lexical_leakage_stays_near_chance` passes under that mutation | reviewer |
+| *"nothing else in the suite catches it"* | the 60% bound does, via `quiet_hours` | **author** |
+| the sentence correcting *"nothing else in the suite catches it"* named **one** test | **six** fail | reviewer |
+| *"One mutation is used everywhere now"* | the sensitivity test still used a `health`-specific inversion | reviewer |
+| *"four tests fail only because the decider is last"* | three; reproducibility fails on any generator change | reviewer |
+| *"`TestOrderSensitiveShortcut` fails on it too"* | it **passes** under the generic mutation; taken from a review that had applied a different one | **author** |
+| *"deleted"* — that same sentence | deleted at one of three sites | reviewer |
+
+It also claimed to be *"the first round where the failure mode appeared and did not
+reach the page"* — a self-assessment stated as a result, false on the page it was
+written on. Deleted, along with a running "score" line whose arithmetic was wrong
+twice.
+
+**Several of these occurred inside the fix for the one above them**, after reviews
+had named the pattern for this round specifically. The failure mode survived being
+named, corrected, named again, and corrected again.
+
+Writing the lesson down in the same document you then break does not work —
+**naming a pattern is not a control for it.** That is the strongest evidence yet for
+the pending §C proposal, and this entry is its exhibit: the rule was stated, in bold,
+in the same file as every violation above it.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -1222,6 +1389,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | finding | evidence from this project | disposition |
 |---|---|---|
 | §D lets a session run 3 rounds but requires the reviewer be a different session | R16 shipped, then the sequence stopped: the only agent available to review its PR was the one that wrote it. Budget said 3 rounds remained; §D's independence requirement said 0. Provable from three lines of `LOOP.md` rather than from a run. | filed — [issue #29](https://github.com/max-friedman/agentic-coding-loop/issues/29) |
+| A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **candidate, not yet filed** — needs a second instance before it is worth a triage slot. R17's near-deletion of a true README claim is arguably the first. |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |
@@ -1238,11 +1406,18 @@ dataset or the policy is wrong, not the assertion.
 - Overall lexical probe stays **< 70%**; every family **< 60%** — measured as
   **exploitable accuracy** (`0.5 + |acc − 0.5|`), never raw accuracy, because
   negating a classifier is free. A new family must be added to the audit, not
-  exempted. **Scoped to the unigram probe** as of R11: the bigram probe is
-  reported and currently reads 100% for eight of nine families (commerce fell to
-  66.7% after R12's entity variation), and gating on it is deliberately deferred
-  until frame expansion gives it a fix. Recorded so
-  this reads as a knowing trade rather than an unenforced rule.
+  exempted. **Gated on the unigram *and* bigram probes.** The bigram bound was
+  scoped out in R11, when eight of nine families read ~100% and no fix was
+  available; **R13 lifted that deferral** by holding decider phrasings out of the
+  training split, and all nine families have read 50.0% on both columns since. This
+  entry described the deferral as still live for eight rounds after it ended —
+  corrected in R21. The *positional* probe is the one that is reported and not
+  gated; 58–63% there is expected.
+  **Known limit (R21, queue item 2): the bound is a point estimate sampled once.**
+  The clause-initial defect breaches it for 2 of 9 families on `seed=20260726` and
+  5 of 9 at its worst over eight seeds. This limits the *bound*, not the gate —
+  `TestProseFrameStructure` catches every frame-shape defect on all nine families
+  without a dataset or a seed.
 - **A clean audit bounds only the shortcuts you thought to test.** A probe scoring
   at chance means *that probe* found nothing — not that the dataset forces a
   judgment. R11: ten rounds of 50.0% were a bag of words being unable to see
@@ -1258,6 +1433,10 @@ dataset or the policy is wrong, not the assertion.
   checker that validates a stale artifact is validating nothing.
 - The two sides of a pair are **equal but not identical objects** — no shared
   mutable `Signal` or `UserState`.
+- **Joining signals before tokenizing buys the shortcut probe exactly nothing** —
+  joined and per-signal bigram accuracy must be bit-identical, with no tolerance
+  (R21). The join itself stays: the probe takes the upper bound over how a submitter
+  might serialize a moment, not one reader's view of it.
 - Skyline beats silence with **zero** hard violations (task stays solvable).
 - Skyline never disagrees with a gold label (labels stay self-consistent).
 - The heuristic stays near chance (**0.5 ± 0.15** precision) and never solves the set.

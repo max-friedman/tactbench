@@ -9,7 +9,7 @@ README doesn't hold.
 Everything must pass before a PR merges. CI runs all of it on Python 3.11–3.13.
 
 ```bash
-uv run pytest -q          # 60 tests
+uv run pytest -q
 uv run ruff check .
 uv run ruff format --check .
 uv run tactbench audit    # per-family shortcut probe
@@ -83,7 +83,19 @@ prose clauses, each carrying exactly one `{who}` slot — plus a `fillers()` ret
 `(marker, counterpart)`. `TestProseFrameStructure` enforces three properties on
 those clauses: the slot is never clause-initial, no clause opens with a stopword,
 and both clauses of a frame put the same token immediately before the slot. Each
-exists because breaking it reopens a measured leak; see `docs/DATASET.md`. The permutation then holds by
+exists because breaking it reopens a measured leak; see `docs/DATASET.md`.
+Round 21 re-derived all three by mutating each across all nine families and kept all
+three — each is caught on **9 of 9** by these assertions, and the stopword rule alone
+is worth up to **+16.1%** to a bigram probe.
+
+A fourth check, `TestSignalJoinIsFree`, asserts that joining signals before
+tokenizing and *not* joining them score **exactly** the same, with no tolerance.
+Against the three properties above it is redundant — they catch those defects first
+and more reliably. It exists for one case they cannot see: if your family puts a
+signal **after** the decider, the decider's trailing filler abuts text every frame
+shares and leaks through the held-out split (it fires on 8 of 9 families there; the
+60% bound on 1). If it fails, fix the frames or the signal order — never the
+tolerance. The permutation then holds by
 construction — you cannot accidentally write two sentences instead of one
 permutation, which is the mistake the old free-text templates invited. Vary the
 label vocabulary genuinely across the eight: frames 5–7 are the held-out ones, and
@@ -119,6 +131,8 @@ assertion. A PR that loosens a threshold to go green will be sent back.
 - Heuristic lexicons stay single words, ≤ 20 entries — no phrase-lifting from the
   generator.
 - Hard violations are never averaged into ICS or reweighted by `--base-rate`.
+- Joining signals before tokenizing buys the shortcut probe **exactly nothing** —
+  joined and per-signal bigram accuracy must be bit-identical, no tolerance.
 
 ## Two rules about honesty
 

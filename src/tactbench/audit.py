@@ -53,7 +53,37 @@ def tokenize(text: str) -> list[str]:
 def item_tokens(item: Item) -> list[str]:
     """Only the signal text. Deliberately excludes user_state, slices, and family --
     a policy is *supposed* to need those, so letting the probe see them would
-    measure the wrong thing."""
+    measure the wrong thing.
+
+    **The join is deliberate** (ruled on in Round 21, after Round 15 flagged it as
+    unresolved and load-bearing). Joining the signals makes bigrams span the
+    boundary between the shared body signal and the discriminating decider, an
+    adjacency that is real for a policy serializing the moment into one prompt --
+    every LLM baseline -- and absent for one reading the structured ``Signal``
+    list. The probe takes the **upper bound over representations**, because a
+    submitter picks their own: a shortcut reachable under any reasonable
+    serialization is a shortcut in the dataset, and tokenizing signals separately
+    would report "clean" for a leak the LLM baselines could take.
+
+    The junction is also the only place a discriminating bigram can anchor to text
+    that is *shared across all eight frames*, which is what lets it survive a
+    held-out frame. That is the leak the dev/test split exists to prevent, so it is
+    the last place the audit should look away from.
+
+    The cost of the join is meant to be zero, and that is asserted rather than
+    assumed: ``test_join_buys_the_probe_nothing`` requires this function and a
+    signal-by-signal tokenization to score **identically**, with no tolerance.
+
+    That assertion is *redundant* against every frame-shape defect --
+    ``TestProseFrameStructure`` catches those on all nine families deterministically.
+    The case it is for is a signal placed **after** the decider, which puts the
+    decider's trailing filler against text every frame shares; the three frame
+    properties constrain clause *openings* only, so they are blind to it. Note that
+    the suite is not blind to that mutation overall -- six tests fail on it, three
+    because the code hard-codes the decider as the last signal. This check is the
+    one that **localizes** it as a junction leak, on 8 of 9 families against the
+    bound's 1. See ``experiments/signal_join_probe.py``.
+    """
     return tokenize(" ".join(s.content for s in item.moment.signals))
 
 

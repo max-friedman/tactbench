@@ -68,6 +68,61 @@ clause-final and added two properties that close the mirror trap — no clause o
 with a stopword, and both clauses of a frame put the same token before the slot.
 `TestProseFrameStructure` asserts all three.
 
+Round 21 ruled on the join itself, which Round 15 had flagged as unresolved and
+load-bearing. **It stays.** A submitter picks their own representation, so the probe
+takes the upper bound over representations rather than modelling one reader: a policy
+serializing the moment into a single prompt genuinely sees that junction, and
+tokenizing signals separately would report "clean" for a leak an LLM baseline could
+take. Keeping it costs nothing, and `TestSignalJoinIsFree` asserts that the cost is
+zero **exactly** — joined and per-signal bigram accuracy must be identical, with no
+tolerance, because across 270 family-seed cells (at sizes 16, 20, 24, 30 and 40) the
+gap is not merely small but always zero.
+
+**What that check is and is not for.** It does *not* catch the clause-initial defect
+first — `TestProseFrameStructure` already does, on all nine families, deterministically.
+Round 21 initially claimed otherwise and was wrong. The three structural properties
+constrain the decider's clause *openings*, which protects the junction the **body**
+sits against, and that is sufficient only because the decider is currently the **last**
+signal. Append one shared signal after it — leaving the frames untouched, so all three
+properties still pass — and the decider's trailing filler abuts text every frame shares:
+the join check then fires for **8 of 9** families while the 60% bound fires for 1. That
+trailing junction is what it covers.
+
+**It is not the only thing that would notice, and the first two drafts of this
+paragraph both undercounted.** Appending that signal to every item turns the suite
+red in **six** places, three of them a direct consequence of the last-signal
+convention: the per-family 60% bound
+(`quiet_hours`, 61.6%), the overall `< 70%` bound, three tests that fail because the
+suite already hard-codes the decider as the **last** signal (`signals[-1]`,
+`signals[:-1]`) — split disjointness, object identity and order balance — and dataset
+reproducibility, which fails on *any* generator change and so says nothing about
+signal position. A family placing a signal after the decider is not a silent hole;
+it is a loud one.
+
+What the join check adds is **localization and breadth**: it is the only assertion
+that identifies the failure *as a junction leak*, and it fires on 8 of 9 families
+where the bound fires on 1. No frame-shape property sees it at all.
+
+The same round re-derived the three properties by mutating each across all nine
+families, and kept all three. Three results are worth recording:
+
+- A clause-initial filler breaches the 60% bound for **2 of 9** families on
+  `seed=20260726` but **5 of 9** at its worst over eight seeds. **The bound is a
+  point estimate sampled once**, so every leakage figure here carries unquantified
+  spread. This limits the bound, **not the gate**: `TestProseFrameStructure` rejects
+  that defect on all nine families deterministically, with no dataset and no seed,
+  so `pytest -q` was never at risk of passing it.
+- Violating the stopword rule moves nothing at all on `health`, and it is the only
+  family where that is true: its fillers (`your prescription` / `Elena's
+  prescription`) share a final token, so the internal junction bigram is identical
+  whichever role each noun plays. Across all nine, the violation is worth up to
+  **+16.1%** (`commerce`, 50.0% → 66.1% at its worst over eight seeds, the one cell
+  that breaches the bound). Measuring it on `health` alone would have justified
+  deleting a live assertion.
+- `health` is also the only family immune to the trailing-signal leak above. Two
+  independent tests, same mechanism: the exception is the shared final token, not
+  something particular to the stopword rule.
+
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
 audit** — which is exactly what a token permutation guarantees, since that probe
