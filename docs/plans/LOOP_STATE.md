@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 21 complete
-- **Gate:** green — **153 passed**, `ruff check` **and** `ruff format --check` both
+- **Round:** 22 complete
+- **Gate:** green — **164 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -175,7 +175,7 @@ whenever costs, the generator, or a policy change.
 | `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | **R16** | resolver built from the frame templates; ICS 0 |
-| `audit.py` | **R21** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict. R21 ruled the signal **join** deliberate and asserted its cost is exactly zero (`TestSignalJoinIsFree` — redundant against frame-shape defects, load-bearing only for the **trailing** junction). Known limit: the 60% bound is a **point estimate sampled once** — queue item 2 |
+| `audit.py` | **R22** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict. R21 ruled the signal **join** deliberate and asserted its cost is exactly zero (`TestSignalJoinIsFree` — redundant against frame-shape defects, load-bearing only for the **trailing** junction). R22: gated probes are **seed-stable to 0.0%** (`TestGatedProbesAreSeedStable`); the reported **positional** probe is not, spanning 52.8–63.9% overall and up to 40 points per family |
 | `README.md` results | **R17** | `TestReadmeResultsAreCurrent` fails the build when it disagrees with `eval` |
 | `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
 | `schema.pair_key` | **R10** | the single definition of a pair |
@@ -233,21 +233,26 @@ halt the loop.**
    probe stops joining, two of `TestProseFrameStructure`'s three properties are
    guarding nothing. Pick one and say why. Whichever way it lands, re-derive whether
    those assertions still earn their place. </details>
-2. **The 60% per-family bound is a point estimate sampled once (new, R21).**
-   **Read this before acting on it: the *gate* is not at risk.** An earlier draft of
-   this item said the gate would have admitted a known defect. That was false and
-   would have cost a round — `TestProseFrameStructure` catches all three frame-shape
-   defects on all nine families deterministically, with no dataset and no seed.
-   What *is* seed-dependent is the **60% per-family bound**: the clause-initial
-   defect breaches it for **2 of 9** families on `seed=20260726` and **5 of 9** at its
-   worst over eight seeds; the stopword defect, 0 of 9 versus 1 of 9. The audit
-   samples that seed exactly once, so published leakage figures carry unquantified
-   spread. Options: gate the max over *k* seeds; gate a seed-averaged figure with a
-   tighter bound; or keep one seed and say so plainly in `DATASET.md`.
-   **Measure the spread on *shipped* frames first** — if it is more than a point or
-   two, several published figures are quoted with more precision than they have. Note
-   this is a precision-of-reported-numbers problem, not a hole in the gate; scope the
-   round accordingly.
+2. **Seed sensitivity of the published leakage figures — RESOLVED in R22, and the
+   premise was half wrong.** Kept as a pointer. Measured on **shipped** frames over
+   20 seeds through the committed pipeline (reconstruction reproduces `data/v1/dev`
+   byte-for-byte): the **gated** probes move **0.0%** — every family, every seed,
+   overall and per-family, with no seed over the 60% bound. They are pinned at
+   chance by the permutation and are not point estimates at all. Asserted by
+   `TestGatedProbesAreSeedStable`, which checks the value as well as the stability,
+   since a family pinned at a constant 100% would satisfy stability alone.
+   What *is* seed-dependent is the **positional** probe, which is reported and not
+   gated: 52.8–63.9% overall (shipped reading 58.0%), up to **40 points** per family
+   (`health` 50.0–90.0%), with families over 60% on 6–14 of 20 seeds. Documented in
+   `docs/DATASET.md` as a range rather than a measurement; `CONTRIBUTING.md`'s
+   "60–63% is expected" was wrong and is corrected.
+   <details><summary>original entry</summary> R21 measured Round 15's clause-initial
+   defect at 53.6% exploitable on the shipped seed and 69.3% on another, and inferred
+   that "every leakage figure this project publishes is a point estimate with
+   unquantified spread". That generalised from a *mutated* dataset to *shipped* ones,
+   which R22 falsified for the gated probes. The seed-dependence R21 measured is real
+   but is a property of how sensitively the bound **detects a defect**, not of the
+   figures the project publishes. </details>
 3. **The `−89.3` keyword-exploit figure — RESOLVED in R18, and R17 was wrong
    about it.** R17 recorded that a reviewer's reconstruction "gave **−77.4**" and
    queued a round to *"verify or remove"* the README claim. R18 ran the
@@ -1376,6 +1381,60 @@ in the same file as every violation above it.
 
 ---
 
+## Round 22 — the gated figures do not move at all; the reported one moves a lot
+
+**Queue item 2**, which R21 filed as the highest-risk item standing: *"every leakage
+figure this project publishes is a point estimate with unquantified spread."*
+
+**The premise was half wrong, and R22's first job was to notice that.** R21 measured
+seed-dependence on a *mutated* dataset — how sensitively the 60% bound detects a
+clause-initial defect — and generalised it to the figures the project *publishes*,
+which are measured on shipped frames. Those are different quantities. The queue item
+was rescoped before the round started, on the strength of the prior round's review;
+this round then measured the rescoped version.
+
+**Method.** Reconstructed the committed pipeline in-process (`pairs=20`, then the
+frame split) and asserted the reconstruction reproduces `data/v1/dev` byte-for-byte
+before measuring anything — without that, the result describes a pipeline nobody
+ships. 20 seeds × 9 families × 3 probes.
+
+| probe | gated? | shipped | range / 20 seeds | worst per-family spread |
+|---|---|---|---|---|
+| unigram | **yes** | 50.0% | 50.0 – 50.0% | **0.0 pts** |
+| bigram | **yes** | 50.0% | 50.0 – 50.0% | **0.0 pts** |
+| positional | no | 58.0% | 52.8 – 63.9% | **40.0 pts** (`health` 50.0–90.0%) |
+
+**Shipped:** `TestGatedProbesAreSeedStable` — three assertions, each mutation-tested
+before being trusted. (1) the reconstruction matches the committed split; (2) the
+gated probes return an identical reading across seeds, per family; (3) that reading
+is 0.5, because stability alone would be satisfied by a family pinned at a constant
+100%. Breaking one family's permutation fails (2) and (3); truncating the
+reconstruction fails (1).
+
+**Consequences, verified:** 153 → 164 tests. `ruff check` and `ruff format --check`
+clean. No production code touched — tests and docs only — so the leaderboard, audit
+table and dataset are unchanged, and `TestReadmeResultsAreCurrent` passing is the
+check for that rather than an assumption.
+
+**A published claim was wrong and is corrected.** `CONTRIBUTING.md` told contributors
+"60–63% is expected" for the positional column. The measured overall range is
+52.8–63.9%, and per-family readings run from 50.0% to 90.0%. A contributor adding a
+family and reading 55% or 70% there would have had no way to know either was normal.
+
+**What this does *not* say.** The gated probes being seed-stable is a statement about
+the permutation holding across entity draws. It is not evidence that the dataset is
+free of shortcuts — it is the same 50.0% that read as safety for ten rounds before
+R11 showed a bag of words is structurally blind to a permutation. The standing
+invariant about reading the worst probe still governs.
+
+**Loop:** the round's own queue item was the thing most in need of checking. R21's
+review caught the overclaim in it before R22 ran, which is the first time a bad
+premise was intercepted between rounds rather than after the work. That is one
+instance and the mechanism was a reviewer, not the protocol — the same gap [#39](https://github.com/max-friedman/agentic-coding-loop/issues/39)
+describes.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -1389,7 +1448,8 @@ already covered or out of scope, and filing them would have wasted triage.
 | finding | evidence from this project | disposition |
 |---|---|---|
 | §D lets a session run 3 rounds but requires the reviewer be a different session | R16 shipped, then the sequence stopped: the only agent available to review its PR was the one that wrote it. Budget said 3 rounds remained; §D's independence requirement said 0. Provable from three lines of `LOOP.md` rather than from a run. | filed — [issue #29](https://github.com/max-friedman/agentic-coding-loop/issues/29) |
-| A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **candidate, not yet filed** — needs a second instance before it is worth a triage slot. R17's near-deletion of a true README claim is arguably the first. |
+| Nothing checks a round's summarizing sentence against its own evidence | R16–R21: six consecutive rounds shipped a summary wider than its evidence, every one caught by a reviewer and none by the gate or by §6. R21 alone produced ~10 across five review cycles, several *inside the sentence fixing the previous one* — ending with a sentence announcing counts would no longer be asserted, which asserted a count and got it wrong. The concrete harm is a **poisoned queue**: R21's widened claim became a queue item marked highest-risk that one `pytest -q` falsifies, which would have cost R22 a round. | filed — [issue #39](https://github.com/max-friedman/agentic-coding-loop/issues/39) |
+| A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **folded into [#39](https://github.com/max-friedman/agentic-coding-loop/issues/39)** as the counter-argument section, since a naive fix to the first finding licenses exactly this error. Not filed separately. |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |
@@ -1412,7 +1472,10 @@ dataset or the policy is wrong, not the assertion.
   training split, and all nine families have read 50.0% on both columns since. This
   entry described the deferral as still live for eight rounds after it ended —
   corrected in R21. The *positional* probe is the one that is reported and not
-  gated; 58–63% there is expected.
+  gated. **R22: it is also the only published figure that moves with the build
+  seed** — 52.8–63.9% overall over 20 seeds (shipped reading 58.0%), and up to 40
+  points per family. The gated probes move **0.0%**, asserted by
+  `TestGatedProbesAreSeedStable`.
   **Known limit (R21, queue item 2): the bound is a point estimate sampled once.**
   The clause-initial defect breaches it for 2 of 9 families on `seed=20260726` and
   5 of 9 at its worst over eight seeds. This limits the *bound*, not the gate —

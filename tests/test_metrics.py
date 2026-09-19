@@ -295,6 +295,95 @@ class TestBaseRate:
         )
 
 
+class TestGatedProbesAreSeedStable:
+    """The gated leakage figures must not depend on which seed built the dataset.
+
+    Round 21 found that a *defect's* measured size moves with the seed (a
+    clause-initial filler read 53.6% exploitable on the shipped seed and 69.3% on a
+    neighbour) and queued the obvious worry: that every leakage figure this project
+    publishes is a point estimate with unquantified spread.
+
+    Round 22 measured it on **shipped** frames, over 20 seeds, through the exact
+    pipeline that produces the committed split (``pairs=20`` then the frame split;
+    the reconstruction reproduces ``data/v1/dev`` byte-for-byte). The worry is half
+    right, and the halves are opposite:
+
+    - **gated probes** (unigram, bigram): spread **exactly 0.0%**, every family,
+      every seed, overall and per-family. Not "small" -- zero. No seed puts any
+      family over the 60% bound.
+    - **positional probe** (reported, not gated): overall spread **11.1%**
+      (52.8-63.9%, published value 58.0%), and per-family up to **40.0 points**
+      (``health`` 50.0-90.0%). Families exceed 60% on 6 to 14 seeds out of 20.
+
+    So the gated numbers are not point estimates at all, and this asserts that. They
+    are pinned at chance by construction: both sides of a pair carry the same token
+    multiset, so a bag of words and a bag of bigrams cannot separate them whatever
+    the entities happen to be. A nonzero spread here would mean that construction had
+    broken somewhere -- which is worth a build failure, and is a stronger statement
+    than the 60% bound it sits behind.
+
+    The positional spread is **not** asserted, because the probe is reported and not
+    gated. It is documented in ``docs/DATASET.md`` instead, since the figure appears
+    in prose there and in the README.
+    """
+
+    SEEDS = [20260726 + k for k in range(5)]
+
+    @staticmethod
+    def _dev(seed: int) -> list[Item]:
+        """The committed pipeline: build at 20 pairs, keep the non-held-out frames."""
+        items = generate(n_pairs_per_scenario=20, seed=seed)
+        return [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+
+    def test_the_reconstruction_matches_the_committed_split(self):
+        """Without this the class below measures a pipeline nobody ships."""
+        committed = load("v1", "dev")
+        rebuilt = self._dev(20260726)
+        assert len(committed) == len(rebuilt), (
+            f"{len(rebuilt)} reconstructed items vs {len(committed)} committed -- the "
+            "reconstruction has drifted from `tactbench build`, so the seed-stability "
+            "result below would be about some other dataset."
+        )
+        assert [i.moment.signals[-1].content for i in committed] == [
+            i.moment.signals[-1].content for i in rebuilt
+        ]
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_the_gated_probes_do_not_move_with_the_seed(self, family):
+        readings = {}
+        for seed in self.SEEDS:
+            subset = [i for i in self._dev(seed) if i.moment.family == family]
+            readings[seed] = (
+                lexical_leakage(subset).exploitable_accuracy,
+                ngram_leakage(subset).exploitable_accuracy,
+            )
+
+        distinct = set(readings.values())
+        assert len(distinct) == 1, (
+            f"{family}: the gated probes move with the build seed -- {readings}. Both "
+            "sides of a pair carry the same token multiset, so neither a bag of words "
+            "nor a bag of bigrams can separate them whatever entities are drawn. A "
+            "spread here means that construction has broken for this family; fix the "
+            "frames, do not widen this assertion."
+        )
+
+    def test_that_stability_is_at_chance_and_not_merely_constant(self):
+        """A family pinned at a *constant* 100% would satisfy the test above.
+
+        Stability is only reassuring together with the value it is stable at, and
+        asserting the pair here keeps the two from drifting apart.
+        """
+        for seed in self.SEEDS:
+            dev = self._dev(seed)
+            for family in sorted(FRAMES):
+                subset = [i for i in dev if i.moment.family == family]
+                for report in (lexical_leakage(subset), ngram_leakage(subset)):
+                    assert report.exploitable_accuracy == pytest.approx(0.5), (
+                        f"{family} reads {report.exploitable_accuracy:.1%} on the "
+                        f"{report.probe} probe at seed {seed}"
+                    )
+
+
 class TestShortcutResistance:
     """The benchmark's central claim is that surface patterns cannot answer it.
     That claim is only worth its evidence, so it is measured, not asserted.
