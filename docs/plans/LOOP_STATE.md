@@ -1342,7 +1342,7 @@ another reading of the same nine points.
 **Loop — the pattern did not break; it got one layer deeper.** The round caught
 itself generalising from one family on P2, wrote that lesson down in bold, and then
 broke the same rule repeatedly. Below are the instances the four reviews named, plus
-two the round found itself. **This is not asserted to be the complete list** — three
+two the round found itself. **This is not asserted to be the complete list** —
 earlier drafts of this paragraph each claimed a total and each was wrong, so the
 count is not the point and is no longer given:
 
@@ -1354,7 +1354,7 @@ count is not the point and is no longer given:
 | *"Nothing here is prose-only"* | its own `structural` column and both sweeps had no code path | reviewer |
 | a commit correcting an unverified claim cited an **unverified test name** | `test_lexical_leakage_stays_near_chance` passes under that mutation | reviewer |
 | *"nothing else in the suite catches it"* | the 60% bound does, via `quiet_hours` | **author** |
-| the sentence correcting the above named **one** test | **six** fail | reviewer |
+| the sentence correcting *"nothing else in the suite catches it"* named **one** test | **six** fail | reviewer |
 | *"One mutation is used everywhere now"* | the sensitivity test still used a `health`-specific inversion | reviewer |
 | *"four tests fail only because the decider is last"* | three; reproducibility fails on any generator change | reviewer |
 | *"`TestOrderSensitiveShortcut` fails on it too"* | it **passes** under the generic mutation; taken from a review that had applied a different one | **author** |

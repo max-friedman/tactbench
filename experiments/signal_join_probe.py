@@ -6,8 +6,8 @@ decider signal. Round 15 found that choice is **load-bearing** and left it
 unresolved; this module is the measurement Round 21 used to settle it.
 
 Every **number** quoted below is computed by ``main()``, with one exception, named
-here because an earlier draft of this line claimed "nothing here is prose-only" and
-was wrong twice. The exception is the list of six suite tests that fail under the
+here because earlier drafts of this line claimed "nothing here is prose-only" and
+were wrong. The exception is the list of six suite tests that fail under the
 trailing-signal mutation, and the 70.7% beside it: those come from running the suite
 with that mutation applied, not from this module. Reproduce them by appending a
 shared ``Signal`` to every item in ``generate`` and running ``uv run pytest -q``.
@@ -85,7 +85,7 @@ abutting text every frame shares (table 3 below)::
 No frame-shape assertion constrains that junction. This is the check's justification,
 and unlike the original one it is exhibited rather than asserted.
 
-Stated precisely, because two successive drafts of this sentence undercounted it.
+Stated precisely, because earlier drafts of this sentence undercounted it.
 The suite is **not** blind to that mutation. Appending the signal to every item turns
 it red in **six** places::
 
@@ -125,8 +125,8 @@ not measured.**
 The round then broke that rule repeatedly in its own writeup and in the commits
 fixing it, several times *inside the sentence written to fix the previous instance*.
 The instances the reviews named are tabulated in ``docs/plans/LOOP_STATE.md`` under
-Round 21; no total is claimed there, because three drafts of that paragraph each gave
-a count and each was wrong.
+Round 21; no total is claimed there, because earlier drafts of that paragraph each
+gave a count and each was wrong.
 
 Tables 2, 3 and 4 exist because of it: every figure quoted above was prose with no
 code path until someone checked.
