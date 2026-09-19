@@ -84,16 +84,18 @@ prose clauses, each carrying exactly one `{who}` slot — plus a `fillers()` ret
 those clauses: the slot is never clause-initial, no clause opens with a stopword,
 and both clauses of a frame put the same token immediately before the slot. Each
 exists because breaking it reopens a measured leak; see `docs/DATASET.md`.
-Round 21 re-derived all three by mutation and kept all three — the stopword rule
-alone is worth up to **+16.1%** to a bigram probe, and breaches the 60% bound for
-`commerce`.
+Round 21 re-derived all three by mutating each across all nine families and kept all
+three — each is caught on **9 of 9** by these assertions, and the stopword rule alone
+is worth up to **+16.1%** to a bigram probe.
 
-A fourth check, `TestSignalJoinIsFree`, comes free with them: the audit joins
-signals before tokenizing, so it asserts that joining and *not* joining score
-**exactly** the same. If your family fails it, a bigram in your decider is
-discriminating at the boundary with the shared body text — which every frame of
-the family shares, so it will survive the held-out split. That assertion has no
-tolerance on purpose; fix the frames rather than loosening it. The permutation then holds by
+A fourth check, `TestSignalJoinIsFree`, asserts that joining signals before
+tokenizing and *not* joining them score **exactly** the same, with no tolerance.
+Against the three properties above it is redundant — they catch those defects first
+and more reliably. It exists for one case they cannot see: if your family puts a
+signal **after** the decider, the decider's trailing filler abuts text every frame
+shares and leaks through the held-out split (it fires on 8 of 9 families there; the
+60% bound on 1). If it fails, fix the frames or the signal order — never the
+tolerance. The permutation then holds by
 construction — you cannot accidentally write two sentences instead of one
 permutation, which is the mistake the old free-text templates invited. Vary the
 label vocabulary genuinely across the eight: frames 5–7 are the held-out ones, and

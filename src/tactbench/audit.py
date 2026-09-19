@@ -72,8 +72,14 @@ def item_tokens(item: Item) -> list[str]:
 
     The cost of the join is meant to be zero, and that is asserted rather than
     assumed: ``test_join_buys_the_probe_nothing`` requires this function and a
-    signal-by-signal tokenization to score **identically**. See
-    ``experiments/signal_join_probe.py``.
+    signal-by-signal tokenization to score **identically**, with no tolerance.
+
+    That assertion is *redundant* against every frame-shape defect --
+    ``TestProseFrameStructure`` catches those on all nine families deterministically.
+    It is load-bearing for exactly one case: a signal placed **after** the decider,
+    which puts the decider's trailing filler against text every frame shares. The
+    three frame properties constrain clause *openings* only, so they are blind to it.
+    See ``experiments/signal_join_probe.py``.
     """
     return tokenize(" ".join(s.content for s in item.moment.signals))
 

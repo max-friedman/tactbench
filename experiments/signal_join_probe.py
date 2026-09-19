@@ -5,17 +5,15 @@ bigrams span the junction between the shared body signal and the discriminating
 decider signal. Round 15 found that choice is **load-bearing** and left it
 unresolved; this module is the measurement Round 21 used to settle it.
 
+Every table quoted below is printed by ``main()``. Nothing here is prose-only.
+
 Why it is not a detail
 ----------------------
-The junction is the only place a discriminating bigram can ride a *shared* body
-phrasing. Body text is identical across all eight frames of a family, so a bigram
+The junction is the only place a discriminating bigram can ride text that is
+*shared across all eight frames*. Body text is identical across frames, so a bigram
 anchored there **transfers through a held-out frame** -- which is exactly what the
 dev/test split exists to prevent. Every other discriminating bigram lives inside a
 decider clause and dies with its frame.
-
-That is why Round 15's prose regressed health to 75.0% under the join and exactly
-50.0% without it, and why Round 16's first property (*the filler must not be
-clause-initial*) targets the junction specifically.
 
 The ruling: keep the join
 -------------------------
@@ -27,83 +25,79 @@ the junction. A policy reading the structured ``Signal`` list never does.
 submitter picks their own representation, so a shortcut reachable under *any*
 reasonable serialization is a shortcut in the dataset. Joining is the upper bound
 over representations; separating measures one particular reader and would report
-"clean" for a leak the LLM baselines could take. For an adversarial probe the
-conservative choice is the correct one.
+"clean" for a leak the LLM baselines could take.
 
-What the ruling buys: a check with no tolerance
------------------------------------------------
-If the deciders are well-formed the join buys the probe **nothing** -- the junction
-carries no signal, so joined and separated tokenizations must score the *same*. That
-equality is measurable and, unlike the structural properties, names no mechanism, so
-it holds for a frame shape nobody has designed yet.
+The check, and what it is NOT for
+---------------------------------
+If the deciders are well-formed the join buys the probe **nothing**, so joined and
+separated tokenizations must score the same. ``TestSignalJoinIsFree`` asserts that
+with **no tolerance**: across 270 family-seed cells (9 families x 30 seeds) at sizes
+16, 20, 24, 30 and 40, and a wider 1296-cell sweep (8 seeds x 6 sizes x 3 fold
+counts x 9 families), the gap is identically zero. Not small -- zero. When the
+junction carries nothing the two feature sets differ only by bigrams constant across
+both classes, and a constant cannot move a Naive Bayes decision.
 
-It needs no tolerance. Across 270 family-seed cells (9 families x 30 seeds) the gap
-is **exactly zero, every time** -- not small, zero -- and that holds at every dataset
-size tried. When the junction carries nothing the two feature sets differ only by
-bigrams constant across both classes, which cannot move a Naive Bayes decision.
+**Round 21 first justified this check by saying it caught Round 15's clause-initial
+defect where the gate did not. That was wrong**, and it is recorded here because the
+wrong version nearly shipped. ``TestProseFrameStructure`` already asserts the
+clause-initial property directly -- deterministically, every family, no dataset, no
+seed -- and ``TestOrderSensitiveShortcut`` fails on that mutation too, sweeping
+seeds 1-8 and taking the worst. Against P1 this check is strictly *weaker*. What
+lets P1 through is the **60% per-family bound**, not the gate.
 
-Inverting health's clauses to put the filler clause-initial breaks it in **30 of 30
-seeds at 30 pairs per scenario**, the size the test runs. Detection is *not*
-monotonic in that size -- 25/30 at 16 pairs, 30/30 at 20, 25/30 at 24, 28/30 at 40 --
-because which frames land in which fold shifts with it. So the check is a strong
-detector of this defect, not a proof against it. The property that is exact
-everywhere is the **zero false-positive rate**, and that is the one the
-no-tolerance assertion actually rests on.
+Per-property, across all nine families (table 2 below). The bound is reported twice
+because the two disagree, which is a finding in its own right::
 
-``test_join_buys_the_probe_nothing`` asserts it.
+    mutation                        gap fires   bound @ship   bound worst/8   structural
+    P1 filler clause-initial           7 of 9        2 of 9          5 of 9   9 of 9
+    P2 clause opens with a stopword    0 of 9        0 of 9          1 of 9   9 of 9
+    P3 differing token before slot     0 of 9        8 of 9          8 of 9   9 of 9
 
-Where it beats the existing bound, and where it does not
---------------------------------------------------------
-Mutating ``health`` one property at a time, against the shipped seed and the 60%
-per-family bigram bound:
+Read honestly, that table says the three structural properties dominate all three
+mutations and this check adds nothing against any of them.
 
-    mutation                      ship-seed gap   ship-seed exploitable   bound
-    P1 filler clause-initial              3.57%                   53.6%    pass
-    P2 clause opens with a stopword       0.00%                   50.0%    pass
-    P3 differing token before slot        0.00%                  100.0%    FAIL
+It also shows the **60% bound is seed-dependent**: P1 breaches it for 2 families on
+``seed=20260726`` and 5 at its worst over eight seeds. The audit samples that seed
+exactly once, so every leakage figure this project publishes is a point estimate with
+unquantified spread. That is queued, and it is a property of the *bound*, not of the
+gate -- the gate catches all three mutations deterministically via
+``TestProseFrameStructure``, on every seed, without a dataset.
 
-**P1 is the case that justifies this round.** On the shipped seed the clause-initial
-defect reaches only 53.6% exploitable -- under the 60% bound, so the gate stays green
--- while the gap check catches it outright. The bound does catch P1 on other seeds
-(up to 69.3%), which means the existing gate's detection of Round 15's defect was
-*seed-dependent*. The gap check is not.
+What the check is actually for
+------------------------------
+All three properties constrain the decider's **clause openings**, which protects the
+junction the *body* sits against. That is sufficient today only because the decider
+happens to be the **last** signal.
 
-**P3 needs no help**: a differing token before the slot reaches 100% exploitable and
-the bound fails instantly. The gap check cannot see it at all, because that is the
-*internal* clause-to-clause junction, which both tokenizations cross.
+Append one shared signal after the decider -- leaving ``FRAMES`` untouched, so all
+three properties still pass -- and the decider's trailing token is the filler,
+abutting text every frame shares (table 3 below)::
+
+    appended trailing signal      gap check fires   60% bound fails
+    across nine families                   8 of 9            1 of 9
+
+No frame-shape assertion constrains that junction. This is the check's justification,
+and unlike the original one it is exhibited rather than asserted.
 
 A near-miss worth recording
 ---------------------------
-P2 reads 0.00% / 50.0% above, and the obvious conclusion -- *the stopword property
-guards nothing, delete it* -- **is false.** It was an artifact of mutating only
-``health``. Applying the strong form of the violation (every clause of every frame
-opening with ``the``) across all nine families:
+Mutating P2 on ``health`` alone moves nothing -- 0.00% gap, 50.0% exploitable -- and
+the obvious conclusion, *the stopword property guards nothing, delete it*, **is
+false.** Across all nine families the same violation moves eight of them, by up to
+**+16.1%** (``commerce``, 50.0% -> 66.1% at its worst over eight seeds, which is the
+one cell where it breaches the bound).
 
-    family        shipped   all-open-'the'      move   breaches 60% bound
-    childcare       50.0%           59.1%     +9.1%                   no
-    commerce        50.0%           66.1%    +16.1%                  YES
-    deadline        50.0%           59.3%     +9.3%                   no
-    driving         50.0%           52.9%     +2.9%                   no
-    finance         50.0%           52.9%     +2.9%                   no
-    health          50.0%           50.0%     +0.0%                   no
-    meeting_prep    50.0%           57.7%     +7.7%                   no
-    quiet_hours     50.0%           58.0%     +8.0%                   no
-    travel          50.0%           54.1%     +4.1%                   no
-
-P2 is load-bearing for **eight of nine families**. ``health`` is the single exception,
-and for a reason specific to it: its filler pair is ``your prescription`` /
-``Elena's prescription``, which share a final token, so the internal junction bigram
-is identical whichever role each noun plays. Families whose fillers are ``you`` and a
-colleague's name have no such protection.
+``health`` is the sole exception because its filler pair (``your prescription`` /
+``Elena's prescription``) shares a final token, so the internal junction bigram is
+identical whichever role each noun plays. That explanation is not inferred from the
+nine-row correlation alone: ``health`` is *also* the single family immune to the
+trailing-signal leak in table 3, which is an independent test of the same mechanism.
 
 Had this round stopped at the one-family table it would have deleted a live assertion
-on the strength of the one family where it happens not to bite -- the same shape of
-error as Round 17 queueing the removal of a README claim that turned out to be true.
-**A property measured on one family is not measured.**
-
-All three properties earn their place. The gap check is **complementary**, not a
-replacement: it covers the body junction, which is precisely where the 60% bound is
-weakest on the shipped seed.
+protecting eight families -- the same shape of error as Round 17 queueing the removal
+of a README claim that turned out to be true. **A property measured on one family is
+not measured.** The round then made that error twice more in its own writeup, on P1
+and P3, and a reviewer caught it; tables 2 and 3 are the repair.
 
 Run::
 
@@ -113,10 +107,11 @@ Run::
 from __future__ import annotations
 
 from tactbench.audit import _frame_key, _NaiveBayes, tokenize
-from tactbench.dataset.generate import FRAMES, generate
-from tactbench.schema import Item
+from tactbench.dataset.generate import FRAMES, WHO, generate, skeleton
+from tactbench.schema import Item, Signal, Source
 
 FOLDS = 5
+SHIPPED_SEED = 20260726
 
 
 def bigrams(tokens: list[str]) -> list[str]:
@@ -153,67 +148,136 @@ def frame_folded_accuracy(items: list[Item], features, folds: int = FOLDS) -> fl
     return sum(scored) / len(scored) if scored else 0.5
 
 
-def invert(clause: str) -> str:
-    """``"Behind the screen is {who}"`` -> ``"{who} is behind the screen"``.
+def exploitable(accuracy: float) -> float:
+    return 0.5 + abs(accuracy - 0.5)
 
-    Same tokens, same skeleton length, filler moved from clause-final to
-    clause-initial -- Round 15's defect and nothing else. Only applies to the
-    ``health`` frames, which all end ``" is {who}"``.
+
+# -- the three property violations, each generic enough to apply to any family ------
+
+
+def p1_clause_initial(frame: tuple[str, str]) -> tuple[str, str]:
+    """Move the filler to the front. Same tokens, same skeleton length."""
+    return tuple(f"{WHO} " + " ".join(skeleton(c)) for c in frame)  # type: ignore[return-value]
+
+
+def p2_opens_with_stopword(frame: tuple[str, str]) -> tuple[str, str]:
+    """Every clause of every frame opens with the same shared token."""
+    return tuple("The " + c[0].lower() + c[1:] for c in frame)  # type: ignore[return-value]
+
+
+def p3_differing_token_before_slot(frame: tuple[str, str]) -> tuple[str, str]:
+    """Break the symmetry of the token immediately preceding the slot."""
+    a, b = frame
+    head, tail = b.split(WHO, 1)
+    tokens = head.split()
+    if not tokens:
+        return frame
+    tokens[-1] = "for" if tokens[-1].lower() != "for" else "with"
+    return (a, " ".join(tokens) + " " + WHO + tail)
+
+
+def measure(family: str, seed: int = SHIPPED_SEED, n: int = 30) -> tuple[float, float]:
+    """``(gap, exploitable_joined_accuracy)`` for one family."""
+    items = [i for i in generate(n_pairs_per_scenario=n, seed=seed) if i.moment.family == family]
+    j = frame_folded_accuracy(items, joined_bigrams)
+    s = frame_folded_accuracy(items, separated_bigrams)
+    return j - s, exploitable(j)
+
+
+SEEDS = [SHIPPED_SEED + k for k in range(8)]
+
+
+def mutated_table(mutate, heading: str) -> None:
+    """Apply `mutate` to every family's frames in turn and report both detectors.
+
+    Reports the bound on the **shipped seed** and as the **max over 8 seeds**, because
+    the two disagree and that disagreement is itself a finding: a leak's measured size
+    depends on ``seed=20260726``, which the audit samples exactly once.
     """
-    head = clause.removesuffix(" is {who}")
-    return "{who} is " + head[0].lower() + head[1:]
-
-
-def table(items: list[Item], heading: str) -> None:
+    original = {k: list(v) for k, v in FRAMES.items()}
     print(heading)
-    print(f"{'family':<14} {'joined':>9} {'separated':>11} {'gap':>8}")
-    print("-" * 45)
-    for family in sorted({i.moment.family for i in items}):
-        subset = [i for i in items if i.moment.family == family]
-        j = frame_folded_accuracy(subset, joined_bigrams)
-        s = frame_folded_accuracy(subset, separated_bigrams)
-        flag = "  <-- junction carries signal" if abs(j - s) > 1e-9 else ""
-        print(f"{family:<14} {j:>8.1%} {s:>10.1%} {j - s:>+8.1%}{flag}")
-    print()
+    print(
+        f"{'family':<14} {'gap':>9} {'expl@ship':>11} {'expl max/8':>12} "
+        f"{'bound@ship':>12} {'bound max':>10} {'gap fires':>11}"
+    )
+    print("-" * 83)
+    fires = at_ship = at_max = 0
+    try:
+        for family in sorted(original):
+            FRAMES[family] = [mutate(f) for f in original[family]]
+            gap, ship = measure(family)
+            worst = max(measure(family, seed=s)[1] for s in SEEDS)
+            FRAMES[family] = original[family]
+            fires += abs(gap) > 0
+            at_ship += ship > 0.60
+            at_max += worst > 0.60
+            print(
+                f"{family:<14} {gap:>+8.2%} {ship:>10.1%} {worst:>11.1%} "
+                f"{('FAIL' if ship > 0.60 else 'pass'):>12} "
+                f"{('FAIL' if worst > 0.60 else 'pass'):>10} "
+                f"{('yes' if abs(gap) > 0 else 'no'):>11}"
+            )
+    finally:
+        for family, frames in original.items():
+            FRAMES[family] = frames
+    print(
+        f"  -> gap fires in {fires} of 9; the 60% bound fails in {at_ship} of 9 on the "
+        f"shipped seed, {at_max} of 9 at its worst over 8\n"
+    )
 
 
 def main() -> None:
-    table(
-        generate(n_pairs_per_scenario=30),
-        "Shipped frames -- the two columns must agree exactly, everywhere.\n",
-    )
+    print("TABLE 1 -- shipped frames. The two columns must agree exactly, everywhere.\n")
+    print(f"{'family':<14} {'joined':>9} {'separated':>11} {'gap':>8}")
+    print("-" * 45)
+    for family in sorted(FRAMES):
+        gap, _ = measure(family)
+        items = [i for i in generate(n_pairs_per_scenario=30) if i.moment.family == family]
+        j = frame_folded_accuracy(items, joined_bigrams)
+        flag = "  <-- junction carries signal" if abs(gap) > 0 else ""
+        print(f"{family:<14} {j:>8.1%} {j - gap:>10.1%} {gap:>+8.1%}{flag}")
+    print()
 
-    # Reintroduce Round 15's defect in one family, and *only* that defect. Each
-    # shipped `health` clause reads "<skeleton> is {who}"; inverting it moves the
-    # filler to clause-initial and changes nothing else. All eight frames stay
-    # distinctly worded, the permutation holds, the token multiset is untouched --
-    # so the only thing that moves is which token sits against the body boundary.
-    #
-    # Holding frame variation fixed is what makes this mutation mean anything. An
-    # earlier version collapsed all eight frames to a single wording and sent
-    # `health` to 82.0% on *both* columns: a real leak, but a frame-variation leak,
-    # which this check is not for and does not claim to catch.
-    original = FRAMES["health"]
-    FRAMES["health"] = [tuple(invert(c) for c in frame) for frame in original]
-    try:
-        table(
-            generate(n_pairs_per_scenario=30),
-            "With `health` mutated to a clause-INITIAL filler (Round 15's defect):\n",
+    print("TABLE 2 -- each structural property violated in turn, across all nine")
+    print("families. Compare against TestProseFrameStructure, which catches all three")
+    print("on 9 of 9 deterministically: this check adds nothing against any of them.\n")
+    mutated_table(p1_clause_initial, "P1 -- filler moved to clause-initial:\n")
+    mutated_table(p2_opens_with_stopword, "P2 -- every clause opens with 'the':\n")
+    mutated_table(p3_differing_token_before_slot, "P3 -- differing token before the slot:\n")
+
+    print("TABLE 3 -- the case that justifies the check. One shared signal appended")
+    print("AFTER the decider. FRAMES is untouched, so all three structural properties")
+    print("still pass -- yet the decider's trailing filler now abuts shared text.\n")
+    print(f"{'family':<14} {'gap':>9} {'exploitable':>13} {'60% bound':>11} {'gap fires':>11}")
+    print("-" * 61)
+    fires = breaches = 0
+    for family in sorted(FRAMES):
+        items = [i for i in generate(n_pairs_per_scenario=30) if i.moment.family == family]
+        trailed = []
+        for item in items:
+            copy = item.model_copy(deep=True)
+            copy.moment.signals.append(
+                Signal(content="Reminder set for later today.", source=Source.MESSAGE, age_s=60)
+            )
+            trailed.append(copy)
+        j = frame_folded_accuracy(trailed, joined_bigrams)
+        s = frame_folded_accuracy(trailed, separated_bigrams)
+        gap, expl = j - s, exploitable(j)
+        fires += abs(gap) > 0
+        breaches += expl > 0.60
+        print(
+            f"{family:<14} {gap:>+8.2%} {expl:>12.1%} "
+            f"{('FAIL' if expl > 0.60 else 'pass'):>11} {('yes' if abs(gap) > 0 else 'no'):>11}"
         )
-    finally:
-        FRAMES["health"] = original
+    print(f"  -> gap fires in {fires} of 9; the 60% bound fails in {breaches} of 9\n")
 
     print(
-        "The gap is the whole argument. Zero means the join is free: the junction\n"
-        "carries nothing, so keeping it costs the audit no honesty and buys coverage\n"
-        "of a serializing reader. Nonzero means a bigram is riding the shared body\n"
-        "and will transfer through a held-out frame -- the leak the split exists to\n"
-        "prevent.\n\n"
-        "On the shipped seed that mutation reaches only 53.6% exploitable, under the\n"
-        "60% per-family bound, so the gate stays green while this check does not.\n"
-        "That is why the check exists. See this module's docstring for the full\n"
-        "mutation matrix -- including the one-family reading that would have had this\n"
-        "round delete a live assertion."
+        "TABLE 4 is TABLE 2's P2 block: read the per-family moves there against\n"
+        "TABLE 1's shipped 50.0% baseline. health is the only family immune, and it\n"
+        "is also the only one immune in TABLE 3 -- two independent confirmations that\n"
+        "the mechanism is its fillers sharing a final token.\n\n"
+        "The headline: against P1, P2 and P3 the structural properties dominate and\n"
+        "this check is redundant. TABLE 3 is the one place it is not."
     )
 
 

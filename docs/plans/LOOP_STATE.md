@@ -14,7 +14,7 @@ findings** below.
 ## Current status
 
 - **Round:** 21 complete
-- **Gate:** green — **152 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **153 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -175,7 +175,7 @@ whenever costs, the generator, or a policy change.
 | `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
 | `policies/builtin.py` | R1 | heuristic now near chance, as intended |
 | `policies/skyline.py` | **R16** | resolver built from the frame templates; ICS 0 |
-| `audit.py` | **R21** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict. R21 ruled the signal **join** deliberate and asserted its cost is exactly zero (`TestSignalJoinIsFree`). Known gap: the 60% bound is **seed-dependent** — queue item 2 |
+| `audit.py` | **R21** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict. R21 ruled the signal **join** deliberate and asserted its cost is exactly zero (`TestSignalJoinIsFree` — redundant against frame-shape defects, load-bearing only for the **trailing** junction). Known limit: the 60% bound is a **point estimate sampled once** — queue item 2 |
 | `README.md` results | **R17** | `TestReadmeResultsAreCurrent` fails the build when it disagrees with `eval` |
 | `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
 | `schema.pair_key` | **R10** | the single definition of a pair |
@@ -219,7 +219,12 @@ halt the loop.**
    kept — the stopword rule is worth up to +16.1% across eight families, though
    exactly 0.0% on `health`, which is why measuring it there alone would have
    deleted it. `TestSignalJoinIsFree` now asserts the join costs exactly nothing.
-   See `experiments/signal_join_probe.py`.
+   **Note for anyone extending it:** that check is redundant against all three
+   frame-shape defects — `TestProseFrameStructure` catches each on 9 of 9
+   deterministically. Its one non-redundant job is the **trailing** junction, which
+   opens if a family ever places a signal *after* the decider (8 of 9 there, versus
+   1 of 9 for the bound). Do not delete it on a redundancy argument without
+   re-reading that case. See `experiments/signal_join_probe.py`.
    <details><summary>original entry</summary> `item_tokens` joins every signal
    before tokenizing, so bigrams span the body/decider junction. That adjacency is
    real for a policy that concatenates the moment and absent for one that reads the
@@ -228,18 +233,22 @@ halt the loop.**
    probe stops joining, two of `TestProseFrameStructure`'s three properties are
    guarding nothing. Pick one and say why. Whichever way it lands, re-derive whether
    those assertions still earn their place. </details>
-2. **The 60% per-family bound is seed-dependent (new, R21 — highest-risk item
-   standing).** R21 measured Round 15's clause-initial defect at **53.6%** exploitable
-   on the shipped seed and **69.3%** on another, against a 60% bound. The gate would
-   have passed the defect on the seed the committed dataset actually uses, and failed
-   it on a neighbour. Everything the audit asserts inherits this: a leak's measured
-   size depends on one arbitrary constant, `seed=20260726`, and the audit samples it
-   once. Options: run the audit over *k* seeds and gate the max; or gate a
-   seed-averaged figure with a tighter bound; or keep one seed and say plainly in
-   `DATASET.md` that reported leakage is a point estimate with unquantified spread.
-   **Measure the spread first** — if per-family exploitable accuracy on *shipped*
-   frames varies by more than a point or two across seeds, several published figures
-   are quoted with more precision than they have.
+2. **The 60% per-family bound is a point estimate sampled once (new, R21).**
+   **Read this before acting on it: the *gate* is not at risk.** An earlier draft of
+   this item said the gate would have admitted a known defect. That was false and
+   would have cost a round — `TestProseFrameStructure` catches all three frame-shape
+   defects on all nine families deterministically, with no dataset and no seed, and
+   `TestOrderSensitiveShortcut` already sweeps seeds 1–8 and takes the worst.
+   What *is* seed-dependent is the **60% per-family bound**: the clause-initial
+   defect breaches it for **2 of 9** families on `seed=20260726` and **5 of 9** at its
+   worst over eight seeds; the stopword defect, 0 of 9 versus 1 of 9. The audit
+   samples that seed exactly once, so published leakage figures carry unquantified
+   spread. Options: gate the max over *k* seeds; gate a seed-averaged figure with a
+   tighter bound; or keep one seed and say so plainly in `DATASET.md`.
+   **Measure the spread on *shipped* frames first** — if it is more than a point or
+   two, several published figures are quoted with more precision than they have. Note
+   this is a precision-of-reported-numbers problem, not a hole in the gate; scope the
+   round accordingly.
 3. **The `−89.3` keyword-exploit figure — RESOLVED in R18, and R17 was wrong
    about it.** R17 recorded that a reviewer's reconstruction "gave **−77.4**" and
    queued a round to *"verify or remove"* the README claim. R18 ran the
@@ -1250,28 +1259,49 @@ separated.
 
 **Shipped:** `TestSignalJoinIsFree` — joined and per-signal bigram accuracy must be
 **exactly** equal, no tolerance. The absence of a tolerance is a measurement, not a
-preference: across 270 family-seed cells the gap is identically zero at every size
-tried, because when the junction carries nothing the two feature sets differ only by
-bigrams constant across both classes, and a constant cannot move a Naive Bayes
-decision. `experiments/signal_join_probe.py` records the evidence.
+preference: across 270 family-seed cells (9 families × 30 seeds) at sizes **16, 20,
+24, 30 and 40**, and a wider 1296-cell sweep (8 seeds × 6 sizes × 3 fold counts × 9
+families), the gap is identically zero — because when the junction carries nothing
+the two feature sets differ only by bigrams constant across both classes, and a
+constant cannot move a Naive Bayes decision. `experiments/signal_join_probe.py`
+prints every table quoted in this entry; none of them is prose-only.
 
-**Why it is not redundant with the 60% bound — the result that justifies the round.**
-Mutating `health` one property at a time, on the **shipped seed**:
+**The round's first justification for this check was wrong, and a reviewer caught
+it.** It claimed the check caught Round 15's clause-initial defect where the gate did
+not. It does not: `TestProseFrameStructure.test_the_filler_is_never_clause_initial`
+already fails on that mutation — deterministically, all nine families, no dataset, no
+seed — and `TestOrderSensitiveShortcut` fails on it too, sweeping seeds 1–8 and
+taking the worst. Against P1 the new check is strictly *weaker*. What let the defect
+through was the **60% per-family bound**, never the gate. The original wording is
+preserved below the correction so the error stays visible.
 
-| mutation | gap check | exploitable | 60% bound |
-|---|---|---|---|
-| P1 filler clause-initial | **catches** | 53.6% | **passes it** |
-| P2 clause opens with a stopword | blind | 50.0% | passes it |
-| P3 differing token before slot | blind | 100.0% | catches |
+Re-measured across **all nine families**, not the one the first pass used:
 
-P1 is Round 15's actual defect, and on the seed the committed dataset uses it lands
-*under* the bound. The bound catches it on other seeds (to 69.3%) — meaning the
-gate's detection of that defect was **seed-dependent**, which nobody had noticed. The
-new check is not. P3 needs no help. The new check is complementary and deliberately
-narrow: it sees the body junction only, since the internal clause-to-clause junction
-is crossed by both tokenizations.
+| mutation | gap fires | bound @ship | bound worst/8 | `TestProseFrameStructure` |
+|---|---|---|---|---|
+| P1 filler clause-initial | 7 of 9 | 2 of 9 | 5 of 9 | **9 of 9** |
+| P2 clause opens with a stopword | 0 of 9 | 0 of 9 | 1 of 9 | **9 of 9** |
+| P3 differing token before slot | 0 of 9 | 8 of 9 | 8 of 9 | **9 of 9** |
 
-**Consequences, verified:** 142 → 152 tests. `ruff check` and `ruff format --check`
+The structural properties dominate all three. **Against every mutation the round
+tested, the new check is redundant.**
+
+**What does justify it** — found only after the review, and exhibited rather than
+asserted. All three properties constrain the decider's clause *openings*, which
+protects the junction the **body** sits against. That is sufficient only because the
+decider is currently the **last** signal. Append one shared signal after it, leaving
+`FRAMES` untouched so all three properties still pass:
+
+| appended trailing signal | gap fires | 60% bound fails |
+|---|---|---|
+| across nine families | **8 of 9** | 1 of 9 |
+
+The decider's trailing token is the filler, now abutting text every frame shares, so
+it transfers through a held-out frame exactly as the body junction would. No
+frame-shape assertion constrains that junction. `test_it_catches_what_the_frame_properties_cannot`
+asserts it, and asserts that the three properties still pass under the same mutation.
+
+**Consequences, verified:** 142 → 153 tests. `ruff check` and `ruff format --check`
 both clean. No production behaviour changed — one docstring in `audit.py`, plus
 tests, docs and an experiment — so the leaderboard, the audit table and the dataset
 are unchanged by construction, and `data/` still reproduces from `tactbench build`.
@@ -1283,25 +1313,33 @@ the size the test runs (30 pairs), but detection is *not monotonic* in that size
 with it. Strong detector, not a proof. What is exact everywhere is the zero
 false-positive rate, which is what the no-tolerance assertion actually rests on.
 
-**The round's most useful output is a mistake it nearly shipped.** The one-family
-table above shows P2 moving *nothing* — 0.00% gap, 50.0% exploitable — and the
-obvious reading is *the stopword property guards nothing, delete it*. That reading is
-**false**. Applying the strong form of the violation across all nine families moves
-eight of them, up to **+16.1%**, and breaches the bound for `commerce`. `health` is
-the sole exception, for a reason specific to it: its fillers (`your prescription` /
-`Elena's prescription`) share a final token, so the internal junction bigram is
-identical whichever role each noun plays.
+**A mistake the round nearly shipped.** Mutating P2 on `health` alone moves
+*nothing* — 0.00% gap, 50.0% exploitable — and the obvious reading is *the stopword
+property guards nothing, delete it*. That reading is **false**. Across all nine
+families the same violation moves eight of them, by up to **+16.1%** (`commerce`,
+50.0% → 66.1% at its worst over eight seeds, the one cell that breaches the bound).
+`health` is the sole exception because its fillers (`your prescription` / `Elena's
+prescription`) share a final token, so the internal junction bigram is identical
+whichever role each noun plays — and `health` is *also* the only family immune to the
+trailing-signal leak, which is an independent test of that same mechanism rather than
+another reading of the same nine points.
 
-Measuring on one family and generalising is the *same shape* as R16's two-of-five
-rows, R19's three-of-nine families, and R17 queueing the deletion of a README claim
-that was true. Here it would have deleted a live assertion protecting eight families.
-The difference this time is only that the round checked before writing it down — and
-the check cost one command. **A property measured on one family is not measured.**
+**A property measured on one family is not measured.**
 
-**Loop:** the pattern that has run since R16 did not recur in the writeup, but it
-*did* recur in the analysis and was caught in flight. That is the first round where
-the failure mode appeared and did not reach the page. It is weak evidence — one
-instance, and the catch was luck as much as method — but it is the first.
+**Loop — the pattern did not break; it got one layer deeper.** The round caught
+itself generalising from one family on P2, wrote that lesson down, and then broke it
+twice in the same document: it measured P1 and P3 on `health` alone and wrote *"all
+three properties earn their place"*, and it widened *"the bound's detection is
+seed-dependent"* into *"the gate's"* at four of six sites. It then claimed to be
+**"the first round where the failure mode appeared and did not reach the page"** — a
+self-assessment, stated as a result, and false on the page it was written on.
+
+Four rounds of this were caught by reviewers. This is the fifth, and the first where
+the round had explicitly named the failure mode in its own writeup before committing
+it. Naming a pattern does not stop it; only the reviewer has stopped it, every time.
+That is now five for five, and it is the strongest evidence yet for the §C proposal —
+the loop has no mechanism that catches this, and the round-level ritual of writing
+down the lesson demonstrably does not substitute for one.
 
 ---
 
@@ -1342,9 +1380,11 @@ dataset or the policy is wrong, not the assertion.
   entry described the deferral as still live for eight rounds after it ended —
   corrected in R21. The *positional* probe is the one that is reported and not
   gated; 58–63% there is expected.
-  **Known limit (R21, queue item 2): the bound is seed-dependent.** A defect
-  measuring 53.6% on the shipped seed measured 69.3% on a neighbouring one. The
-  bound is a point estimate sampled once, and its sensitivity is unquantified.
+  **Known limit (R21, queue item 2): the bound is a point estimate sampled once.**
+  The clause-initial defect breaches it for 2 of 9 families on `seed=20260726` and
+  5 of 9 at its worst over eight seeds. This limits the *bound*, not the gate —
+  `TestProseFrameStructure` catches every frame-shape defect on all nine families
+  without a dataset or a seed.
 - **A clean audit bounds only the shortcuts you thought to test.** A probe scoring
   at chance means *that probe* found nothing — not that the dataset forces a
   judgment. R11: ten rounds of 50.0% were a bag of words being unable to see

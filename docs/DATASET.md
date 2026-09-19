@@ -75,22 +75,40 @@ serializing the moment into a single prompt genuinely sees that junction, and
 tokenizing signals separately would report "clean" for a leak an LLM baseline could
 take. Keeping it costs nothing, and `TestSignalJoinIsFree` asserts that the cost is
 zero **exactly** — joined and per-signal bigram accuracy must be identical, with no
-tolerance, because across 270 family-seed cells the gap is not merely small but
-always zero.
+tolerance, because across 270 family-seed cells (at sizes 16, 20, 24, 30 and 40) the
+gap is not merely small but always zero.
 
-The same round re-derived the three properties by mutating each in turn, and kept
-all three. Two results are worth recording:
+**What that check is and is not for.** It does *not* catch the clause-initial defect
+first — `TestProseFrameStructure` already does, on all nine families, deterministically.
+Round 21 initially claimed otherwise and was wrong. The three structural properties
+constrain the decider's clause *openings*, which protects the junction the **body**
+sits against, and that is sufficient only because the decider is currently the **last**
+signal. Append one shared signal after it — leaving the frames untouched, so all three
+properties still pass — and the decider's trailing filler abuts text every frame shares:
+the join check then fires for **8 of 9** families while the 60% bound fires for 1. That
+trailing junction is what it covers, and nothing else in the suite does.
+
+The same round re-derived the three properties by mutating each across all nine
+families, and kept all three. Three results are worth recording:
 
 - On the shipped seed, a clause-initial filler reaches only **53.6% exploitable** —
-  *under* the 60% bound, so the gate would stay green. `TestSignalJoinIsFree` catches
-  it anyway. The bound does catch it on other seeds (up to 69.3%), which means the
-  gate's detection of Round 15's defect had been **seed-dependent**.
+  *under* the 60% bound. It does breach on other seeds (up to 69.3%), and across the
+  nine families the bound catches that defect for 2 on `seed=20260726` but 5 at its
+  worst over eight seeds. **The bound is a point estimate sampled once**, so every
+  leakage figure here carries unquantified spread. This is a property of the bound,
+  **not of the gate**: `TestProseFrameStructure` catches a clause-initial filler on
+  all nine families deterministically, with no dataset and no seed, so `pytest -q`
+  was never at risk of passing that defect.
 - Violating the stopword rule moves nothing at all on `health`, and it is the only
   family where that is true: its fillers (`your prescription` / `Elena's
   prescription`) share a final token, so the internal junction bigram is identical
   whichever role each noun plays. Across all nine, the violation is worth up to
-  **+16.1%** and breaches the bound for `commerce`. Measuring it on `health` alone
-  would have justified deleting a live assertion.
+  **+16.1%** (`commerce`, 50.0% → 66.1% at its worst over eight seeds, the one cell
+  that breaches the bound). Measuring it on `health` alone would have justified
+  deleting a live assertion.
+- `health` is also the only family immune to the trailing-signal leak above. Two
+  independent tests, same mechanism: the exception is the shared final token, not
+  something particular to the stopword rule.
 
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
