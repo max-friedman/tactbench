@@ -19,6 +19,8 @@ will be helpful too often.
 
 TactBench scores that judgment.
 
+![Each built-in policy's ICS against silence on v1/dev. Only the skyline, a ceiling and not a baseline, beats saying nothing; always, with perfect recall, scores worst.](docs/leaderboard.svg)
+
 ```bash
 git clone https://github.com/max-friedman/tactbench && cd tactbench
 uv run tactbench demo

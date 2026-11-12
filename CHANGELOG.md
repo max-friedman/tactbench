@@ -1,9 +1,25 @@
 # Changelog
 
 Notable changes to TactBench. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
-this project has not yet cut a release, so everything sits under Unreleased.
+0.1.0 is the first tagged release; everything before it is recorded under that heading.
 
 ## [Unreleased]
+
+Nothing yet.
+
+## [0.1.0] - 2026-11-12
+
+First tagged release: dataset `v1` (360 items, 252 dev / 108 test), the ICS metric,
+the built-in policies, the shortcut audit and the provider-agnostic LLM harness.
+LLM baselines have not been run. The README's *Honest limitations* section is the
+current list of what this release does not measure; the dated sections below are
+the history that led here.
+
+### Added
+
+- **`docs/leaderboard.svg`**, the README's headline chart. It is rendered from a
+  fresh eval by `experiments/leaderboard_chart.py`, never from typed numbers, so it
+  cannot drift from the results table that `TestReadmeResultsAreCurrent` guards.
 
 ### Changed
 
@@ -158,5 +174,6 @@ Tracked deliberately; see the README's limitations section.
 
 - No LLM baselines have been run.
 - Labels are by construction (`raters: 0`); no human validation or inter-rater κ.
-- `quiet_hours` leaks at 100% and structurally cannot be permuted.
+- ~~`quiet_hours` leaks at 100% and structurally cannot be permuted.~~ Since fixed:
+  the family is now a role permutation and probes at chance (see the README).
 - Nine families is nine degrees of freedom, whatever the item count.
