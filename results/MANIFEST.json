@@ -45,6 +45,22 @@
       "rubric": 760.5
     }
   },
+  "phi-3.5-mini": {
+    "bytes": 2393232672,
+    "file": "Phi-3.5-mini-instruct-Q4_K_M.gguf",
+    "hf_repo": "bartowski/Phi-3.5-mini-instruct-GGUF",
+    "n_ctx": 2048,
+    "quantization": "Q4_K_M",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "e4165e3a71af97f1b4820da61079826d8752a2088e313af0c7d346796c38eff5",
+    "system_role": true,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds": {
+      "naive": null,
+      "rubric": null
+    }
+  },
   "qwen2.5-0.5b": {
     "bytes": 491400032,
     "file": "qwen2.5-0.5b-instruct-q4_k_m.gguf",

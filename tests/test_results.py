@@ -80,6 +80,15 @@ def test_every_committed_run_records_what_produced_it(name):
     assert entry["temperature"] == 0
 
 
+@pytest.mark.parametrize("model", sorted(manifest()))
+def test_every_model_in_the_manifest_has_both_variants(model):
+    """Round 23 dropped Phi-3.5's naive run while moving files during a resumed
+    job; every other check stayed green because each covers only the runs that
+    exist. Reporting one variant of a model silently is a selected result."""
+    for variant in ("naive", "rubric"):
+        assert f"llm:{variant}:{model}" in RUNS, f"{model}: no committed {variant} run"
+
+
 def test_runs_and_readme_rows_correspond_one_to_one():
     rows = _readme_rows()
     assert set(rows) == set(RUNS), (
