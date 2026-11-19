@@ -83,19 +83,21 @@ def test_label_records_answers_and_resumes(tmp_path, monkeypatch):
 
     _label(tmp_path, monkeypatch, "alice", ["y\n", "y\n", "q\n"])
     rows = [json.loads(x) for x in path.read_text().splitlines()]
-    assert len(rows) == 4 and len({r["moment_id"] for r in rows}) == 4  # resumed, no repeats
+    assert len(rows) == 4 and len({r["item"] for r in rows}) == 4  # resumed, no repeats
 
 
 def test_agreement_reports_kappa_and_agreement_with_construction():
-    items = sample_pairs(load("v1", "dev"), 5)
-    gold = {i.moment.id: i.label.should_surface for i in items}
+    from tactbench.schema import opaque_id
+
+    items = sample_pairs(load("v1", "dev"), 10)
+    gold = {opaque_id(i.moment.id): i.label.should_surface for i in items}
     labels = {
         "a": dict(gold),
         "b": dict(gold),
         "c": {k: not v for k, v in gold.items()},
     }
     report = agreement(items, labels)
-    assert report.items == 10 and report.raters == 3
+    assert report.items == 20 and report.raters == 3
     assert report.majority_matches_construction == pytest.approx(1.0)
     assert report.per_rater["c"] == pytest.approx(0.0)
     assert report.kappa is not None and report.kappa < 0.5
@@ -108,3 +110,54 @@ def test_agreement_command_runs(tmp_path, monkeypatch):
     out = CliRunner().invoke(app, ["agreement"])
     assert out.exit_code == 0, out.output
     assert "kappa" in out.output.lower() and "alice" in out.output
+
+
+def test_the_report_counts_what_it_dropped():
+    """Review of R31: kappa used only moments every rater answered and said nothing
+    about the rest; a late third rater shrank it to 2 items silently."""
+    from tactbench.schema import opaque_id
+
+    items = sample_pairs(load("v1", "dev"), 20)
+    gold = {opaque_id(i.moment.id): i.label.should_surface for i in items}
+    keys = list(gold)
+    labels = {"a": dict(gold), "b": dict(gold), "c": {k: gold[k] for k in keys[:2]}}
+    r = agreement(items, labels)
+    assert r.answers == {"a": 40, "b": 40, "c": 2}
+    assert r.items == 2 and r.pairs <= 1
+    assert r.too_few  # below the reporting minimum -> no kappa shown
+    assert r.kappa is None
+
+
+def test_two_rater_ties_are_reported_not_scored_as_misses():
+    from tactbench.schema import opaque_id
+
+    items = sample_pairs(load("v1", "dev"), 20)
+    gold = {opaque_id(i.moment.id): i.label.should_surface for i in items}
+    keys = list(gold)
+    b = dict(gold)
+    for k in keys[:10]:
+        b[k] = not b[k]
+    r = agreement(items, {"a": dict(gold), "b": b})
+    assert r.ties == 10
+    assert r.majority_matches_construction == pytest.approx(1.0)  # over the 30 untied
+
+
+@pytest.mark.parametrize("name", ["../x", "/etc/x", "a b", "", "x/y"])
+def test_rater_names_cannot_escape_the_labels_directory(name):
+    from tactbench.labeling import labels_path
+
+    with pytest.raises(ValueError):
+        labels_path(name)
+
+
+def test_the_answers_file_does_not_reveal_the_answer(tmp_path, monkeypatch):
+    """Review of R31: rows stored the moment id, which reads ``-pos-`` / ``-near-``."""
+    _label(tmp_path, monkeypatch, "alice", ["y\n", "n\n", "q\n"])
+    text = (tmp_path / "labels" / "v1-dev" / "alice.jsonl").read_text()
+    assert "-pos-" not in text and "-near-" not in text
+
+
+def test_a_rater_with_no_answers_in_the_split_has_no_score():
+    items = sample_pairs(load("v1", "dev"), 5)
+    r = agreement(items, {"ghost": {"m-not-in-split": True}})
+    assert r.per_rater["ghost"] is None

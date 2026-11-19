@@ -532,8 +532,12 @@ otherwise would defeat the purpose of building a benchmark:
   ```
 
   A rater sees exactly what a model sees — no ids, slices or family — and the sample
-  is whole pairs in a per-rater order, so a human pairs-both-right figure is directly
-  comparable to the models'.
+  is whole pairs in a per-rater order. That is **not** the model's task: a rater
+  sees both sides of each pair in one session and can infer that exactly one is a
+  "speak", which a model judging each moment alone cannot. Report human
+  pairs-both-right beside the LLM column, not as the same quantity. Kappa is
+  withheld below 20 moments every rater answered, and two-rater disagreements are
+  counted as ties rather than misses.
 - **Moments are synthetic and template-generated.** Eight frames per family is
   still eight, and the scenarios remain a small hand-authored set — nine families
   is nine effective degrees of freedom, whatever the item count. The deciders
