@@ -83,7 +83,7 @@ def wait_ready(proc: subprocess.Popen, timeout: float = 300) -> None:
     raise TimeoutError("server never became ready")
 
 
-def run_model(name: str, path: Path, server_python: str, threads: int) -> dict:
+def run_model(name: str, path: Path, server_python: str, threads: int) -> dict[str, float | None]:
     log = open(RESULTS.parent / f".server-{name}.log", "w")  # noqa: SIM115
     proc = subprocess.Popen(
         [server_python, "-m", "llama_cpp.server", "--model", str(path),
@@ -95,6 +95,10 @@ def run_model(name: str, path: Path, server_python: str, threads: int) -> dict:
     try:
         wait_ready(proc)
         for variant in VARIANTS:
+            src = ROOT / "runs" / f"llm_{variant}_{name}-dev.jsonl"
+            # A run killed part-way resumes from the CLI's per-decision cache. Its
+            # wall time would then cover only the remainder, so it is not recorded.
+            resumed = src.exists() and src.stat().st_size > 0
             t0 = time.time()
             subprocess.run(
                 ["uv", "run", "tactbench", "llm", "--provider", "local", "--model", name,
@@ -102,8 +106,7 @@ def run_model(name: str, path: Path, server_python: str, threads: int) -> dict:
                  *(["--no-system-role"] if name in NO_SYSTEM_ROLE else [])],
                 cwd=ROOT, check=True,
             )  # fmt: skip
-            timings[variant] = round(time.time() - t0, 1)
-            src = ROOT / "runs" / f"llm_{variant}_{name}-dev.jsonl"
+            timings[variant] = None if resumed else round(time.time() - t0, 1)
             shutil.copy(src, RESULTS / src.name)
     finally:
         proc.terminate()  # by the PID we started, never by name

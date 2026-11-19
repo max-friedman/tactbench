@@ -360,6 +360,8 @@ a test fails the build if this table disagrees with that output. To rerun:
 <!-- llm-results:start -->
 | model | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
 |---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:gemma-2-2b` | 304.0 | +9.5 | 0.477 | 0.167 | 0.458 | 0 | 44/252 | 3.2% | 0.0% |
+| `llm:naive:gemma-2-2b` | 306.0 | +8.9 | 0.541 | 0.159 | 0.436 | 0 | 37/252 | 4.8% | 0.0% |
 | `llm:naive:llama-3.2-3b` | 322.0 | +4.2 | 0.500 | 0.119 | 0.288 | 0 | 30/252 | 2.4% | 0.0% |
 | `llm:naive:qwen2.5-1.5b` | 336.0 | +0.0 | — | 0.000 | 0.500 | 0 | 0/252 | 0.0% | 0.0% |
 | `llm:rubric:llama-3.2-3b` | 336.0 | +0.0 | — | 0.000 | 0.301 | 0 | 0/252 | 0.0% | 0.0% |
