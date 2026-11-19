@@ -443,8 +443,8 @@ What it shows:
 - Several models copy the template's `short_snake_case_label_or_null` placeholder
   as their intent. Intent carries no weight in ICS, so this does not move a score.
 
-Not yet on PyPI — the name is reserved and publishing waits until LLM baselines
-land, so the first release has the result that makes it worth installing.
+Not yet on PyPI — the name is reserved and publishing waits until frontier LLM
+baselines land, so the first release has the result that makes it worth installing.
 
 The viewer shows the leaderboard, then every moment with gold label beside each
 policy's decision — filterable to failures only, and sliceable. A benchmark that
@@ -513,9 +513,18 @@ otherwise would defeat the purpose of building a benchmark:
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
-- **No LLM baselines yet.** The interesting result — whether frontier models beat
-  a few dozen lines of if-statements on interruption cost — is the whole point and
-  is not yet measured. The harness is provider-agnostic and ready for it.
+- **No frontier LLM has been run.** Eleven open-weight models of 8B parameters and
+  under are measured; whether frontier models do better is the result the project
+  exists to produce, and it costs money that has not been spent. The harness runs
+  them unchanged.
+- **Beating silence does not show comprehension.** A five-word topic policy beats it
+  by a wider margin than any LLM here ([Results](#results)) without reading which
+  side of a pair it is on, because in five families
+  a missed cue costs more than a false alarm. Until the costs or the pairs change so
+  a pair-blind policy cannot gain, read the `pairs` column, not ICS, as the
+  comprehension signal.
+- **The LLM results are one sample at temperature 0, on dev.** No variance across
+  seeds or prompts is reported, and no model has been run on the held-out split.
 
 The reference `heuristic` is restricted to structural features (user state, DND,
 signal age and source, contact metadata) and generic English lexicons. It may not
@@ -524,13 +533,15 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
 
 ## Roadmap
 
-1. **LLM baselines** across providers, zero-shot and with an explicit cost rubric.
-   With every shortcut removed and no baseline clearing silence, this is now the
-   decisive experiment: can a frontier model beat saying nothing?
-2. Human-labeled subset with reported agreement.
-3. More scenario families — six is the real ceiling on dataset diversity now that
+1. **Close the pair-blind gain.** Change the costs or the pairs so speaking on both
+   sides of a pair can never beat silence; until then the bar is a five-word keyword
+   policy, not silence.
+2. **Frontier LLM baselines.** Open-weight models up to 8B are measured; hosted
+   frontier models are not.
+3. Human-labeled subset with reported agreement.
+4. More scenario families — six is the real ceiling on dataset diversity now that
    phrasing has stopped being the weak point.
-4. Held-out test split with hidden labels behind a submission script.
+5. Held-out test split with hidden labels behind a submission script.
 
 ## Contributing
 

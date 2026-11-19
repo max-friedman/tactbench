@@ -7,8 +7,8 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ### Added (Round 23)
 
-- **The first LLM results**: small open-weight instruction models (the README
-  table lists them), Q4_K_M, on CPU through llama.cpp at temperature 0, both prompt
+- **The first LLM results**: eleven open-weight instruction models from 0.5B to
+  8B parameters, Q4_K_M, on CPU through llama.cpp at temperature 0, both prompt
   variants, on `v1/dev`. Decisions are committed in `results/v1-dev/`, weights'
   sha256 and runtime in `results/MANIFEST.json`, and the README table is gated
   against a fresh re-score by `tests/test_results.py`. No hosted frontier model
