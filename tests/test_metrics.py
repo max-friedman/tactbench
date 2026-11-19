@@ -295,6 +295,203 @@ class TestBaseRate:
         )
 
 
+class TestGatedProbesAreSeedStable:
+    """The gated leakage figures must not depend on which seed built the dataset.
+
+    Round 21 found that a *defect's* measured size moves with the seed (a
+    clause-initial filler read 53.6% exploitable on the shipped seed and 69.3% on a
+    neighbour) and queued the obvious worry: that every leakage figure this project
+    publishes is a point estimate with unquantified spread.
+
+    Round 22 measured it on **shipped** frames, over 20 seeds, through the exact
+    pipeline that produces the committed split (``pairs=20`` then the frame split;
+    the reconstruction reproduces ``data/v1/dev`` object-for-object, ``model_dump()``
+    equal). The worry is half right, and the halves are opposite:
+
+    - **gated probes** (unigram, bigram): spread **exactly 0.0%**, every family,
+      every seed, overall and per-family. Not "small" -- zero. No seed puts any
+      family over the 60% bound.
+    - **positional probe** (reported, not gated): overall spread **11.1%**
+      (52.8-63.9%, published value 58.0%), and per-family up to **40.0 points**
+      (``health`` 50.0-90.0%). Families exceed 60% on **3 to 20** seeds out of 20 --
+      R22 published "6 to 14"; R25 corrected it and gated the table. ``driving``
+      is not a draw: its deciders never vary with the seed, so it reads 63.3% on
+      every one.
+
+    So the gated numbers are not point estimates at all, and this asserts that. They
+    are pinned at chance by construction: both sides of a pair carry the same token
+    multiset, so a bag of words and a bag of bigrams cannot separate them whatever
+    the entities happen to be. A nonzero spread here would mean that construction had
+    broken somewhere -- which is worth a build failure, and is a stronger statement
+    than the 60% bound it sits behind.
+
+    The positional spread is **not** asserted, because the probe is reported and not
+    gated. It is documented in ``docs/DATASET.md`` instead, since the figure appears
+    in prose there and in the README.
+    """
+
+    SEEDS = [20260726 + k for k in range(20)]
+
+    @staticmethod
+    def _dev(seed: int) -> list[Item]:
+        """The committed pipeline: build at 20 pairs, keep the non-held-out frames."""
+        items = generate(n_pairs_per_scenario=20, seed=seed)
+        return [i for i in items if frame_of(i.moment) not in HELD_OUT_FRAMES]
+
+    def test_the_reconstruction_matches_the_committed_split(self):
+        """Without this the class below measures a pipeline nobody ships."""
+        committed = load("v1", "dev")
+        rebuilt = self._dev(20260726)
+        assert len(committed) == len(rebuilt), (
+            f"{len(rebuilt)} reconstructed items vs {len(committed)} committed -- the "
+            "reconstruction has drifted from `tactbench build`, so the seed-stability "
+            "result below would be about some other dataset."
+        )
+        # Whole objects, not the last signal: R22 compared only the decider while
+        # this docstring and the PR said "byte-for-byte". Review caught it in R23.
+        assert [i.model_dump() for i in committed] == [i.model_dump() for i in rebuilt]
+
+    @pytest.mark.parametrize("family", sorted(FRAMES))
+    def test_the_gated_probes_do_not_move_with_the_seed(self, family):
+        readings = {}
+        for seed in self.SEEDS:
+            subset = [i for i in self._dev(seed) if i.moment.family == family]
+            readings[seed] = (
+                lexical_leakage(subset).exploitable_accuracy,
+                ngram_leakage(subset).exploitable_accuracy,
+            )
+
+        distinct = set(readings.values())
+        assert len(distinct) == 1, (
+            f"{family}: the gated probes move with the build seed -- {readings}. Both "
+            "sides of a pair carry the same token multiset, so neither a bag of words "
+            "nor a bag of bigrams can separate them whatever entities are drawn. A "
+            "spread here means that construction has broken for this family; fix the "
+            "frames, do not widen this assertion."
+        )
+
+    def test_the_dataset_doc_per_family_positional_table_is_current(self):
+        """R22 published "6 to 14 seeds" with no script behind it; the true range was
+        3 to 20. The table in docs/DATASET.md is now recomputed here, over the same
+        20 seeds ``experiments/seed_spread_probe.py`` uses."""
+        doc = (Path(__file__).resolve().parents[1] / "docs" / "DATASET.md").read_text()
+        block = doc.split("<!-- seed-spread:start -->")[1].split("<!-- seed-spread:end -->")[0]
+        rows = re.findall(
+            r"^\| (\w+) \| ([\d.]+)% \| ([\d.]+)% \| (\d+) \| (yes|no) \|$", block, re.M
+        )
+        assert {r[0] for r in rows} == set(FRAMES), "the table must cover every family once"
+
+        seeds = [20260726 + k for k in range(20)]
+        builds = {s: self._dev(s) for s in seeds}
+        for family, lo, hi, above, varies in rows:
+            readings, deciders = [], set()
+            for s in seeds:
+                sub = sorted(
+                    (i for i in builds[s] if i.moment.family == family), key=lambda i: i.moment.id
+                )
+                readings.append(positional_leakage(sub).exploitable_accuracy)
+                deciders.add(tuple(i.moment.signals[-1].content for i in sub))
+            assert float(lo) == round(100 * min(readings), 1), family
+            assert float(hi) == round(100 * max(readings), 1), family
+            assert int(above) == sum(r > 0.60 for r in readings), family
+            assert (varies == "yes") == (len(deciders) > 1), family
+
+    def test_that_stability_is_at_chance_and_not_merely_constant(self):
+        """A family pinned at a *constant* 100% would satisfy the test above.
+
+        Stability is only reassuring together with the value it is stable at, and
+        asserting the pair here keeps the two from drifting apart.
+        """
+        for seed in self.SEEDS:
+            dev = self._dev(seed)
+            for family in sorted(FRAMES):
+                subset = [i for i in dev if i.moment.family == family]
+                for report in (lexical_leakage(subset), ngram_leakage(subset)):
+                    assert report.exploitable_accuracy == pytest.approx(0.5), (
+                        f"{family} reads {report.exploitable_accuracy:.1%} on the "
+                        f"{report.probe} probe at seed {seed}"
+                    )
+
+
+class TestSeedSpreadFiguresAreCurrent:
+    """Every seed-spread figure quoted outside the per-family table. Review of R25
+    mutated the DATASET overall row and the "3 to 20" prose and the suite stayed
+    green: only the table was gated. Each locator must match exactly once."""
+
+    SEEDS = [20260726 + k for k in range(20)]
+    ROOT = Path(__file__).resolve().parents[1]
+
+    @classmethod
+    def _measure(cls):
+        if not hasattr(cls, "_cache"):
+            builds = {s: TestGatedProbesAreSeedStable._dev(s) for s in cls.SEEDS}
+            out = {}
+            for name, probe in (
+                ("unigram", lexical_leakage),
+                ("bigram", ngram_leakage),
+                ("positional", positional_leakage),
+            ):
+                overall = [probe(builds[s]).exploitable_accuracy for s in cls.SEEDS]
+                fam = {
+                    f: [
+                        probe([i for i in builds[s] if i.moment.family == f]).exploitable_accuracy
+                        for s in cls.SEEDS
+                    ]
+                    for f in sorted(FRAMES)
+                }
+                worst = max(fam, key=lambda f: max(fam[f]) - min(fam[f]))
+                out[name] = (overall, fam, worst)
+            cls._cache = out
+        return cls._cache
+
+    @staticmethod
+    def _pct(x: float) -> float:
+        return round(100 * x, 1)
+
+    def _one(self, path: str, pattern: str) -> tuple[str, ...]:
+        found = re.findall(pattern, (self.ROOT / path).read_text())
+        assert len(found) == 1, f"{path}: locator {pattern!r} matched {len(found)} times"
+        return found[0] if isinstance(found[0], tuple) else (found[0],)
+
+    @pytest.mark.parametrize("probe", ["unigram", "bigram", "positional"])
+    def test_dataset_overall_row(self, probe):
+        shipped, lo, hi, spread = self._one(
+            "docs/DATASET.md",
+            rf"(?m)^\| {probe} \| [^|]+\| ([\d.]+)% \| ([\d.]+) – ([\d.]+)% \| \*\*([\d.]+) points",
+        )
+        overall, fam, worst = self._measure()[probe]
+        assert float(shipped) == self._pct(overall[0])
+        assert (float(lo), float(hi)) == (self._pct(min(overall)), self._pct(max(overall)))
+        assert float(spread) == self._pct(max(fam[worst]) - min(fam[worst]))
+
+    def _above_counts(self) -> dict[str, int]:
+        _, fam, _ = self._measure()["positional"]
+        return {f: sum(r > 0.60 for r in rs) for f, rs in fam.items()}
+
+    def test_the_range_of_seeds_above_the_bound(self):
+        counts = self._above_counts()
+        expected = (min(counts.values()), max(counts.values()))
+        for path in ("docs/DATASET.md", "CHANGELOG.md"):
+            lo, hi = self._one(path, r"[Tt]he true range is \**(\d+) to (\d+)\**")
+            assert (int(lo), int(hi)) == expected, path
+
+    def test_finance_count(self):
+        (n,) = self._one("docs/DATASET.md", r"still exceeds 60% on (\d+) of 20")
+        assert int(n) == self._above_counts()["finance"]
+
+    def test_contributing_positional_figures(self):
+        lo, hi = self._one("CONTRIBUTING.md", r"([\d.]+)–([\d.]+)% overall across 20 seeds")
+        (spread,) = self._one("CONTRIBUTING.md", r"up to\s+([\d.]+) points per family")
+        overall, fam, worst = self._measure()["positional"]
+        assert (float(lo), float(hi)) == (self._pct(min(overall)), self._pct(max(overall)))
+        assert float(spread) == self._pct(max(fam[worst]) - min(fam[worst]))
+
+    def test_readme_driving_constant(self):
+        (value,) = self._one("README.md", r"at a constant ([\d.]+)%")
+        readings = self._measure()["positional"][1]["driving"]
+        assert len(set(readings)) == 1 and float(value) == self._pct(readings[0])
+
+
 class TestShortcutResistance:
     """The benchmark's central claim is that surface patterns cannot answer it.
     That claim is only worth its evidence, so it is measured, not asserted.
