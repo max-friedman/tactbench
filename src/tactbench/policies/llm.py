@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import json
 import os
-import re
+import urllib.request
 from dataclasses import dataclass
 
 from ..schema import Decision, Moment
@@ -118,32 +118,76 @@ def render_moment(moment: Moment) -> str:
     return "\n".join(lines)
 
 
-_JSON_RE = re.compile(r"\{.*\}", re.S)
+#: Every Decision the parser could not read carries this rationale prefix. Counted
+#: by :func:`unparsed_rate` and reported beside every LLM score, because a
+#: non-answer is scored as silence -- which is the bar -- and an unreported pile of
+#: non-answers would look like a model that tied it.
+UNPARSED = "unparsed:"
+
+_YES = {"true", "yes", "1"}
+_NO = {"false", "no", "0"}
+
+
+def _as_decision(value: object) -> bool | None:
+    """Read the ``surface`` field strictly. ``None`` means "no decision".
+
+    ``bool("false")`` is ``True``; before Round 23 that was the whole parser, so a
+    model that quoted its boolean was scored as speaking when it had said silence.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        v = value.strip().lower()
+        if v in _YES:
+            return True
+        if v in _NO:
+            return False
+    return None
+
+
+def _first_object(text: str) -> dict | None:
+    """The first JSON object in ``text``, ignoring anything after it."""
+    decoder = json.JSONDecoder()
+    start = text.find("{")
+    while start != -1:
+        try:
+            obj, _ = decoder.raw_decode(text, start)
+        except json.JSONDecodeError:
+            start = text.find("{", start + 1)
+            continue
+        if isinstance(obj, dict):
+            return obj
+        start = text.find("{", start + 1)
+    return None
+
+
+def _unparsed(moment_id: str, why: str, text: str) -> Decision:
+    excerpt = " ".join((text or "").split())[:160]
+    return Decision(
+        moment_id=moment_id,
+        surface=False,
+        confidence=0.5,
+        rationale=f"{UNPARSED} {why}; scored as silence. Said: {excerpt!r}",
+    )
 
 
 def parse_response(text: str, moment_id: str) -> Decision:
     """Parse the model's JSON.
 
-    A model that returns unparseable output is treated as having stayed silent.
+    A model that returns no readable decision is treated as having stayed silent.
     That is the safe default and it is also the honest one: a proactive system
-    that cannot produce a decision does not get to surface something anyway.
+    that cannot produce a decision does not get to surface something anyway. It is
+    also *flagged* (see :data:`UNPARSED`), so the rate can be reported.
     """
-    match = _JSON_RE.search(text or "")
-    if not match:
-        return Decision(
-            moment_id=moment_id,
-            surface=False,
-            confidence=0.5,
-            rationale="unparseable response; scored as silence",
-        )
-    try:
-        data = json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return Decision(
-            moment_id=moment_id,
-            surface=False,
-            confidence=0.5,
-            rationale="invalid JSON; scored as silence",
+    data = _first_object(text or "")
+    if data is None:
+        return _unparsed(moment_id, "no JSON object", text)
+    surface = _as_decision(data.get("surface"))
+    if surface is None:
+        return _unparsed(
+            moment_id, f"no readable decision in surface={data.get('surface')!r}", text
         )
 
     confidence = data.get("confidence", 0.5)
@@ -158,24 +202,40 @@ def parse_response(text: str, moment_id: str) -> Decision:
 
     return Decision(
         moment_id=moment_id,
-        surface=bool(data.get("surface", False)),
+        surface=surface,
         confidence=confidence,
         intent=intent if isinstance(intent, str) else None,
         rationale="llm",
     )
 
 
+def is_unparsed(decision: Decision) -> bool:
+    """True if the model gave no readable decision (or the call failed)."""
+    r = decision.rationale or ""
+    return r.startswith(UNPARSED) or r.startswith("call failed")
+
+
+def unparsed_rate(decisions: list[Decision]) -> float:
+    return sum(is_unparsed(d) for d in decisions) / len(decisions) if decisions else 0.0
+
+
 @dataclass
 class ProviderSpec:
-    env_var: str
-    default_model: str
+    env_var: str | None
+    default_model: str | None
 
 
 PROVIDERS: dict[str, ProviderSpec] = {
     "anthropic": ProviderSpec("ANTHROPIC_API_KEY", "claude-sonnet-5"),
     "gemini": ProviderSpec("GEMINI_API_KEY", "gemini-3.1-pro-preview"),
     "openai": ProviderSpec("OPENAI_API_KEY", "gpt-5"),
+    # Any OpenAI-compatible server: llama.cpp, Ollama, vLLM, LM Studio. No key and
+    # no default model -- the model name is part of the result, so it is required.
+    # The URL comes from ``base_url`` or TACTBENCH_BASE_URL.
+    "local": ProviderSpec(None, None),
 }
+
+DEFAULT_LOCAL_URL = "http://127.0.0.1:8080/v1"
 
 
 class MissingCredential(RuntimeError):
@@ -196,6 +256,8 @@ class LLMPolicy(Policy):
         model: str | None = None,
         variant: str = "rubric",
         max_tokens: int = 200,
+        base_url: str | None = None,
+        system_role: bool = True,
     ):
         if provider not in PROVIDERS:
             raise ValueError(f"unknown provider {provider!r}; pick one of {list(PROVIDERS)}")
@@ -204,6 +266,14 @@ class LLMPolicy(Policy):
         self.provider = provider
         self.spec = PROVIDERS[provider]
         self.model = model or self.spec.default_model
+        if not self.model:
+            raise ValueError(f"provider {provider!r} needs an explicit model name")
+        self.base_url = (
+            base_url or os.environ.get("TACTBENCH_BASE_URL") or DEFAULT_LOCAL_URL
+        ).rstrip("/")
+        if not system_role and provider != "local":
+            raise ValueError("system_role=False is only for --provider local")
+        self.system_role = system_role
         self.variant = variant
         self.max_tokens = max_tokens
         self.system = NAIVE_SYSTEM if variant == "naive" else RUBRIC_SYSTEM
@@ -211,6 +281,8 @@ class LLMPolicy(Policy):
         self._client = None
 
     def _require_key(self) -> str:
+        if self.spec.env_var is None:
+            return ""
         key = os.environ.get(self.spec.env_var)
         if not key:
             raise MissingCredential(
@@ -220,8 +292,40 @@ class LLMPolicy(Policy):
             )
         return key
 
+    def _local_messages(self, prompt: str) -> list[dict[str, str]]:
+        """Some chat templates (Gemma 2) refuse a system turn outright, and the
+        server answers HTTP 500 to every call. Their documented convention is to
+        put the instructions at the top of the user turn, so with
+        ``system_role=False`` the same system text, unchanged, leads the user
+        message. Which delivery a run used is recorded in results/MANIFEST.json.
+        """
+        if self.system_role:
+            return [
+                {"role": "system", "content": self.system},
+                {"role": "user", "content": prompt},
+            ]
+        return [{"role": "user", "content": f"{self.system}\n\n{prompt}"}]
+
     def _complete(self, prompt: str) -> str:
         self._require_key()
+        if self.provider == "local":
+            # Greedy decoding, so a local result is reproducible from the weights.
+            # No grammar or JSON mode: the model gets the same prompt and the same
+            # freedom to answer badly as a hosted one, and unparsed output is counted.
+            body = {
+                "model": self.model,
+                "temperature": 0,
+                "max_tokens": self.max_tokens,
+                "messages": self._local_messages(prompt),
+            }
+            req = urllib.request.Request(
+                f"{self.base_url}/chat/completions",
+                data=json.dumps(body).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=600) as resp:  # noqa: S310
+                return json.loads(resp.read())["choices"][0]["message"]["content"] or ""
+
         if self.provider == "anthropic":
             if self._client is None:
                 from anthropic import Anthropic
@@ -271,4 +375,6 @@ class LLMPolicy(Policy):
 def available_providers() -> dict[str, bool]:
     """Which providers have a key present. Used by the CLI to fail early and
     clearly instead of part-way through a paid run."""
-    return {name: bool(os.environ.get(s.env_var)) for name, s in PROVIDERS.items()}
+    return {
+        name: s.env_var is None or bool(os.environ.get(s.env_var)) for name, s in PROVIDERS.items()
+    }

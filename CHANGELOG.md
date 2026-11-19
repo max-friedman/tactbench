@@ -5,7 +5,37 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
-Nothing yet.
+### Added (Round 24)
+
+- **The pair-blind bar** (`runner.pair_blind_ics`), reported as a `vs pair-blind`
+  column beside `vs silence` in `eval`, `llm`, `results` and both README tables.
+  It is the best cost any policy reaches without telling a matched pair's sides
+  apart, never paying with a hard violation. Silence stays the bar for worth
+  shipping; this is the bar for reading the moment. ICS 238 on `v1/dev` against
+  silence's 336. No LLM measured so far clears it. Costs are unchanged.
+
+### Added (Round 23)
+
+- **The first LLM results**: eleven open-weight instruction models from 0.5B to
+  8B parameters, Q4_K_M, on CPU through llama.cpp at temperature 0, both prompt
+  variants, on `v1/dev`. Decisions are committed in `results/v1-dev/`, weights'
+  sha256 and runtime in `results/MANIFEST.json`, and the README table is gated
+  against a fresh re-score by `tests/test_results.py`. No hosted frontier model
+  has been run.
+- **`--provider local`** for any OpenAI-compatible server, with no key and no
+  default model; `--no-system-role` for chat templates that reject a system turn.
+- **`tactbench results`**, which prints the README table from committed runs,
+  with two new columns: `pairs` (both sides of a matched pair right — a constant
+  policy scores exactly 0%) and `unparsed`.
+- `experiments/run_local_llms.py`, which reproduces every row from the weights.
+
+### Fixed (Round 23)
+
+- **The LLM response parser scored `"false"` as speaking.** It cast the field
+  with `bool()`, so a quoted `"false"`, `"no"` or `"maybe"` was an interruption;
+  an answer missing the decision was silently silence; and a stray trailing brace
+  made a valid answer unreadable. Four of six constructed cases were scored
+  wrong. Non-answers are now counted as `unparsed` and reported.
 
 ## [0.1.0] - 2026-11-12
 

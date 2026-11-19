@@ -13,7 +13,7 @@ from .dataset.generate import HELD_OUT_FRAMES, generate
 from .dataset.loader import load, split_path, write_jsonl
 from .metrics import Scorecard, score
 from .policies.builtin import registry
-from .runner import evaluate, silence_ics
+from .runner import evaluate, normalized, pair_blind_ics, silence_ics
 from .schema import Decision, frame_of
 
 app = typer.Typer(
@@ -33,11 +33,16 @@ def _bucket(key: str) -> int:
     return digest[0] % 100
 
 
-def _table(cards: list[Scorecard], silence: float) -> Table:
+def _signed(x: float) -> str:
+    return f"[green]+{x:.1f}[/green]" if x > 0 else f"[red]{x:.1f}[/red]" if x < 0 else "0.0"
+
+
+def _table(cards: list[Scorecard], silence: float, bar: float) -> Table:
     t = Table(title="TactBench results", title_style="bold")
     t.add_column("policy", style="bold")
     t.add_column("ICS ↓", justify="right")
     t.add_column("vs silence", justify="right")
+    t.add_column("vs pair-blind", justify="right")
     t.add_column("prec@int ↑", justify="right")
     t.add_column("recall-hv ↑", justify="right")
     t.add_column("intent ↑", justify="right")
@@ -46,17 +51,12 @@ def _table(cards: list[Scorecard], silence: float) -> Table:
     t.add_column("spoke", justify="right")
 
     for c in sorted(cards, key=lambda c: c.ics):
-        better = c.ics < silence
-        verdict = (
-            f"[green]+{c.ics_normalized:.1f}[/green]"
-            if better
-            else (f"[red]{c.ics_normalized:.1f}[/red]")
-        )
         viol = f"[red]{c.hard_violations}[/red]" if c.hard_violations else "0"
         t.add_row(
             c.policy,
             f"{c.ics:.1f}",
-            verdict,
+            _signed(c.ics_normalized),
+            _signed(normalized(c.ics, bar)),
             _fmt(c.precision_at_interrupt),
             _fmt(c.recall_high_value),
             _fmt(c.intent_accuracy),
@@ -134,11 +134,13 @@ def evaluate_cmd(
     chosen = list(reg.values()) if policy == "all" else [reg[policy]]
     cards = [evaluate(p, items, reference=silence, base_rate=base_rate) for p in chosen]
 
-    console.print(_table(cards, silence))
+    bar = pair_blind_ics(items, base_rate=base_rate)
+    console.print(_table(cards, silence, bar))
     console.print(
-        f"\n[dim]{len(items)} moments · silence baseline ICS = {silence:.1f}. "
-        "'vs silence' above 0 means the policy is worth shipping; "
-        "below 0 means it is worse than saying nothing.[/dim]"
+        f"\n[dim]{len(items)} moments · silence ICS = {silence:.1f} · pair-blind ICS = "
+        f"{bar:.1f}. 'vs silence' above 0 means the policy is worth shipping. "
+        "'vs pair-blind' above 0 means it reads the moment: no policy that answers both "
+        "sides of a pair alike can get there without a hard violation.[/dim]"
     )
     if base_rate > 1.0:
         console.print(
@@ -165,24 +167,45 @@ def evaluate_cmd(
         )
 
 
+#: Above this share of unreadable answers an LLM score is reported as inconclusive:
+#: each non-answer is scored as silence, which is exactly the bar.
+MAX_UNPARSED = 0.05
+
+
 @app.command(name="llm")
 def llm_cmd(
-    provider: str = typer.Option("anthropic", help="anthropic | gemini | openai"),
+    provider: str = typer.Option(
+        "anthropic", help="anthropic | gemini | openai | local (any OpenAI-compatible server)"
+    ),
     variant: str = typer.Option("rubric", help="naive (no cost info) | rubric (cost disclosed)"),
     model: str = typer.Option(None, help="Override the provider's default model."),
     version: str = typer.Option("v1"),
     split: str = typer.Option("dev"),
     limit: int = typer.Option(0, help="Only run the first N moments. 0 runs all."),
     fresh: bool = typer.Option(False, help="Ignore cached decisions and re-query."),
+    base_url: str = typer.Option(
+        None, help="For --provider local. Default $TACTBENCH_BASE_URL or http://127.0.0.1:8080/v1"
+    ),
+    system_role: bool = typer.Option(
+        True,
+        help="For --provider local. --no-system-role puts the system prompt, unchanged, "
+        "at the top of the user turn, for chat templates that reject a system turn.",
+    ),
 ) -> None:
-    """Score an LLM against a split. Requires an API key and costs money.
+    """Score an LLM against a split. Hosted providers need an API key and cost money;
+    ``--provider local`` runs open-weight models on your own server for free.
 
     Decisions are cached per (policy, split) so re-scoring, slicing, and viewing
     are free after the first run.
     """
     import json as _json
 
-    from .policies.llm import LLMPolicy, MissingCredential, available_providers
+    from .policies.llm import (
+        LLMPolicy,
+        MissingCredential,
+        available_providers,
+        unparsed_rate,
+    )
 
     have = available_providers()
     if not have.get(provider):
@@ -192,18 +215,29 @@ def llm_cmd(
         )
         raise typer.Exit(1)
 
-    policy = LLMPolicy(provider=provider, model=model, variant=variant)
+    policy = LLMPolicy(
+        provider=provider, model=model, variant=variant, base_url=base_url, system_role=system_role
+    )
     items = load(version, split)
     if limit:
         items = items[:limit]
 
-    cache_path = Path("runs") / f"{policy.name.replace(':', '_').replace('/', '_')}-{split}.jsonl"
+    # A run that moves the system prompt into the user turn is a different
+    # experiment, so it gets its own cache rather than reusing the other's answers.
+    suffix = "" if policy.system_role else "-nosys"
+    stem = policy.name.replace(":", "_").replace("/", "_")
+    cache_path = Path("runs") / f"{stem}{suffix}-{split}.jsonl"
     cached: dict[str, Decision] = {}
     if cache_path.exists() and not fresh:
         for line in cache_path.read_text().splitlines():
             if line.strip():
                 d = Decision.model_validate(_json.loads(line))
                 cached[d.moment_id] = d
+        # A failed call is the server's answer, not the model's: ask again rather
+        # than score it as silence forever. Later lines in the file supersede it.
+        cached = {
+            k: d for k, d in cached.items() if not (d.rationale or "").startswith("call failed")
+        }
 
     todo = [i for i in items if i.moment.id not in cached]
     console.print(
@@ -236,14 +270,47 @@ def llm_cmd(
     silence = silence_ics(items)
     card = score(items, decisions, policy.name, reference_ics=silence)
 
-    console.print(_table([card], silence))
-    verdict = (
-        "[green]beats silence[/green]"
-        if card.ics < silence
-        else "[red]worse than saying nothing[/red]"
+    console.print(_table([card], silence, pair_blind_ics(items)))
+    bad = unparsed_rate(decisions)
+    console.print(
+        f"unparsed: {bad:.1%} of decisions gave no readable answer and were scored as silence"
     )
+    if bad > MAX_UNPARSED:
+        # A non-answer is scored as silence, and silence is the bar. Past this rate the
+        # score says more about the output format than about the judgment.
+        verdict = f"[yellow]inconclusive[/yellow] — over {MAX_UNPARSED:.0%} unparsed"
+    elif card.ics < silence:
+        verdict = "[green]beats silence[/green]"
+    else:
+        verdict = "[red]worse than saying nothing[/red]"
     console.print(f"\n{policy.name} is {verdict} (silence ICS {silence:.1f}).")
     console.print(f"[dim]cached at {cache_path}[/dim]")
+
+
+@app.command()
+def results(
+    version: str = typer.Option("v1"),
+    split: str = typer.Option("dev"),
+) -> None:
+    """Re-score the committed LLM decisions in results/ and print README rows.
+
+    Free: nothing is queried. The README's LLM table must equal this output, and
+    a test enforces it.
+    """
+    from .results import markdown_row, scorecards
+
+    cards = scorecards(version, split)
+    bar = pair_blind_ics(load(version, split))
+    if not cards:
+        console.print(f"No committed LLM results for {version}/{split}.")
+        raise typer.Exit(1)
+    print(
+        "| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ "
+        "| hard viol. ↓ | spoke | pairs ↑ | unparsed |"
+    )
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
+    for card, unparsed, pairs in cards:
+        print(markdown_row(card, unparsed, pairs, bar))
 
 
 @app.command()

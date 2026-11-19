@@ -30,13 +30,13 @@ uv run tactbench demo
 
 Built-in policies on `v1/dev` (252 moments, 9 scenario families):
 
-| policy | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke |
-|---|---|---|---|---|---|---|---|
-| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 126/252 |
-| `never` *(the bar)* | 336.0 | 0.0 | — | 0.000 | 0.500 | 0 | 0/252 |
-| `random@0.5` | 406.0 | −20.8 | 0.507 | 0.540 | 0.008 | 9 | 134/252 |
-| `heuristic` | 496.0 | −47.6 | 0.500 | 0.127 | 0.171 | 10 | 32/252 |
-| `always` | 630.0 | −87.5 | 0.500 | 1.000 | 0.500 | 28 | 252/252 |
+| policy | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke |
+|---|---|---|---|---|---|---|---|---|
+| `skyline` *(ceiling, not a baseline)* | **0.0** | **+100.0** | **+100.0** | 1.000 | 1.000 | 0.075 | 0 | 126/252 |
+| `never` *(the shipping bar)* | 336.0 | 0.0 | −41.2 | — | 0.000 | 0.500 | 0 | 0/252 |
+| `random@0.5` | 406.0 | −20.8 | −70.6 | 0.507 | 0.540 | 0.008 | 9 | 134/252 |
+| `heuristic` | 496.0 | −47.6 | −108.4 | 0.500 | 0.127 | 0.171 | 10 | 32/252 |
+| `always` | 630.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.500 | 28 | 252/252 |
 
 Read the `always` row carefully. It has **perfect recall** — it never misses a
 single cue worth surfacing — and it is the worst policy on the board, costing 294
@@ -56,9 +56,26 @@ whether the page names you or your colleague. It scores perfectly, so the headro
 between silence and solved is real. It is **not** a baseline: it's a template
 parser tuned to this generator, included only to mark the ceiling.
 
-So the standing result is: **`never` is the bar, and nothing short of genuine
-comprehension has cleared it.** A proactive feature that scores worse than silence
-is a feature that should not ship.
+So `never` is the bar: a proactive feature that scores worse than silence is a
+feature that should not ship. **But clearing it does not show comprehension, and
+earlier versions of this README said it did.** Round 23 found that a policy which
+speaks whenever one of five topic words appears — `return`, `autopay`,
+`prescription`, `contract`, `gate` — and is silent otherwise scores **+29.2**
+against silence, on dev and on the held-out split, with zero hard violations. It
+never reads which side of a pair it is on. Each of those words marks a family where
+a missed cue costs more than a false alarm, so speaking on *both* sides of every
+pair there is net-positive.
+
+**So there are two bars, and the table reports both.** *Silence* is the bar for
+being worth shipping. The *pair-blind* bar is the best any policy can do without
+reading the moment: per matched pair, the cheaper of "both sides silent" and "both
+sides speak", never paying with a hard violation. The two sides of a pair share a
+body and a user state, so a policy that does not read the decider cannot do better —
+beating the pair-blind bar *requires* telling the sides apart. On `v1/dev` it sits
+at ICS 238 against silence's 336, and silence itself scores −41.2 against it. The
+costs were left as they are on purpose: speaking about a changed gate to an idle
+traveller on both sides of the pair really is better for the user than silence.
+What was wrong was the claim that beating silence shows comprehension.
 
 ### How good does a system have to be?
 
@@ -145,8 +162,10 @@ twice — three rounds in R13, and again in R16 — each time because a round ch
 the generator and checked only the rows it expected to move. `TestReadmeResultsAreCurrent`
 now fails the build instead of relying on anyone remembering.)
 
-There is no exempt family now. `TestNoKeywordExploit` fails the build if any
-keyword policy beats silence, and every family must probe under 60%.
+There is no exempt family now, and every family must probe under 60%.
+`TestNoKeywordExploit` fails the build if *that* keyword policy beats silence — it
+does not cover keyword policies in general. A five-word topic policy beats silence
+today; see [Results](#results).
 
 ### The blind spot in that number, and how it was closed
 
@@ -337,6 +356,20 @@ export ANTHROPIC_API_KEY=...          # or GEMINI_API_KEY / OPENAI_API_KEY
 uv run tactbench llm --variant rubric --limit 20
 ```
 
+Or free, against any OpenAI-compatible server you run yourself (llama.cpp,
+Ollama, vLLM, LM Studio):
+
+```bash
+uv run tactbench llm --provider local --model qwen2.5-7b \
+    --base-url http://127.0.0.1:8080/v1 --variant rubric
+```
+
+The model name is required — it becomes part of the result. Some chat templates
+(Gemma 2) reject a system turn; `--no-system-role` sends the same system prompt,
+unchanged, at the top of the user turn instead. A run whose calls fail is not a
+result: the server's error is scored as silence, so the CLI marks any run above 5%
+unparsed *inconclusive*, and a test refuses to publish one containing a failed call.
+
 Two variants exist to separate two different explanations for failure. `naive` is
 asked only whether to surface, with no cost structure disclosed — it measures the
 model's untutored instinct. `rubric` is given the actual asymmetry, including that
@@ -348,11 +381,79 @@ Decisions are cached per policy and split, so a paid run is never repeated. The
 prompt is kept verbatim in `policies/llm.py` and versioned, so any published number
 traces to the exact wording that produced it.
 
-**No LLM numbers appear in this README, because none have been run yet.** Publishing
-a figure for an experiment that was never executed would be worse than having none.
+### Open-weight LLM results
 
-Not yet on PyPI — the name is reserved and publishing waits until LLM baselines
-land, so the first release has the result that makes it worth installing.
+Free to reproduce: every row is a quantized (Q4_K_M) open-weight model run on a
+4-core CPU through llama.cpp, greedy decoding, the same verbatim prompt a hosted
+model gets. The decisions are committed in `results/v1-dev/`, the weights' sha256
+and runtime in `results/MANIFEST.json`, and `tactbench results` re-scores them;
+a test fails the build if this table disagrees with that output. To rerun:
+`python experiments/run_local_llms.py --models-dir DIR --server-python PY`.
+
+<!-- llm-results:start -->
+| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:gemma-3-4b` | 281.0 | +16.4 | −18.1 | 0.574 | 0.246 | 0.271 | 0 | 54/252 | 7.9% | 0.0% |
+| `llm:rubric:qwen2.5-7b` | 299.0 | +11.0 | −25.6 | 0.541 | 0.159 | 0.190 | 0 | 37/252 | 3.2% | 0.0% |
+| `llm:rubric:gemma-2-2b` | 304.0 | +9.5 | −27.7 | 0.477 | 0.167 | 0.458 | 0 | 44/252 | 3.2% | 0.0% |
+| `llm:naive:gemma-2-2b` | 306.0 | +8.9 | −28.6 | 0.541 | 0.159 | 0.436 | 0 | 37/252 | 4.8% | 0.0% |
+| `llm:naive:llama-3.2-3b` | 322.0 | +4.2 | −35.3 | 0.500 | 0.119 | 0.288 | 0 | 30/252 | 2.4% | 0.0% |
+| `llm:rubric:llama-3.1-8b` | 331.0 | +1.5 | −39.1 | 0.500 | 0.040 | 0.319 | 0 | 10/252 | 1.6% | 0.0% |
+| `llm:naive:qwen2.5-1.5b` | 336.0 | +0.0 | −41.2 | — | 0.000 | 0.500 | 0 | 0/252 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-3b` | 336.0 | +0.0 | −41.2 | — | 0.000 | 0.301 | 0 | 0/252 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-1.5b` | 336.0 | +0.0 | −41.2 | — | 0.000 | 0.154 | 0 | 0/252 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-3b` | 336.0 | +0.0 | −41.2 | — | 0.000 | 0.445 | 0 | 0/252 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-3b` | 356.0 | −6.0 | −49.6 | 0.503 | 0.706 | 0.424 | 14 | 177/252 | 3.2% | 3.6% |
+| `llm:naive:gemma-3-4b` | 358.0 | −6.5 | −50.4 | 0.496 | 0.548 | 0.356 | 11 | 139/252 | 5.6% | 0.0% |
+| `llm:naive:llama-3.1-8b` | 370.0 | −10.1 | −55.5 | 0.537 | 0.524 | 0.266 | 13 | 123/252 | 10.3% | 0.0% |
+| `llm:naive:phi-3.5-mini` | 392.0 | −16.7 | −64.7 | 0.500 | 0.889 | 0.427 | 14 | 224/252 | 0.0% | 0.0% |
+| `llm:rubric:phi-3.5-mini` | 392.0 | −16.7 | −64.7 | 0.500 | 0.889 | 0.450 | 14 | 224/252 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-7b` | 403.0 | −19.9 | −69.3 | 0.508 | 0.246 | 0.203 | 14 | 61/252 | 2.4% | 0.0% |
+| `llm:rubric:smollm2-1.7b` | 606.0 | −80.4 | −154.6 | 0.500 | 0.984 | 0.450 | 26 | 248/252 | 0.8% | 0.0% |
+| `llm:naive:llama-3.2-1b` | 630.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.210 | 28 | 252/252 | 0.0% | 0.0% |
+| `llm:naive:smollm2-1.7b` | 630.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.450 | 28 | 252/252 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-1b` | 630.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.039 | 28 | 252/252 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-0.5b` | 630.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.459 | 28 | 252/252 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-0.5b` | 636.0 | −89.3 | −167.2 | 0.500 | 0.976 | 0.391 | 28 | 246/252 | 0.0% | 2.4% |
+<!-- llm-results:end -->
+
+`pairs` is the share of matched pairs answered correctly on **both** sides. The two
+sides share a body and need opposite answers, so a policy that does not read the
+deciding signal scores 0% there however its ICS looks — a constant policy scores
+exactly 0%, a coin about 25%. `unparsed` is the share of answers with no readable
+decision, each scored as silence; above 5% the CLI reports a run as inconclusive.
+
+No hosted frontier model has been run — that costs money and has not been
+authorized. These are models of 8B parameters and under, 4-bit quantized, so the
+table bounds what small open models do here and says nothing about frontier ones.
+What it shows:
+
+- **No model reads the deciding signal.** The best `pairs` score is 10.3%, below
+  the ~25% a coin gets. Every model mostly gives both sides of a pair the same
+  answer, which is the one thing the pair design exists to catch.
+- **Some beat silence; none clears the pair-blind bar.** The best row, Gemma-3-4B
+  with the rubric, clears silence by +16.4 with zero hard violations, and is still
+  −18.1 against what a policy reading no decider at all can reach. Every run above
+  silence is there by speaking rarely: 54 of 252 moments at most.
+- **The rubric works by making models quieter.** For the models whose naive run
+  talks a lot, disclosing the costs cuts how often they speak and turns a loss into
+  a gain or a smaller loss — Gemma-3-4B from −6.5 to +16.4, Qwen2.5-7B from −19.9 to
+  +11.0. It does not make them discriminate: no run gets above 10.3% pairs under either
+  prompt, and Phi-3.5's 252 decisions are identical under both. Llama-3.2-3B goes the other way,
+  silent under the rubric.
+- **No run that beats silence has a hard violation; every run that loses has
+  11–28.** There is nothing in between — no model trades a few hard violations for
+  a better ICS.
+- **Eight runs are constant policies** — four silent on every moment, four speaking
+  on every one — which the `pairs` and `spoke` columns show at a glance. Under the naive
+  prompt Qwen2.5-1.5B answers all 252 moments identically —
+  `{"surface": false, "confidence": 0.0, "intent": null}` — reading the response
+  template's field descriptions back as values.
+- Several models copy the template's `short_snake_case_label_or_null` placeholder
+  as their intent. Intent carries no weight in ICS, so this does not move a score.
+
+Not yet on PyPI — the name is reserved and publishing waits until frontier LLM
+baselines land, so the first release has the result that makes it worth installing.
 
 The viewer shows the leaderboard, then every moment with gold label beside each
 policy's decision — filterable to failures only, and sliceable. A benchmark that
@@ -421,9 +522,24 @@ otherwise would defeat the purpose of building a benchmark:
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
-- **No LLM baselines yet.** The interesting result — whether frontier models beat
-  a few dozen lines of if-statements on interruption cost — is the whole point and
-  is not yet measured. The harness is provider-agnostic and ready for it.
+- **No frontier LLM has been run.** Eleven open-weight models of 8B parameters and
+  under are measured; whether frontier models do better is the result the project
+  exists to produce, and it costs money that has not been spent. The harness runs
+  them unchanged.
+- **The pair-blind bar reads labels.** It is the optimum over policies that cannot
+  tell a pair's sides apart, computed from gold labels, so it is a reference point
+  rather than something a policy could implement. It is only as meaningful as the
+  pairing: a pair whose sides differ in anything but the decider lets a policy beat
+  it without comprehension.
+- **A policy is handed the answer in `moment.slices`.** The two sides of every pair
+  also differ in their slice tags, and "no `near_miss` tag means speak" is right on
+  100% of dev and held-out. The LLM prompt withholds `slices` and `family` (tests
+  enforce it), so no published LLM figure is affected. The built-in policies do not
+  read slices. But nothing stops a submitted `Policy` from reading them. Found in
+  review of Round 24; the fix — stripping provenance fields before a policy sees
+  the moment — is queued.
+- **The LLM results are one sample at temperature 0, on dev.** No variance across
+  seeds or prompts is reported, and no model has been run on the held-out split.
 
 The reference `heuristic` is restricted to structural features (user state, DND,
 signal age and source, contact metadata) and generic English lexicons. It may not
@@ -432,9 +548,8 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
 
 ## Roadmap
 
-1. **LLM baselines** across providers, zero-shot and with an explicit cost rubric.
-   With every shortcut removed and no baseline clearing silence, this is now the
-   decisive experiment: can a frontier model beat saying nothing?
+1. **Frontier LLM baselines.** Open-weight models up to 8B are measured; hosted
+   frontier models are not.
 2. Human-labeled subset with reported agreement.
 3. More scenario families — six is the real ceiling on dataset diversity now that
    phrasing has stopped being the weak point.

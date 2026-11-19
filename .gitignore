@@ -8,3 +8,4 @@ build/
 .ruff_cache/
 .DS_Store
 runs/
+results/.server-*.log

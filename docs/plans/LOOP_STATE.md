@@ -13,15 +13,22 @@ findings** below.
 
 ## Current status
 
-- **Round:** 21 complete
-- **Gate:** green — **153 passed**, `ruff check` **and** `ruff format --check` both
+- **Round:** 24 complete (`shipped`) — the pair-blind bar. R23 also `shipped`. **R22 is PR #19, open, review = request
+  changes** — not on `main`, so this branch does not contain it; see queue item B.
+- **Gate:** green — **311 passed** on the R23/R24 branch, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
 - **Dataset:** `v1` — 360 items (252 dev / 108 test), 9 families × 8 **prose**
   decider frames, split on the frame (0-4 train, 5-7 held out) so held-out
   phrasings appear nowhere in training and no pair is divided
-- **Headline:** silence (ICS 336) is unbeaten by any baseline; skyline (ICS 0)
+- **Headline (R23):** eleven open-weight LLMs (0.5B–8B, Q4_K_M, temperature 0) are
+  measured on `v1/dev`. Best: Gemma-3-4B rubric, +16.4 vs silence, 0 hard
+  violations. **No run beats a coin on pairs-both-right (best 10.3%)**, and a
+  five-word topic policy beats silence by **+29.2** without reading the decider —
+  so beating silence no longer certifies comprehension. **R24 added the pair-blind
+  bar** (ICS 238 on dev vs silence 336): no LLM clears it, best −18.1.
+- **Headline (to R21):** silence (ICS 336) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable. The surface-model exploit stays closed. **R16
   restored prose deciders** — *"Behind the screen is your prescription. Through the
   till is Elena's prescription."* — with every family at **50.0% on unigram and
@@ -181,7 +188,10 @@ whenever costs, the generator, or a policy change.
 | `schema.pair_key` | **R10** | the single definition of a pair |
 | `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
-| `policies/llm.py` | R2 | built and tested; **never executed** — needs a key |
+| `policies/llm.py` | **R23** | strict parser (unparsed counted, never silently silence); `--provider local`; `--no-system-role`. Executed on 11 open-weight models |
+| `runner.pair_blind_ics` | **R24** (new) | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested. Not yet in `web/server.py` |
+| `results/` + `results.py` | **R23** (new) | committed decisions + MANIFEST (sha256, runtime); README LLM table, and five conclusions drawn from it, gated against a re-score in `test_results.py` |
+| `experiments/run_local_llms.py` | **R23** (new) | reproduces every LLM row from weights; one model per invocation fits the 2h background cap |
 
 ---
 
@@ -190,10 +200,9 @@ whenever costs, the generator, or a policy change.
 Items that cannot proceed without a human. **Noted and skipped — never a reason to
 halt the loop.**
 
-1. **Run the LLM baselines.** The harness is built, tested, and cached (R2). It has
-   never been executed because no `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` /
-   `OPENAI_API_KEY` is present and there is no local Ollama. One command unblocks
-   the headline result:
+1. **Run hosted frontier LLMs.** Open-weight models up to 8B ran free in R23; the
+   owner declined paid API spend for now. Frontier models remain unmeasured and
+   need a key and a spend decision:
 
    ```
    export ANTHROPIC_API_KEY=...
@@ -202,7 +211,9 @@ halt the loop.**
    uv run tactbench llm --variant rubric
    ```
 
-   **No numbers may be published without actually running it.**
+   **No numbers may be published without actually running it.** Hosted runs land
+   in `runs/`, not `results/`; committing one needs a MANIFEST entry shaped for a
+   hosted model (no sha256), which `test_results.py` does not yet accept.
 2. **Human label validation.** Labels remain by construction (`raters: 0`). Needs
    real raters and a reported κ.
 3. **PyPI release** — deliberately held until (1) lands, so the first release ships
@@ -211,6 +222,44 @@ halt the loop.**
 ---
 
 ## Queue — next rounds
+
+**Ranked ahead of the numbered list (R23).** Lettered so the numbered references
+elsewhere in this file stay valid.
+
+A. **Close the pair-blind gain — DONE in R24, by option (b).** Kept as a pointer.
+   The owner delegated the choice ("you choose the rest of the options"). R23
+   recommended (a); R24 reversed that before building, recorded in its entry.
+   <details><summary>original entry</summary> R23 measured a policy that speaks iff one of
+   `return` / `autopay` / `prescription` / `contract` / `gate` appears (each marks one
+   family, and sits in the shared body) at **+29.2 vs silence on dev and test**, 0
+   hard violations, precision 0.500. Mechanism: in commerce, meeting_prep, health,
+   finance and travel a missed cue costs 3 and a false alarm 1, so speaking on both
+   sides of every pair nets +2 per pair. The invariant *"No keyword policy may beat
+   silence"* is therefore **violated in substance**; `TestNoKeywordExploit` stays green
+   because it tests four specific keyword sets. **Do not weaken it — fix the
+   dataset or costs.** Options, none chosen: (a) make each pair cost-symmetric —
+   the near side's false-alarm cost equals the positive side's miss cost, so a
+   pair-blind policy scores exactly silence; (b) keep costs and make the bar
+   `max(silence, best pair-blind policy)`; (c) promote pairs-both-right to the
+   headline. (a) changes what ICS means and every published number; it is a
+   benchmark-design call, listed in the owner decision matrix. Before-number for
+   whichever round takes it: **+29.2**. Then add a general test — the pair-blind
+   oracle (`speak on both sides iff net-positive`) may not beat silence — and the
+   specific keyword set becomes one instance of it. </details>
+C. **Policies are handed the answer in `moment.slices` (new, review of R24).** Both
+   sides of every pair differ in slice tags, and "no `near_miss` tag ⇒ speak" is
+   **100%** on dev and test. LLM prompts withhold `slices`/`family` (four tests), so
+   no LLM figure is affected and built-ins do not read them — but `Policy.decide`
+   receives them and nothing stops a submission. Fix: the runner hands a policy a
+   moment with provenance fields stripped; `skyline` reads `family` and must be
+   handled explicitly (it is a ceiling, not a submission). Before-number: 100%.
+   Ranked after B only because B is older and smaller; it is the more serious.
+B. **Fix PR #19 (Round 22).** Reviewed in R23 per §D: **request changes**. Named
+   failures: the "6 to 14 seeds" figure does not match what the round measured; the
+   20-seed tables have no `experiments/` script that reproduces them (the test runs
+   5 seeds); `driving` reads a constant 63.3% that the writeup does not explain;
+   the reconstruction test checks only the last signal. Fix on a separate branch;
+   the queue entry is the link to #19.
 
 1. **Decide whether the probe should cross signal boundaries — DONE in R21.**
    Kept as a pointer: the join **stays**, because the probe takes the upper bound
@@ -1376,6 +1425,166 @@ in the same file as every violation above it.
 
 ---
 
+## Round 23 — the first LLM numbers, and the bar they exposed
+
+**Ending state: `shipped`.** Priority 1, LLM baselines, landed for open-weight
+models. Hosted frontier models remain NEEDS-MAX item 1.
+
+**Question.** Does any LLM beat silence, and does it do so by reading the deciding
+signal? The owner asked for an eval "across a bunch of models" without paid API
+spend, so: open-weight models on CPU, free.
+
+**What would have proved the round wrong, stated before running.** A harness that
+scores a non-answer as either side without saying so. **Before-number: the parser
+on `main` scored 4 of 6 constructed responses wrong** — `bool("false")` made a quoted
+`"false"`, `"no"` or `"maybe"` an interruption; a response missing the decision was
+silent silence; a stray trailing brace turned a valid `true` into silence. Fixed
+first, with `TestParsingIsStrictAboutTheDecision`, before any model ran.
+
+**Method.** llama.cpp (`llama_cpp.server`, OpenAI-compatible), Q4_K_M GGUF weights,
+temperature 0, n_ctx 2048, 4 threads, the verbatim prompts hosted providers get, no
+grammar or JSON mode. Eleven instruct models, 0.5B–8B, both variants, all 252 dev
+moments: 22 runs. Decisions committed in `results/v1-dev/`; weights' sha256 and
+runtime in `results/MANIFEST.json`. Not decided by the owner, decided here and
+recorded: no constrained decoding (a hosted model gets none either; unparsed is
+counted instead); temperature 0; Q4_K_M; a new `pairs` column; a new cloud
+environment with Hugging Face's hosts allowed, approved at the prompt.
+
+**Finding 1 — no model reads the decider.** Best pairs-both-right is **10.3%**, below
+a coin's ~25%. Six of 22 runs beat silence, all with zero hard violations and by
+speaking on at most 54 of 252 moments; the best is Gemma-3-4B with the rubric,
+**+16.4**. Every run that loses to silence has 11–28 hard violations — nothing in
+between. Eight runs are constant policies. The rubric helps by making talkative
+models quieter (Gemma-3-4B −6.5 → +16.4, Qwen2.5-7B −19.9 → +11.0), not by making
+them discriminate; Phi-3.5's 252 decisions are identical under both prompts.
+
+**Finding 2 — the bar was not silence.** All six above-silence runs had coin-flip
+precision and near-zero pairs, which should not beat silence on a pair-balanced
+set. It can, because costs are not pair-symmetric: a pair-blind oracle speaks on
+both sides of 70 of 126 pairs and scores **ICS 238 vs 336**. Its by-family profile is
+exactly "speak in five families, silent in four", and a whole-word policy on five
+topic words — one per family, all in the shared body — reproduces it: **+29.2 on
+dev and on test**, 0 hard violations. It beats every LLM. The README's headline,
+*"nothing short of genuine comprehension has cleared it"*, was false, and README +
+METRICS.md said `TestNoKeywordExploit` fails on *any* keyword policy; it checks four.
+Corrected and gated (`PROSE` + a held-out test). **Not fixed** — that is a
+benchmark-design change, queued as item A, and the invariant stays listed as
+violated rather than reworded.
+
+**Shipped.** `--provider local` and `--no-system-role`; strict parsing with an
+`unparsed` rate and an *inconclusive* verdict above 5%; `tactbench results`;
+`results.py`; `experiments/run_local_llms.py`; the README table and five
+conclusions from it, each a test. 153 → **262** tests (many parametrized per
+committed run). `ruff check` and `ruff format --check` clean.
+
+**Three harness failures, each caught and each now a gate.**
+- *Gemma 2's first run was 504 HTTP 500s* — its chat template raises on a system
+  turn. Scored, that is an exact copy of silence attributed to a model that never
+  saw a prompt. The `unparsed` column showed 100%, which is how it was caught.
+  Gate: no committed run may contain a failed call. Fix: `--no-system-role`.
+- *Phi-3.5's naive run was dropped from `results/`* by a file move racing a resumed
+  job, and the gate stayed green — every check covered only the runs that exist.
+  Gate: a manifest entry requires both variants. Red on Phi before the file was
+  restored.
+- *A resumed run would have recorded the wall time of its remainder.* Now `null`.
+
+**Drafts the round corrected before commit**, against the table rather than memory:
+"five constant runs" (eight); "pairs barely move" under the rubric (Llama-3.1-8B
+falls 10.3% → 1.6%); "hard violations come from talking" (Qwen2.5-7B naive speaks
+on 61 moments and has 14); "Qwen2.5-1.5B copies the template" (naive only). Each
+claim that survived is now a test.
+
+**Consequences, verified.** Built-in leaderboard, dataset and audit unchanged —
+no generator, cost or heuristic change. `data/` reproduces. The 0.1.0 CHANGELOG
+history is untouched; `[Unreleased]` records R23.
+
+**Noted, not built.** Hosted-run manifest shape (NEEDS-MAX 1). Variance: one
+temperature-0 sample, dev only — in README limitations. README roadmap item
+"six is the real ceiling" predates the ninth family; stale, not R23's.
+Phi-3.5 ran ~87 min per variant, likely long free text after the JSON under the
+200-token cap; not investigated.
+
+**Loop:** The loop's `loop/round-N` branch convention collided with this session's
+mandated branch name; the first push went to `loop/round-23` and the stray remote
+branch could not be deleted (403) — left for the owner. One round this time
+produced two findings of different kinds, and the protocol's *one item* rule held:
+the second (item A) was gated and queued, not fixed. The R17–R19 pattern —
+**a check that covers less than its name claims** — recurred twice in one round
+(`TestNoKeywordExploit`; the per-run gates before the both-variants check). Third
+and fourth instances; see Method findings.
+
+---
+
+## Round 24 — the pair-blind bar
+
+**Ending state: `shipped`.** Queue item A, by option (b).
+
+**Who decided.** R23 put three options to the owner. The owner answered "I'm not
+spending any money — you choose the rest of the options". R23 had recommended (a),
+cost-symmetric pairs. **R24 reversed that before building anything**, for two
+reasons found by reading `metrics.py`: no false-alarm cost in the table equals a
+value-3 miss (FP ∈ {1, 2, 5, 10, 20}, FN ∈ {0.5, 2, 3}), so (a) means inventing
+costs or rebuilding every family's user state; and the asymmetry is *correct* —
+telling an idle traveller about a gate change on both sides of the pair beats
+silence for that user. The defect was the inference "beats silence ⇒ comprehends",
+not the costs. (b) fixes exactly the inference.
+
+**What would prove the round wrong, stated first.** (1) The bar fails to bound a
+pair-blind policy — a random pair-constant assignment beats it. (2) The bar buys
+cost with a hard violation. (3) Skyline cannot clear it (the task would be
+unsolvable against the new bar). (4) It drifts from silence at a realistic prior,
+where no false alarm should be worth a miss. **Before-number:** the R23 topic policy
+at +29.2 vs silence.
+
+**Tests first, red** (`ImportError` — `pair_blind_ics` did not exist), then built.
+Result: bar = **238 on dev, 102 on test** (silence 336 / 144); topic policy exactly
+**0.0** against it; skyline +100.0; silence −41.2; best LLM −18.1. Equal to silence
+at `base_rate=100`, on both splits.
+
+**Mutations.** Choosing the costlier option per pair: 10 failures. Deleting the
+hard-violation guard: **0 failures** — no shipped pair would ever choose one, since
+protected-state false alarms cost ≥ 10 against a maximum miss of 3. The guard was
+untested by the data. Idle under DND costs 1×2 = 2 < 3, so a constructed DND pair
+now exercises it, and the mutation fails 1. A guard the data never reaches is a
+guard nobody has tested.
+
+**Shipped.** `runner.pair_blind_decisions`, `pair_blind_ics`, `normalized`; a
+`vs pair-blind` column in `eval`, `llm`, `results` and both README tables, each
+checked against a re-score and each mutation-tested; `docs/METRICS.md` § *The
+pair-blind bar*; README prose — two bars, the costs-unchanged reasoning, a new
+limitation (the bar reads labels and is only as good as the pairing); roadmap item 1
+removed. 262 → **288** tests. Built-in ICS, dataset, audit unchanged.
+
+**Noted, not built.** `web/server.py` still shows only `vs silence`. The README
+section *"How good does a system have to be?"* reasons about silence only; still
+true, not yet extended to the bar.
+
+**Review (subagent, after the PR opened): request changes**, verdict accepted. Seven
+findings, all verified before acting; every number in the PR re-measured correct.
+Fixed on the branch: (1) the replacement invariant constrained the optimizer, not
+the data — now `TestNoKeywordPolicyBeatsTheBar`, exhaustive, mutation-tested with a
+planted leak; (2) `TestNoKeywordExploit`'s docstring still claimed the retired
+invariant (one word alone, `gate`, beats silence by +8.3); (3) R23's "each claim
+that survived is now a test" was false for six README figures — now each has a
+locator test, two mutation-tested; (4) the CLI footer omitted "without a hard
+violation"; (5) the cache ignored `--no-system-role` and kept failed calls — the
+exact Gemma 2 trap — now a separate cache and failed calls are re-asked, both
+CLI-tested and mutation-tested; (6) the new README limitation was contradicted by
+the data — pairs also differ in `slices` — queue item C; (7) two rounds in one PR,
+accepted. 288 → **311** tests.
+
+**Merged on the owner's instruction**, not under §D: the owner said "keep doing your
+recommendations … continue to work and merge". A subagent review does not satisfy
+§D's independence requirement, and this entry does not claim it does.
+
+**Loop:** R23 and R24 ran in one session on one branch, so R24 had no independent
+§D review of R23 — the scheduled Routines are paused and the owner merges. Both
+rounds go to the owner in one PR. The owner delegating an invariant-touching choice
+is new; it is recorded at the invariant itself so it is not mistaken for a round
+rewording an assertion it failed.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -1392,6 +1601,9 @@ already covered or out of scope, and filing them would have wasted triage.
 | A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **candidate, not yet filed** — needs a second instance before it is worth a triage slot. R17's near-deletion of a true README claim is arguably the first. |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
+| A check named for a class tests an instance | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **candidate, not yet filed** — four instances now; strongest candidate on this list. Check `LOOP.md` §D's "nothing weakened" first; this is a different failure (never strong, not weakened). |
+| A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
+| Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
 | Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |
 | Mechanical churn gets its own behavior-free commit | R5 reformatted 9 files; isolating it kept the diff reviewable and `git blame` honest. | **not filed** — generic git hygiene, not a loop concern. A 300-line protocol shouldn't absorb it. |
 | Docs drift — search for the concept, don't recall the filenames | R4 shipped base-rate scoring and missed `METRICS.md` entirely. | **not filed** — §5.4 covers documents *quoting a number you changed*; this was a **missing section**, so §5.4 wouldn't have caught it. Real but narrow; offered upstream, not filed, to avoid spending a triage slot on day one of the process. |
@@ -1459,6 +1671,27 @@ dataset or the policy is wrong, not the assertion.
 - **No exempt families.** Every family probes under 60%. R9 showed an exemption is
   not free: the exempted family was also the highest-cost one, which made it
   exploitable by two keywords.
-- **No keyword policy may beat silence** (`TestNoKeywordExploit`).
+- **No keyword policy may beat silence** (`TestNoKeywordExploit`). **Violated since
+  R23, and retired in R24 as a comprehension guarantee — by owner delegation, not
+  by a round's own authority.** A five-word topic policy beats silence by +29.2;
+  the data and costs were not changed. What the line was *for* — no surface
+  shortcut may pass for comprehension — is now carried by the stronger-in-meaning
+  invariant below. The four keyword sets `TestNoKeywordExploit` tests are kept and
+  still pass. Read this as a recorded retirement, not a precedent for rewording an
+  invariant that fails.
+- **No single-word keyword policy may reach the pair-blind bar** —
+  `TestNoKeywordPolicyBeatsTheBar`, exhaustive over every word in each split,
+  speak-if-present and speak-if-absent; the four R9 keyword sets too. This is the
+  data constraint that replaces the retired line above. **R24's first draft
+  replaced it with a property of the optimizer that could not fail on any data**,
+  and called that "stronger-in-meaning"; review caught it. Best single word today:
+  308 on dev (bar 238), 132 on test (bar 102). A planted one-word leak is caught.
+- The pair-blind bar never pays with a hard violation, is never worse than silence,
+  equals silence at `base_rate=100`, and skyline clears it (task stays solvable).
+  `test_no_pair_blind_policy_beats_the_bar` guards the optimizer itself. R24.
+- **No committed LLM run may contain a failed call**, and every model in
+  `results/MANIFEST.json` reports both variants (R23).
+- **The README LLM table equals a fresh re-score of `results/`**, row for row, and
+  each conclusion the README draws from it is a test (R23).
 - ICS stays monotone, anchored, and responsive in comprehension — the metric must
   rank the middle, not only separate the ends.
