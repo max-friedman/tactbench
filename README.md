@@ -348,8 +348,34 @@ Decisions are cached per policy and split, so a paid run is never repeated. The
 prompt is kept verbatim in `policies/llm.py` and versioned, so any published number
 traces to the exact wording that produced it.
 
-**No LLM numbers appear in this README, because none have been run yet.** Publishing
-a figure for an experiment that was never executed would be worse than having none.
+### Open-weight LLM results
+
+Free to reproduce: every row is a quantized (Q4_K_M) open-weight model run on a
+4-core CPU through llama.cpp, greedy decoding, the same verbatim prompt a hosted
+model gets. The decisions are committed in `results/v1-dev/`, the weights' sha256
+and runtime in `results/MANIFEST.json`, and `tactbench results` re-scores them;
+a test fails the build if this table disagrees with that output. To rerun:
+`python experiments/run_local_llms.py --models-dir DIR --server-python PY`.
+
+<!-- llm-results:start -->
+| model | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|
+| `llm:naive:qwen2.5-1.5b` | 336.0 | +0.0 | — | 0.000 | 0.500 | 0 | 0/252 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-1.5b` | 336.0 | +0.0 | — | 0.000 | 0.154 | 0 | 0/252 | 0.0% | 0.0% |
+| `llm:naive:llama-3.2-1b` | 630.0 | −87.5 | 0.500 | 1.000 | 0.210 | 28 | 252/252 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-1b` | 630.0 | −87.5 | 0.500 | 1.000 | 0.039 | 28 | 252/252 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-0.5b` | 630.0 | −87.5 | 0.500 | 1.000 | 0.459 | 28 | 252/252 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-0.5b` | 636.0 | −89.3 | 0.500 | 0.976 | 0.391 | 28 | 246/252 | 0.0% | 2.4% |
+<!-- llm-results:end -->
+
+`pairs` is the share of matched pairs answered correctly on **both** sides. The two
+sides share a body and need opposite answers, so a policy that does not read the
+deciding signal scores 0% there however its ICS looks — a constant policy scores
+exactly 0%, a coin about 25%. `unparsed` is the share of answers with no readable
+decision, each scored as silence; above 5% the CLI reports a run as inconclusive.
+
+No hosted frontier model has been run — that costs money and has not been
+authorized. These are small models; what they show is below.
 
 Not yet on PyPI — the name is reserved and publishing waits until LLM baselines
 land, so the first release has the result that makes it worth installing.

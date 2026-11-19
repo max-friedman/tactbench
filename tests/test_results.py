@@ -15,7 +15,15 @@ from pathlib import Path
 import pytest
 
 from tactbench.dataset.loader import load
-from tactbench.results import load_results, manifest, policy_name, results_dir, scorecards
+from tactbench.policies.builtin import AlwaysPolicy, NeverPolicy
+from tactbench.results import (
+    load_results,
+    manifest,
+    pairs_both_right,
+    policy_name,
+    results_dir,
+    scorecards,
+)
 
 README = Path(__file__).resolve().parents[1] / "README.md"
 
@@ -23,7 +31,7 @@ ROW = re.compile(
     r"^\|\s*`(?P<policy>llm:(?:naive|rubric):[\w.\-]+)`\s*\|\s*(?P<ics>[\d.]+)\s*"
     r"\|\s*(?P<vs>[+−-][\d.]+|0\.0)\s*\|\s*(?P<prec>[\d.]+|—)\s*\|\s*(?P<recall>[\d.]+|—)\s*"
     r"\|\s*(?P<ece>[\d.]+)\s*\|\s*(?P<hv>\d+)\s*\|\s*(?P<spoke>\d+)/(?P<n>\d+)\s*"
-    r"\|\s*(?P<unparsed>[\d.]+)%\s*\|\s*$",
+    r"\|\s*(?P<pairs>[\d.]+)%\s*\|\s*(?P<unparsed>[\d.]+)%\s*\|\s*$",
     re.MULTILINE,
 )
 
@@ -69,7 +77,7 @@ def test_runs_and_readme_rows_correspond_one_to_one():
 def test_every_readme_figure_equals_a_fresh_rescore():
     rows = _readme_rows()
     stale = []
-    for card, unparsed in scorecards():
+    for card, unparsed, pairs in scorecards():
         row = rows[card.policy]
         for label, quoted, actual, tol in (
             ("ICS", row["ics"], card.ics, 0.05),
@@ -80,6 +88,7 @@ def test_every_readme_figure_equals_a_fresh_rescore():
             ("hard viol.", row["hv"], card.hard_violations, 0),
             ("spoke", row["spoke"], card.surfaced, 0),
             ("n", row["n"], card.n, 0),
+            ("pairs", row["pairs"], pairs * 100, 0.05),
             ("unparsed", row["unparsed"], unparsed * 100, 0.05),
         ):
             if quoted == "—" or actual is None:
@@ -95,3 +104,22 @@ def test_file_names_round_trip():
     assert policy_name(results_dir() / "llm_rubric_qwen2.5-0.5b-dev.jsonl") == (
         "llm:rubric:qwen2.5-0.5b"
     )
+
+
+class TestPairsBothRight:
+    """The column exists to expose constant policies, so check that it does."""
+
+    ITEMS = load("v1", "dev")
+
+    def _run(self, policy):
+        return [policy.decide(i.moment) for i in self.ITEMS]
+
+    def test_a_constant_policy_scores_zero(self):
+        assert pairs_both_right(self.ITEMS, self._run(NeverPolicy())) == 0.0
+        assert pairs_both_right(self.ITEMS, self._run(AlwaysPolicy())) == 0.0
+
+    def test_the_gold_labels_score_one(self):
+        from tactbench.schema import Decision
+
+        gold = [Decision(moment_id=i.moment.id, surface=i.label.should_surface) for i in self.ITEMS]
+        assert pairs_both_right(self.ITEMS, gold) == 1.0

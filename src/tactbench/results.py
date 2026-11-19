@@ -17,7 +17,7 @@ from .dataset.loader import load
 from .metrics import Scorecard, score
 from .policies.llm import unparsed_rate
 from .runner import silence_ics
-from .schema import Decision
+from .schema import Decision, Item, pair_key
 
 ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = ROOT / "results"
@@ -50,16 +50,39 @@ def load_results(version: str = "v1", split: str = "dev") -> dict[str, list[Deci
     return {policy_name(p, split): load_decisions(p) for p in sorted(d.glob("llm_*.jsonl"))}
 
 
+def pairs_both_right(items: list[Item], decisions: list[Decision]) -> float:
+    """Share of matched pairs answered correctly on **both** sides.
+
+    The two sides of a pair share a body and need opposite answers, so getting
+    both right requires reading the one signal that differs. A constant policy --
+    always speak, or never -- scores exactly 0.0 however good its ICS looks, and
+    a fair coin scores about 0.25. Added in Round 23, when three of the first
+    three open-weight models turned out to be constant policies, one of which
+    tied silence's ICS by never speaking.
+    """
+    by_id = {d.moment_id: d.surface for d in decisions}
+    pairs: dict[str, list[bool]] = {}
+    for item in items:
+        right = by_id.get(item.moment.id, False) == item.label.should_surface
+        pairs.setdefault(pair_key(item.moment.id), []).append(right)
+    whole = [v for v in pairs.values() if len(v) == 2]
+    return sum(all(v) for v in whole) / len(whole) if whole else 0.0
+
+
 def manifest() -> dict:
     return json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {}
 
 
-def scorecards(version: str = "v1", split: str = "dev") -> list[tuple[Scorecard, float]]:
-    """(scorecard, unparsed rate) per committed run, best ICS first."""
+def scorecards(version: str = "v1", split: str = "dev") -> list[tuple[Scorecard, float, float]]:
+    """(scorecard, unparsed rate, pairs both right) per committed run, best ICS first."""
     items = load(version, split)
     silence = silence_ics(items)
     out = [
-        (score(items, ds, name, reference_ics=silence), unparsed_rate(ds))
+        (
+            score(items, ds, name, reference_ics=silence),
+            unparsed_rate(ds),
+            pairs_both_right(items, ds),
+        )
         for name, ds in load_results(version, split).items()
     ]
     return sorted(out, key=lambda cu: (cu[0].ics, cu[0].policy))
@@ -69,10 +92,10 @@ def _f(x: float | None) -> str:
     return "—" if x is None else f"{x:.3f}"
 
 
-def markdown_row(card: Scorecard, unparsed: float) -> str:
+def markdown_row(card: Scorecard, unparsed: float, pairs: float) -> str:
     vs = f"{card.ics_normalized:+.1f}".replace("-", "−")
     return (
         f"| `{card.policy}` | {card.ics:.1f} | {vs} | {_f(card.precision_at_interrupt)} "
         f"| {_f(card.recall_high_value)} | {card.ece:.3f} | {card.hard_violations} "
-        f"| {card.surfaced}/{card.n} | {unparsed:.1%} |"
+        f"| {card.surfaced}/{card.n} | {pairs:.1%} | {unparsed:.1%} |"
     )

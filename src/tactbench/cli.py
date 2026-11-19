@@ -287,11 +287,11 @@ def results(
         raise typer.Exit(1)
     print(
         "| model | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ "
-        "| hard viol. ↓ | spoke | unparsed |"
+        "| hard viol. ↓ | spoke | pairs ↑ | unparsed |"
     )
-    print("|---|---|---|---|---|---|---|---|---|")
-    for card, unparsed in cards:
-        print(markdown_row(card, unparsed))
+    print("|---|---|---|---|---|---|---|---|---|---|")
+    for card, unparsed, pairs in cards:
+        print(markdown_row(card, unparsed, pairs))
 
 
 @app.command()
