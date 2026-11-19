@@ -286,3 +286,37 @@ class TestLocalProvider:
     def test_dropping_the_system_role_is_local_only(self):
         with pytest.raises(ValueError):
             LLMPolicy(provider="anthropic", model="x", system_role=False)
+
+
+class TestCacheDoesNotKeepServerFailures:
+    """Review of R23: the cache keyed only on the policy name, so after Gemma 2's
+    HTTP 500s a rerun with ``--no-system-role`` would have reused the cached
+    failures and scored them as silence again."""
+
+    def _run(self, fake_server, *extra):
+        from typer.testing import CliRunner
+
+        from tactbench.cli import app
+
+        args = ["llm", "--provider", "local", "--model", "m", "--base-url", fake_server]
+        result = CliRunner().invoke(app, [*args, "--limit", "2", *extra])
+        assert result.exit_code == 0, result.output
+
+    def test_a_cached_failed_call_is_asked_again(self, fake_server, tmp_path, monkeypatch):
+        from tactbench.dataset.loader import load
+
+        monkeypatch.chdir(tmp_path)
+        first = load("v1", "dev")[0].moment.id
+        (tmp_path / "runs").mkdir()
+        failed = {"moment_id": first, "surface": False, "rationale": "call failed: HTTP 500"}
+        (tmp_path / "runs" / "llm_rubric_m-dev.jsonl").write_text(json.dumps(failed) + "\n")
+
+        self._run(fake_server)
+        assert len(_FakeOpenAI.seen) == 2  # the failed one, and the one never asked
+
+    def test_without_a_system_role_the_cache_is_separate(self, fake_server, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        self._run(fake_server)
+        self._run(fake_server, "--no-system-role")
+        assert len(_FakeOpenAI.seen) == 4
+        assert (tmp_path / "runs" / "llm_rubric_m-nosys-dev.jsonl").exists()

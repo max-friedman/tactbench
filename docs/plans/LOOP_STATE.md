@@ -15,7 +15,7 @@ findings** below.
 
 - **Round:** 24 complete (`shipped`) — the pair-blind bar. R23 also `shipped`. **R22 is PR #19, open, review = request
   changes** — not on `main`, so this branch does not contain it; see queue item B.
-- **Gate:** green — **288 passed** on the R23/R24 branch, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **311 passed** on the R23/R24 branch, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -246,6 +246,14 @@ A. **Close the pair-blind gain — DONE in R24, by option (b).** Kept as a point
    whichever round takes it: **+29.2**. Then add a general test — the pair-blind
    oracle (`speak on both sides iff net-positive`) may not beat silence — and the
    specific keyword set becomes one instance of it. </details>
+C. **Policies are handed the answer in `moment.slices` (new, review of R24).** Both
+   sides of every pair differ in slice tags, and "no `near_miss` tag ⇒ speak" is
+   **100%** on dev and test. LLM prompts withhold `slices`/`family` (four tests), so
+   no LLM figure is affected and built-ins do not read them — but `Policy.decide`
+   receives them and nothing stops a submission. Fix: the runner hands a policy a
+   moment with provenance fields stripped; `skyline` reads `family` and must be
+   handled explicitly (it is a ceiling, not a submission). Before-number: 100%.
+   Ranked after B only because B is older and smaller; it is the more serious.
 B. **Fix PR #19 (Round 22).** Reviewed in R23 per §D: **request changes**. Named
    failures: the "6 to 14 seeds" figure does not match what the round measured; the
    20-seed tables have no `experiments/` script that reproduces them (the test runs
@@ -1551,6 +1559,24 @@ removed. 262 → **288** tests. Built-in ICS, dataset, audit unchanged.
 section *"How good does a system have to be?"* reasons about silence only; still
 true, not yet extended to the bar.
 
+**Review (subagent, after the PR opened): request changes**, verdict accepted. Seven
+findings, all verified before acting; every number in the PR re-measured correct.
+Fixed on the branch: (1) the replacement invariant constrained the optimizer, not
+the data — now `TestNoKeywordPolicyBeatsTheBar`, exhaustive, mutation-tested with a
+planted leak; (2) `TestNoKeywordExploit`'s docstring still claimed the retired
+invariant (one word alone, `gate`, beats silence by +8.3); (3) R23's "each claim
+that survived is now a test" was false for six README figures — now each has a
+locator test, two mutation-tested; (4) the CLI footer omitted "without a hard
+violation"; (5) the cache ignored `--no-system-role` and kept failed calls — the
+exact Gemma 2 trap — now a separate cache and failed calls are re-asked, both
+CLI-tested and mutation-tested; (6) the new README limitation was contradicted by
+the data — pairs also differ in `slices` — queue item C; (7) two rounds in one PR,
+accepted. 288 → **311** tests.
+
+**Merged on the owner's instruction**, not under §D: the owner said "keep doing your
+recommendations … continue to work and merge". A subagent review does not satisfy
+§D's independence requirement, and this entry does not claim it does.
+
 **Loop:** R23 and R24 ran in one session on one branch, so R24 had no independent
 §D review of R23 — the scheduled Routines are paused and the owner merges. Both
 rounds go to the owner in one PR. The owner delegating an invariant-touching choice
@@ -1653,11 +1679,16 @@ dataset or the policy is wrong, not the assertion.
   invariant below. The four keyword sets `TestNoKeywordExploit` tests are kept and
   still pass. Read this as a recorded retirement, not a precedent for rewording an
   invariant that fails.
-- **No policy may clear the pair-blind bar without answering a pair's sides
-  differently** — true by construction; `test_no_pair_blind_policy_beats_the_bar`
-  guards the implementation. The R23 topic policy scores exactly the bar (0.0).
-  The bar never pays with a hard violation and equals silence at `base_rate=100`.
-  Skyline clears it (task stays solvable). R24.
+- **No single-word keyword policy may reach the pair-blind bar** —
+  `TestNoKeywordPolicyBeatsTheBar`, exhaustive over every word in each split,
+  speak-if-present and speak-if-absent; the four R9 keyword sets too. This is the
+  data constraint that replaces the retired line above. **R24's first draft
+  replaced it with a property of the optimizer that could not fail on any data**,
+  and called that "stronger-in-meaning"; review caught it. Best single word today:
+  308 on dev (bar 238), 132 on test (bar 102). A planted one-word leak is caught.
+- The pair-blind bar never pays with a hard violation, is never worse than silence,
+  equals silence at `base_rate=100`, and skyline clears it (task stays solvable).
+  `test_no_pair_blind_policy_beats_the_bar` guards the optimizer itself. R24.
 - **No committed LLM run may contain a failed call**, and every model in
   `results/MANIFEST.json` reports both variants (R23).
 - **The README LLM table equals a fresh re-score of `results/`**, row for row, and

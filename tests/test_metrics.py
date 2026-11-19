@@ -763,7 +763,12 @@ class _TopicPolicy(Policy):
 
 
 class TestNoKeywordExploit:
-    """No small set of keywords in one family may beat silence.
+    """These four keyword policies may not beat silence -- *not* keyword policies
+    in general. Round 23: a single topic word (``gate``, ``autopay``) beats silence
+    by +8.3, and five together by +29.2, because in five families a miss costs more
+    than a false alarm. The general constraint now lives in
+    ``test_pair_blind.TestNoKeywordPolicyBeatsTheBar``, against the pair-blind bar,
+    exhaustively over single words. These cases are kept as the history below.
 
     Round 9's finding. `quiet_hours` carries the highest false-positive cost in
     the benchmark (asleep, DND-doubled), so it drove **82% of the gap** between

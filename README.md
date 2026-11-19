@@ -529,8 +529,15 @@ otherwise would defeat the purpose of building a benchmark:
 - **The pair-blind bar reads labels.** It is the optimum over policies that cannot
   tell a pair's sides apart, computed from gold labels, so it is a reference point
   rather than something a policy could implement. It is only as meaningful as the
-  pairing: a pair whose sides differed in anything but the decider would let a
-  policy beat it without comprehension.
+  pairing: a pair whose sides differ in anything but the decider lets a policy beat
+  it without comprehension.
+- **A policy is handed the answer in `moment.slices`.** The two sides of every pair
+  also differ in their slice tags, and "no `near_miss` tag means speak" is right on
+  100% of dev and held-out. The LLM prompt withholds `slices` and `family` (tests
+  enforce it), so no published LLM figure is affected. The built-in policies do not
+  read slices. But nothing stops a submitted `Policy` from reading them. Found in
+  review of Round 24; the fix — stripping provenance fields before a policy sees
+  the moment — is queued.
 - **The LLM results are one sample at temperature 0, on dev.** No variance across
   seeds or prompts is reported, and no model has been run on the held-out split.
 

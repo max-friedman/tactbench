@@ -15,10 +15,11 @@ Silence stays the bar for *worth shipping*; this is the bar for *reads the momen
 from __future__ import annotations
 
 import random
+import re
 from collections import defaultdict
 
 import pytest
-from test_metrics import TestReadmeResultsAreCurrent, _TopicPolicy
+from test_metrics import TestNoKeywordExploit, TestReadmeResultsAreCurrent, _TopicPolicy
 
 from tactbench.dataset.loader import load
 from tactbench.metrics import score
@@ -124,3 +125,44 @@ def test_the_readme_quotes_the_bar_it_measures():
     assert len(found) == 1, "the README sentence quoting the bar was reworded or duplicated"
     dev = load("v1", "dev")
     assert (float(found[0][0]), float(found[0][1])) == (pair_blind_ics(dev), silence_ics(dev))
+
+
+class TestNoKeywordPolicyBeatsTheBar:
+    """The data constraint that replaces "no keyword policy may beat silence". R24.
+
+    ``test_no_pair_blind_policy_beats_the_bar`` checks the optimizer and cannot
+    fail on any dataset. This one constrains the *data*: if a generator change lets
+    a surface keyword answer the two sides of a pair differently, a single-word
+    policy gains on the bar and this fails. Review of R24 found the original
+    replacement invariant had no such test.
+
+    Exhaustive over every word in the split, speak-if-present and speak-if-absent.
+    """
+
+    @staticmethod
+    def _tokens(item):
+        return set(re.findall(r"[a-z]+", " ".join(s.content for s in item.moment.signals).lower()))
+
+    def test_no_single_word_policy_reaches_the_bar(self, items):
+        bar = pair_blind_ics(items)
+        tokens = [self._tokens(i) for i in items]
+        beaten = []
+        for word in sorted(set().union(*tokens)):
+            for absent in (False, True):
+                ds = [
+                    Decision(moment_id=i.moment.id, surface=(word in t) != absent)
+                    for i, t in zip(items, tokens, strict=True)
+                ]
+                card = score(items, ds, word)
+                if card.ics < bar:
+                    beaten.append((word, "absent" if absent else "present", card.ics))
+        assert not beaten, f"single-word policies beat the pair-blind bar ({bar}): {beaten}"
+
+    @pytest.mark.parametrize(
+        "speak_on,quiet_on",
+        [({"admitt"}, {"discharg"}), ({"hospital"}, {"home"}), ({"nearby"}, set()),
+         ({"emergency", "er"}, {"routine"})],
+    )  # fmt: skip
+    def test_the_round_9_keyword_sets_do_not_reach_the_bar(self, items, speak_on, quiet_on):
+        policy = TestNoKeywordExploit._KeywordPolicy(speak_on, quiet_on)
+        assert evaluate(policy, items).ics >= pair_blind_ics(items)

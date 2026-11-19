@@ -140,7 +140,7 @@ def evaluate_cmd(
         f"\n[dim]{len(items)} moments · silence ICS = {silence:.1f} · pair-blind ICS = "
         f"{bar:.1f}. 'vs silence' above 0 means the policy is worth shipping. "
         "'vs pair-blind' above 0 means it reads the moment: no policy that answers both "
-        "sides of a pair alike can get there.[/dim]"
+        "sides of a pair alike can get there without a hard violation.[/dim]"
     )
     if base_rate > 1.0:
         console.print(
@@ -222,13 +222,22 @@ def llm_cmd(
     if limit:
         items = items[:limit]
 
-    cache_path = Path("runs") / f"{policy.name.replace(':', '_').replace('/', '_')}-{split}.jsonl"
+    # A run that moves the system prompt into the user turn is a different
+    # experiment, so it gets its own cache rather than reusing the other's answers.
+    suffix = "" if policy.system_role else "-nosys"
+    stem = policy.name.replace(":", "_").replace("/", "_")
+    cache_path = Path("runs") / f"{stem}{suffix}-{split}.jsonl"
     cached: dict[str, Decision] = {}
     if cache_path.exists() and not fresh:
         for line in cache_path.read_text().splitlines():
             if line.strip():
                 d = Decision.model_validate(_json.loads(line))
                 cached[d.moment_id] = d
+        # A failed call is the server's answer, not the model's: ask again rather
+        # than score it as silence forever. Later lines in the file supersede it.
+        cached = {
+            k: d for k, d in cached.items() if not (d.rationale or "").startswith("call failed")
+        }
 
     todo = [i for i in items if i.moment.id not in cached]
     console.print(

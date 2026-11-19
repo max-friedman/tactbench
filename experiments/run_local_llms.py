@@ -95,7 +95,8 @@ def run_model(name: str, path: Path, server_python: str, threads: int) -> dict[s
     try:
         wait_ready(proc)
         for variant in VARIANTS:
-            src = ROOT / "runs" / f"llm_{variant}_{name}-dev.jsonl"
+            suffix = "-nosys" if name in NO_SYSTEM_ROLE else ""
+            src = ROOT / "runs" / f"llm_{variant}_{name}{suffix}-dev.jsonl"
             # A run killed part-way resumes from the CLI's per-decision cache. Its
             # wall time would then cover only the remainder, so it is not recorded.
             resumed = src.exists() and src.stat().st_size > 0
@@ -107,7 +108,7 @@ def run_model(name: str, path: Path, server_python: str, threads: int) -> dict[s
                 cwd=ROOT, check=True,
             )  # fmt: skip
             timings[variant] = None if resumed else round(time.time() - t0, 1)
-            shutil.copy(src, RESULTS / src.name)
+            shutil.copy(src, RESULTS / f"llm_{variant}_{name}-dev.jsonl")
     finally:
         proc.terminate()  # by the PID we started, never by name
         try:

@@ -195,3 +195,56 @@ class TestReadmeClaimsAboutTheLLMTable:
         bar = pair_blind_ics(load("v1", "dev"))
         cleared = [c.policy for c, _, _ in scorecards() if c.ics < bar]
         assert not cleared, f"{cleared} clear the pair-blind bar; update the README"
+
+
+class TestReadmeLLMProseFigures:
+    """Every figure the README's LLM bullets quote, recomputed. Review of R24 found
+    six with no test behind them, under a state file claiming each claim was one.
+    Each locator must match exactly once, so a reworded sentence fails loudly."""
+
+    @staticmethod
+    def _one(pattern: str) -> tuple[str, ...]:
+        found = re.findall(pattern, README.read_text())
+        assert len(found) == 1, f"locator {pattern!r} matched {len(found)} times"
+        return found[0] if isinstance(found[0], tuple) else (found[0],)
+
+    @staticmethod
+    def _cards() -> dict:
+        return {c.policy: (c, p) for c, _, p in scorecards()}
+
+    def test_best_pairs_figure(self):
+        (quoted,) = self._one(r"The best `pairs` score is ([\d.]+)%")
+        assert float(quoted) == round(100 * max(p for _, p in self._cards().values()), 1)
+
+    def test_no_run_above_pairs_figure_under_either_prompt(self):
+        (quoted,) = self._one(r"no run gets above ([\d.]+)% pairs")
+        assert float(quoted) == round(100 * max(p for _, p in self._cards().values()), 1)
+
+    def test_most_moments_spoken_by_a_run_above_silence(self):
+        (quoted,) = self._one(r"speaking rarely: (\d+) of 252 moments at most")
+        above = [c.surfaced for c, _ in self._cards().values() if c.ics_normalized > 0]
+        assert int(quoted) == max(above)
+
+    def test_best_row_against_the_pair_blind_bar(self):
+        (quoted,) = self._one(r"and is still\s+−([\d.]+) against what a policy")
+        best = min((c for c, _ in self._cards().values()), key=lambda c: c.ics)
+        assert -float(quoted) == round(normalized(best.ics, pair_blind_ics(load("v1", "dev"))), 1)
+
+    def test_rubric_deltas(self):
+        cards = self._cards()
+        for model, label in (("gemma-3-4b", "Gemma-3-4B"), ("qwen2.5-7b", "Qwen2.5-7B")):
+            a, b = self._one(rf"{re.escape(label)} from ([−+]\d+\.\d) to\s+([−+]\d+\.\d)")
+            naive = cards[f"llm:naive:{model}"][0].ics_normalized
+            rubric = cards[f"llm:rubric:{model}"][0].ics_normalized
+            assert (float(a.replace("−", "-")), float(b)) == (round(naive, 1), round(rubric, 1))
+
+    def test_phi_decides_identically_under_both_prompts(self):
+        self._one(r"Phi-3\.5's 252 decisions are identical under both")
+        naive = {d.moment_id: d.surface for d in RUNS["llm:naive:phi-3.5-mini"]}
+        rubric = {d.moment_id: d.surface for d in RUNS["llm:rubric:phi-3.5-mini"]}
+        assert naive == rubric
+
+    def test_qwen_echoes_the_template(self):
+        self._one(r'`\{"surface": false, "confidence": 0\.0, "intent": null\}`')
+        answers = {(d.surface, d.confidence, d.intent) for d in RUNS["llm:naive:qwen2.5-1.5b"]}
+        assert answers == {(False, 0.0, None)}
