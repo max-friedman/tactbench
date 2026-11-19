@@ -56,9 +56,17 @@ whether the page names you or your colleague. It scores perfectly, so the headro
 between silence and solved is real. It is **not** a baseline: it's a template
 parser tuned to this generator, included only to mark the ceiling.
 
-So the standing result is: **`never` is the bar, and nothing short of genuine
-comprehension has cleared it.** A proactive feature that scores worse than silence
-is a feature that should not ship.
+So `never` is the bar: a proactive feature that scores worse than silence is a
+feature that should not ship. **But clearing it does not show comprehension, and
+earlier versions of this README said it did.** Round 23 found that a policy which
+speaks whenever one of five topic words appears — `return`, `autopay`,
+`prescription`, `contract`, `gate` — and is silent otherwise scores **+29.2**
+against silence, on dev and on the held-out split, with zero hard violations. It
+never reads which side of a pair it is on. Each of those words marks a family where
+a missed cue costs more than a false alarm, so speaking on *both* sides of every
+pair there is net-positive. Until the cost model closes that (it is the next
+round's work), silence is the floor and this keyword policy is the real bar —
+and the `pairs` column in the LLM results is the signal of comprehension, not ICS.
 
 ### How good does a system have to be?
 
@@ -145,8 +153,10 @@ twice — three rounds in R13, and again in R16 — each time because a round ch
 the generator and checked only the rows it expected to move. `TestReadmeResultsAreCurrent`
 now fails the build instead of relying on anyone remembering.)
 
-There is no exempt family now. `TestNoKeywordExploit` fails the build if any
-keyword policy beats silence, and every family must probe under 60%.
+There is no exempt family now, and every family must probe under 60%.
+`TestNoKeywordExploit` fails the build if *that* keyword policy beats silence — it
+does not cover keyword policies in general. A five-word topic policy beats silence
+by +29.2 today; see [Results](#results).
 
 ### The blind spot in that number, and how it was closed
 

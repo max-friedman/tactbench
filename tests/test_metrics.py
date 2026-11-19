@@ -745,6 +745,23 @@ class TestPerFamilyReporting:
         )
 
 
+class _TopicPolicy(Policy):
+    """Speaks iff a whole word from ``words`` appears in the moment; silent otherwise.
+
+    Reads no user state and cannot tell the two sides of a pair apart: the words it
+    keys on sit in the body both sides share. Round 23.
+    """
+
+    name = "topic-words"
+
+    def __init__(self, words: frozenset[str]):
+        self.words = words
+
+    def decide(self, moment):
+        tokens = set(re.findall(r"[a-z]+", " ".join(s.content for s in moment.signals).lower()))
+        return Decision(moment_id=moment.id, surface=bool(self.words & tokens))
+
+
 class TestNoKeywordExploit:
     """No small set of keywords in one family may beat silence.
 
@@ -1499,7 +1516,27 @@ class TestReadmeResultsAreCurrent:
             re.compile(r"that same policy scores \*{0,2}(−?\d+\.\d+)"),
             "keyword",
         ),
+        (
+            "five-word topic policy, vs silence",
+            re.compile(r"`gate` — and is silent otherwise scores \*{0,2}([+−]?\d+\.\d+)"),
+            "topic",
+        ),
     )
+
+    #: Round 23. Each word appears in every moment of one family and in no moment of
+    #: the other four families that need it; all five are in the shared body, so
+    #: both sides of every pair get the same answer.
+    TOPIC_WORDS = frozenset({"return", "autopay", "prescription", "contract", "gate"})
+
+    def test_topic_policy_figure_holds_on_the_held_out_split(self):
+        """The README says the five-word figure holds on dev *and* held-out."""
+        figures = []
+        for split in ("dev", "test"):
+            items = load("v1", split)
+            card = evaluate(_TopicPolicy(self.TOPIC_WORDS), items, reference=silence_ics(items))
+            assert card.hard_violations == 0
+            figures.append(card.ics_normalized)
+        assert abs(figures[0] - figures[1]) <= 0.05, figures
 
     def test_prose_figures_match_a_fresh_eval(self):
         """The figures quoted in sentences, not just the ones in the table.
@@ -1520,6 +1557,11 @@ class TestReadmeResultsAreCurrent:
                 items,
                 reference=silence,
             ).ics_normalized,
+            "topic": evaluate(
+                _TopicPolicy(self.TOPIC_WORDS),
+                items,
+                reference=silence,
+            ).ics_normalized,
         }
 
         stale: list[str] = []
@@ -1530,7 +1572,7 @@ class TestReadmeResultsAreCurrent:
                 "expected exactly 1. If the sentence was reworded, update the locator "
                 "-- a locator that matches nothing silently stops checking."
             )
-            quoted = float(found[0].replace("−", "-"))
+            quoted = float(found[0].replace("−", "-").replace("+", ""))
             actual = computed[key]
             if abs(quoted - actual) > 0.05:
                 stale.append(f"{label}: README {quoted}, eval {actual:.1f}")
