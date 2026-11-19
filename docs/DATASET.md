@@ -252,7 +252,11 @@ than shown to raters afterward. This is a genuine limitation:
 Items carry `raters: 0` and `agreement: 1.0` to mark this honestly. A
 human-labeled subset with reported inter-rater κ is the top roadmap item, and
 `raters` / `agreement` exist so that constructed and human-validated items can
-coexist in one file and be filtered apart.
+coexist in one file and be filtered apart. Since Round 31 `tactbench label` collects
+answers (to `labels/<version>-<split>/<rater>.jsonl`) and `tactbench agreement`
+reports Fleiss' κ and agreement with construction. None have been collected, so
+every item is still `raters: 0`; writing human results back into those fields is
+not built yet.
 
 ## Base rate
 

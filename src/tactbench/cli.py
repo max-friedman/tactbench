@@ -315,6 +315,63 @@ def results(
 
 
 @app.command()
+def label(
+    rater: str = typer.Option(..., help="Your name or handle; one file per rater."),
+    pairs: int = typer.Option(20, help="Matched pairs in the sample (2 moments each)."),
+    version: str = typer.Option("v1"),
+    split: str = typer.Option("dev"),
+) -> None:
+    """Label a sample of moments by hand: should the assistant speak? y / n / q.
+
+    You see what a model sees -- no ids, slices or family. Answers are saved after
+    each one to labels/<version>-<split>/<rater>.jsonl, and a rerun resumes.
+    """
+    import json as _json
+
+    from .labeling import labels_path, load_labels, rater_order, rater_view, sample_pairs
+
+    items = rater_order(rater, sample_pairs(load(version, split), pairs))
+    done = load_labels(version, split).get(rater, {})
+    todo = [i for i in items if i.moment.id not in done]
+    console.print(f"{len(done)} answered, {len(todo)} to go. y = speak, n = stay quiet, q = quit.")
+    path = labels_path(rater, version, split)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as f:
+        for n, item in enumerate(todo, 1):
+            console.print(f"\n[bold]{len(done) + n}/{len(items)}[/bold]")
+            console.print(rater_view(item), markup=False, highlight=False)
+            answer = typer.prompt("speak? [y/n/q]").strip().lower()
+            while answer not in ("y", "n", "q"):
+                answer = typer.prompt("y, n or q").strip().lower()
+            if answer == "q":
+                break
+            row = {"moment_id": item.moment.id, "rater": rater, "surface": answer == "y"}
+            f.write(_json.dumps(row) + "\n")
+            f.flush()
+
+
+@app.command()
+def agreement(version: str = typer.Option("v1"), split: str = typer.Option("dev")) -> None:
+    """Agreement among human raters (Fleiss' kappa) and with the constructed labels."""
+    from .labeling import agreement as _agreement
+    from .labeling import load_labels
+
+    labels = load_labels(version, split)
+    if not labels:
+        console.print(f"No labels yet in labels/{version}-{split}/. Run `tactbench label`.")
+        raise typer.Exit(1)
+    r = _agreement(load(version, split), labels)
+    console.print(f"{r.raters} raters, {r.items} moments answered by all of them")
+    console.print(f"Fleiss' kappa: {_fmt(r.kappa)}")
+    console.print(
+        f"majority agrees with the constructed label: {_fmt(r.majority_matches_construction)}"
+    )
+    console.print(f"majority gets both sides of a pair right: {_fmt(r.majority_pairs_both_right)}")
+    for name, acc in sorted(r.per_rater.items()):
+        console.print(f"  {name}: agrees with construction on {acc:.1%}")
+
+
+@app.command()
 def audit(
     version: str = typer.Option("v1"),
     split: str = typer.Option("dev"),

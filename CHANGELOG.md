@@ -5,6 +5,14 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 31)
+
+- **`tactbench label` and `tactbench agreement`** — collect human yes/no judgments
+  on a sample of whole pairs and report Fleiss' κ plus agreement with the
+  constructed labels. Raters see exactly the model's view of a moment, in a
+  per-rater order. κ is checked against Fleiss (1971)'s worked example (0.210). No
+  human labels have been collected; every item remains `raters: 0`.
+
 ### Changed (Round 27)
 
 - **"How much comprehension beats silence" is a range, not a number.** Two random

@@ -522,8 +522,18 @@ otherwise would defeat the purpose of building a benchmark:
   exists. The honest reading of a clean audit is "no probe we ran found one".
 - **Labels are by construction.** Each item was built around a known answer rather
   than labeled by humans afterward. That makes them internally consistent but
-  unvalidated against what people actually want. A human-agreement subset with
-  reported inter-rater κ is the next priority.
+  unvalidated against what people actually want. **The tool to measure that exists
+  (Round 31); no human labels have been collected with it yet**, so no κ is
+  reported:
+
+  ```bash
+  uv run tactbench label --rater yourname --pairs 20   # y / n / q; resumes
+  uv run tactbench agreement                           # Fleiss' κ, and vs construction
+  ```
+
+  A rater sees exactly what a model sees — no ids, slices or family — and the sample
+  is whole pairs in a per-rater order, so a human pairs-both-right figure is directly
+  comparable to the models'.
 - **Moments are synthetic and template-generated.** Eight frames per family is
   still eight, and the scenarios remain a small hand-authored set — nine families
   is nine effective degrees of freedom, whatever the item count. The deciders
@@ -569,7 +579,8 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
 
 1. **Frontier LLM baselines.** Open-weight models up to 8B are measured; hosted
    frontier models are not.
-2. Human-labeled subset with reported agreement.
+2. Human-labeled subset with reported agreement — the labeling tool and κ are built
+   (Round 31); the labels themselves need people.
 3. More scenario families — six is the real ceiling on dataset diversity now that
    phrasing has stopped being the weak point.
 4. Held-out test split with hidden labels behind a submission script.
