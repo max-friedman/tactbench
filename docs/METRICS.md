@@ -313,15 +313,23 @@ an appealing shortcut: score a system, look its ICS up on the curve, report *"th
 model understands about 40% of these moments."*
 
 **That number is not real.** The curve was built from uniformly random errors;
-real systems fail systematically. Three policies understanding the same share of
-moments — true fractions within 0.033 of each other — land at implied fractions
-spanning **0.36**, purely from *which* families they understand:
+real systems fail systematically. Three policies understanding exactly the same
+share of moments land at implied fractions spanning **0.274**, purely from *which*
+families they understand:
 
+<!-- implied:start -->
 | comprehends | true fraction | ICS | implied p |
 |---|---|---|---|
-| cheap families (`commerce`, `health`, `meeting_prep`) | 0.350 | 382.0 | 0.163 |
-| mixed (`travel`, `deadline`, `finance`) | 0.333 | 319.0 | 0.333 |
-| costly (`quiet_hours`, `driving`, `childcare`) | 0.317 | 192.0 | 0.527 |
+| cheap families (`commerce`, `health`, `meeting_prep`) | 0.333 | 360.0 | 0.203 |
+| mixed (`travel`, `deadline`, `finance`) | 0.333 | 318.0 | 0.242 |
+| costly (`quiet_hours`, `driving`, `childcare`) | 0.333 | 181.0 | 0.476 |
+<!-- implied:end -->
+
+`experiments/implied_comprehension_probe.py` prints this table and a test compares
+it. The implied column inverts the comprehension sweep, which is one draw (see
+*Does the metric discriminate?*): Round 26 changed only the id it hashes and the
+span moved from 0.36 to 0.274. The conclusion — same comprehension, very different
+implied values — held on both draws.
 
 The metric is not wrong here — ICS weights by consequence, and a system that
 handles `quiet_hours` correctly genuinely *is* better than one that only handles

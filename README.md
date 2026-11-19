@@ -101,8 +101,7 @@ coin flip" and is a net loss. **Read that as one draw, not a constant.** Which
 moments a given `p` comprehends is chosen by hashing the moment's id; Round 26
 changed only the id the policy sees (to stop it leaking the label), and the
 break-even point moved from 0.29 to 0.23, with `p = 0.4` moving from +10.1 to +38.7.
-Across draws the threshold is somewhere around a quarter to a third; its spread is
-not yet measured.
+Two draws have given 0.29 and 0.23; the spread across draws is not yet measured.
 
 The sweep also establishes that ICS is **monotone, anchored, and responsive across
 the whole range** — it ranks partial comprehension rather than merely separating

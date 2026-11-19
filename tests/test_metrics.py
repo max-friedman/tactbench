@@ -1852,3 +1852,34 @@ class TestSweepFiguresAreCurrent:
         ):
             found = re.findall(pattern, (self.ROOT / path).read_text())
             assert found == [want], (path, found)
+
+
+def test_metrics_doc_implied_comprehension_table_is_current():
+    """Review of R26: this table inverts the sweep, which hashes the id, so R26 moved
+    it (span 0.36 -> 0.274) and nothing caught it. Compared against the experiment's
+    own printed output rather than a reimplementation of it."""
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    out = subprocess.run(
+        [sys.executable, str(root / "experiments" / "implied_comprehension_probe.py")],
+        capture_output=True, text=True, check=True, cwd=root,
+    ).stdout  # fmt: skip
+    measured = [
+        tuple(m)
+        for m in re.findall(
+            r"(?m)^(cheap|mixed|costly) \(.*?\)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)", out
+        )
+    ]
+    doc = (root / "docs" / "METRICS.md").read_text()
+    block = doc.split("<!-- implied:start -->")[1].split("<!-- implied:end -->")[0]
+    quoted = [
+        (label.split()[0], *nums)
+        for label, *nums in re.findall(
+            r"(?m)^\| (\w+)[^|]*\| ([\d.]+) \| ([\d.]+) \| ([\d.]+) \|$", block
+        )
+    ]
+    assert len(measured) == 3 and quoted == measured, (quoted, measured)
+    span = re.findall(r"implied p varies by ([\d.]+)", out)
+    assert re.findall(r"implied fractions\s+spanning \*\*([\d.]+)\*\*", doc) == span

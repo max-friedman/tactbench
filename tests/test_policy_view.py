@@ -153,3 +153,46 @@ def test_ask_is_the_one_path():
     snoop = _SlicesSnoop()
     d = ask(snoop, item.moment)
     assert d.moment_id == item.moment.id and snoop.seen[0].slices == []
+
+
+def test_no_code_calls_decide_except_through_ask():
+    """Review of R26: "one path" was a claim, not a check -- a mutation handing the
+    ``llm`` command a slices-only view with the raw id passed every test. This scans
+    ``src/`` and ``experiments/``. The allowed calls either *are* ``ask`` or delegate
+    inside a policy, on a moment that is already a view."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    allowed = {
+        ("src/tactbench/policies/base.py", "policy.decide(policy_view(moment))"),
+        ("src/tactbench/policies/skyline.py", "self._skyline.decide(moment)"),
+        ("experiments/implied_comprehension_probe.py", "self._skyline.decide(moment)"),
+    }
+    found = set()
+    for path in [*root.glob("src/**/*.py"), *root.glob("experiments/*.py")]:
+        for line in path.read_text().splitlines():
+            m = re.search(r"\S*\.decide\(.*\)", line)
+            if m and "def decide" not in line:
+                found.add((str(path.relative_to(root)), m.group(0)))
+    assert found == allowed, f"unexpected direct calls: {sorted(found - allowed)}"
+
+
+def test_the_llm_command_hands_policies_an_opaque_id(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from tactbench.cli import app
+    from tactbench.policies.llm import LLMPolicy
+
+    ids = []
+
+    def spy(self, moment):
+        ids.append(moment.id)
+        return Decision(moment_id=moment.id, surface=False, rationale="spy")
+
+    monkeypatch.setattr(LLMPolicy, "decide", spy)
+    monkeypatch.chdir(tmp_path)
+    args = ["llm", "--provider", "local", "--model", "spy", "--limit", "5"]
+    result = CliRunner().invoke(app, args)
+    assert result.exit_code == 0, result.output
+    assert len(ids) == 5 and all(i.startswith("m-") and "pos" not in i for i in ids)

@@ -59,6 +59,7 @@ from tactbench.audit import (
 )
 from tactbench.dataset.loader import load
 from tactbench.metrics import score
+from tactbench.policies.base import ask
 from tactbench.runner import silence_ics
 from tactbench.schema import Decision, Item
 
@@ -150,7 +151,7 @@ def _report_exploitability(dev, test, feature_sets) -> None:
     print("-" * 60)
     for name, fn in feature_sets:
         policy = NgramPolicy(fn, dev)
-        decisions = [policy.decide(i.moment) for i in test]
+        decisions = [ask(policy, i.moment) for i in test]
         card = score(test, decisions, name, reference)
         prec = "--" if card.precision_at_interrupt is None else f"{card.precision_at_interrupt:.3f}"
         print(f"{name:<26} {card.ics:>8.1f} {card.ics_normalized:>+11.1f} {prec:>10}")

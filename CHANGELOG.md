@@ -14,10 +14,12 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
   command, `Policy.run`): the policy sees `schema.policy_view` — no `slices`, an
   opaque `id` — and its decision is mapped back to the stored id. A test asserts a
   pair's two views differ only in the decider text and the opaque id. Leaderboard and
-  LLM table unchanged. Two figures moved because they hash the id: the Round 9
-  keyword policy (−89.3 → −78.0 vs silence) and the comprehension sweep, whose
-  break-even moved 0.29 → 0.23 — so that figure is one draw, now gated and labelled
-  as such.
+  LLM table unchanged. Three figures moved because they hash the id: the Round 9
+  keyword policy (−89.3 → −78.0 vs silence); the comprehension sweep, whose
+  break-even moved 0.29 → 0.23; and METRICS.md's implied-comprehension span, 0.36 →
+  0.274. The sweep is therefore one draw; it and the implied table are now gated
+  and labelled as such. A test scans `src/` and `experiments/` for any call to
+  `decide` that bypasses `ask`.
 
 ### Fixed (Rounds 22 and 25)
 

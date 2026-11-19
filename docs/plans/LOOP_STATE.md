@@ -16,7 +16,7 @@ findings** below.
 - **Round:** 26 complete (`shipped`) — policies no longer see `slices` or a
   label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **343 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **346 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -1771,7 +1771,21 @@ break-even **0.29 → 0.23**, `p = 0.4` +10.1 → +38.7. That table was ungated 
 queue item 4), so it would have gone stale silently; it is now gated in README and
 METRICS.md and labelled one draw. METRICS.md's "0.556 precision at p = 0.2" was
 already stale before R26 (0.593). The spread across draws is queue item F.
-330 → **343** tests.
+
+**Second review (of the fix): request changes.** A *third* id-hashed figure had
+moved — METRICS.md's implied-comprehension span, 0.36 → 0.274, whose table was
+already stale in two other columns — and this entry, the commit and the CHANGELOG
+all said "two". Now gated by running the experiment and comparing its printed rows.
+And "one path" was a claim, not a check: handing the `llm` command a slices-only
+view with the raw id passed every test. Now a scan of `src/` and `experiments/`
+fails on any `decide` call outside `ask` (three allowed delegations), plus a spy on
+the `llm` command's ids; the mutation fails 2. README's "a quarter to a third"
+rested on two draws; it now says so. 330 → **346** tests.
+
+**What the round should have done first:** before changing what a policy sees,
+list every published figure produced by a policy that reads the field being
+changed. Each of the three that moved hashes `moment.id`; one grep would have found
+all three. Both reviews found them one at a time instead.
 
 **Loop:** the leak was found by a reviewer checking a *different* claim — that the
 pair-blind bar is only as good as the pairing — by diffing every field of every
