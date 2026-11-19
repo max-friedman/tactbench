@@ -122,6 +122,22 @@
       "rubric": 785.0
     }
   },
+  "qwen2.5-7b": {
+    "bytes": 4683074240,
+    "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+    "hf_repo": "bartowski/Qwen2.5-7B-Instruct-GGUF",
+    "n_ctx": 2048,
+    "quantization": "Q4_K_M",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+    "system_role": true,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds": {
+      "naive": 1537.6,
+      "rubric": 1544.0
+    }
+  },
   "smollm2-1.7b": {
     "bytes": 1055609824,
     "file": "SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
