@@ -15,7 +15,7 @@ findings** below.
 
 - **Round:** 25 complete (`shipped`) — R22's fixes; R22 merged with them. R23 and
   R24 merged as #20.
-- **Gate:** green — **323 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **330 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -291,14 +291,15 @@ D. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 2. **Seed sensitivity of the published leakage figures — RESOLVED in R22, and the
    premise was half wrong.** Kept as a pointer. Measured on **shipped** frames over
    20 seeds through the committed pipeline (reconstruction reproduces `data/v1/dev`
-   byte-for-byte): the **gated** probes move **0.0%** — every family, every seed,
+   object-for-object): the **gated** probes move **0.0%** — every family, every seed,
    overall and per-family, with no seed over the 60% bound. They are pinned at
    chance by the permutation and are not point estimates at all. Asserted by
    `TestGatedProbesAreSeedStable`, which checks the value as well as the stability,
    since a family pinned at a constant 100% would satisfy stability alone.
    What *is* seed-dependent is the **positional** probe, which is reported and not
    gated: 52.8–63.9% overall (shipped reading 58.0%), up to **40 points** per family
-   (`health` 50.0–90.0%), with families over 60% on 6–14 of 20 seeds. Documented in
+   (`health` 50.0–90.0%), with families over 60% on **3 to 20** of 20 seeds (R22 wrote "6–14"; corrected in
+   R25, and `driving` sits at a constant 63.3% on every seed). Documented in
    `docs/DATASET.md` as a range rather than a measurement; `CONTRIBUTING.md`'s
    "60–63% is expected" was wrong and is corrected.
    <details><summary>original entry</summary> R21 measured Round 15's clause-initial
@@ -1438,6 +1439,10 @@ in the same file as every violation above it.
 
 ## Round 22 — the gated figures do not move at all; the reported one moves a lot
 
+**Ending state: `shipped`** as written — but its review (R23) requested changes and it
+merged only with **R25's fixes**: the per-family count below it published as "6 to
+14 seeds" is **3 to 20**, and `driving` is a constant, not a draw. See Round 25.
+
 **Queue item 2**, which R21 filed as the highest-risk item standing: *"every leakage
 figure this project publishes is a point estimate with unquantified spread."*
 
@@ -1449,7 +1454,7 @@ was rescoped before the round started, on the strength of the prior round's revi
 this round then measured the rescoped version.
 
 **Method.** Reconstructed the committed pipeline in-process (`pairs=20`, then the
-frame split) and asserted the reconstruction reproduces `data/v1/dev` byte-for-byte
+frame split) and asserted the reconstruction reproduces `data/v1/dev` object-for-object
 before measuring anything — without that, the result describes a pipeline nobody
 ships. 20 seeds × 9 families × 3 probes.
 
@@ -1654,7 +1659,7 @@ rewording an assertion it failed.
 
 **Ending state: `shipped`.** Queue item B: the fix for PR #19 (Round 22), which
 review in R23 left at *request changes*. R22's branch is merged into this one and
-fixed here; #19 is closed as superseded.
+fixed here; #19 is closed as superseded when this merges.
 
 **Before-number.** R22 published *"Individual families exceed 60% on 6 to 14 seeds
 out of 20"*. Measured with the reconstructed pipeline: **3 to 20**. What would have
@@ -1664,7 +1669,8 @@ that more seeds dissolve, rather than structure.
 **Finding — `driving` is not a draw.** Its decider sentences are identical on all 20
 seeds (fixed condition vocabulary, no entity), and the probe on the decider alone
 reproduces the full 63.3%. Positions are tagged in tenths of the whole text, and
-driving's body length is fixed per frame (frame 0: 21 tokens, frames 1–4: 19), so the
+a whole driving moment's length is fixed per frame (frame 0: 21 tokens, frames 1–4:
+19), so the
 tags the probe sees are identical on every build. `finance`'s deciders are also
 seed-invariant, but its length varies 15–23, which shifts the tags — it still
 exceeds 60% on 17 of 20. The two families with seed-invariant deciders are the two
@@ -1677,13 +1683,27 @@ script; it asserts the reconstruction equals `data/v1/dev` object-for-object fir
 the per-family table in `docs/DATASET.md` with a *decider varies* column, recomputed
 by `test_the_dataset_doc_per_family_positional_table_is_current` (mutation: R22's
 travel count restored → red); `test_the_reconstruction_matches_the_committed_split`
-now compares `model_dump()`, matching its "byte-for-byte" description;
+now compares `model_dump()` (object equality; the "byte-for-byte" wording that
+overstated it is gone);
 CONTRIBUTING, README and the standing invariant carry the `driving` exception.
 311 → **323** tests (R22's 11 plus 1).
 
 **Noted, not built.** Whether `driving`'s fixed 63.3% should be removed — giving its
 deciders a seed-drawn entity — is a dataset change and its own round; it would also
 move a reported figure published in several places. Added to the queue.
+
+**Review (subagent): request changes**, verdict accepted; every table number
+re-measured correct. Blocking: queue item 2 still stated "6–14" as current fact —
+the first thing R22's review asked to fix everywhere. Also fixed: "body" used for
+the whole moment's token count (driving's shared body is 5 tokens); the 20-seed
+gated per-family claim had no script and a 5-seed test (script now prints it, test
+runs 20); the DATASET overall row, "3 to 20" (DATASET, CHANGELOG), "17 of 20",
+CONTRIBUTING's range and spread, and README's constant 63.3% were ungated — the
+reviewer's mutations of them stayed green; all now in
+`TestSeedSpreadFiguresAreCurrent`, each mutation re-run and red; the R22 entry had
+no ending state; "byte-for-byte" overstated a `model_dump()` comparison; "#19 is
+closed" was written before it was. 323 → **330** tests. Merged on the owner's
+standing instruction, not under §D (a subagent is not an independent reviewer).
 
 **Loop:** R22's error was a number with no script behind it; review caught it only
 by re-measuring. The fix is the R17 pattern again — a table gated against a

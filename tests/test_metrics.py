@@ -305,8 +305,8 @@ class TestGatedProbesAreSeedStable:
 
     Round 22 measured it on **shipped** frames, over 20 seeds, through the exact
     pipeline that produces the committed split (``pairs=20`` then the frame split;
-    the reconstruction reproduces ``data/v1/dev`` byte-for-byte). The worry is half
-    right, and the halves are opposite:
+    the reconstruction reproduces ``data/v1/dev`` object-for-object, ``model_dump()``
+    equal). The worry is half right, and the halves are opposite:
 
     - **gated probes** (unigram, bigram): spread **exactly 0.0%**, every family,
       every seed, overall and per-family. Not "small" -- zero. No seed puts any
@@ -330,7 +330,7 @@ class TestGatedProbesAreSeedStable:
     in prose there and in the README.
     """
 
-    SEEDS = [20260726 + k for k in range(5)]
+    SEEDS = [20260726 + k for k in range(20)]
 
     @staticmethod
     def _dev(seed: int) -> list[Item]:
@@ -411,6 +411,85 @@ class TestGatedProbesAreSeedStable:
                         f"{family} reads {report.exploitable_accuracy:.1%} on the "
                         f"{report.probe} probe at seed {seed}"
                     )
+
+
+class TestSeedSpreadFiguresAreCurrent:
+    """Every seed-spread figure quoted outside the per-family table. Review of R25
+    mutated the DATASET overall row and the "3 to 20" prose and the suite stayed
+    green: only the table was gated. Each locator must match exactly once."""
+
+    SEEDS = [20260726 + k for k in range(20)]
+    ROOT = Path(__file__).resolve().parents[1]
+
+    @classmethod
+    def _measure(cls):
+        if not hasattr(cls, "_cache"):
+            builds = {s: TestGatedProbesAreSeedStable._dev(s) for s in cls.SEEDS}
+            out = {}
+            for name, probe in (
+                ("unigram", lexical_leakage),
+                ("bigram", ngram_leakage),
+                ("positional", positional_leakage),
+            ):
+                overall = [probe(builds[s]).exploitable_accuracy for s in cls.SEEDS]
+                fam = {
+                    f: [
+                        probe([i for i in builds[s] if i.moment.family == f]).exploitable_accuracy
+                        for s in cls.SEEDS
+                    ]
+                    for f in sorted(FRAMES)
+                }
+                worst = max(fam, key=lambda f: max(fam[f]) - min(fam[f]))
+                out[name] = (overall, fam, worst)
+            cls._cache = out
+        return cls._cache
+
+    @staticmethod
+    def _pct(x: float) -> float:
+        return round(100 * x, 1)
+
+    def _one(self, path: str, pattern: str) -> tuple[str, ...]:
+        found = re.findall(pattern, (self.ROOT / path).read_text())
+        assert len(found) == 1, f"{path}: locator {pattern!r} matched {len(found)} times"
+        return found[0] if isinstance(found[0], tuple) else (found[0],)
+
+    @pytest.mark.parametrize("probe", ["unigram", "bigram", "positional"])
+    def test_dataset_overall_row(self, probe):
+        shipped, lo, hi, spread = self._one(
+            "docs/DATASET.md",
+            rf"(?m)^\| {probe} \| [^|]+\| ([\d.]+)% \| ([\d.]+) – ([\d.]+)% \| \*\*([\d.]+) points",
+        )
+        overall, fam, worst = self._measure()[probe]
+        assert float(shipped) == self._pct(overall[0])
+        assert (float(lo), float(hi)) == (self._pct(min(overall)), self._pct(max(overall)))
+        assert float(spread) == self._pct(max(fam[worst]) - min(fam[worst]))
+
+    def _above_counts(self) -> dict[str, int]:
+        _, fam, _ = self._measure()["positional"]
+        return {f: sum(r > 0.60 for r in rs) for f, rs in fam.items()}
+
+    def test_the_range_of_seeds_above_the_bound(self):
+        counts = self._above_counts()
+        expected = (min(counts.values()), max(counts.values()))
+        for path in ("docs/DATASET.md", "CHANGELOG.md"):
+            lo, hi = self._one(path, r"[Tt]he true range is \**(\d+) to (\d+)\**")
+            assert (int(lo), int(hi)) == expected, path
+
+    def test_finance_count(self):
+        (n,) = self._one("docs/DATASET.md", r"still exceeds 60% on (\d+) of 20")
+        assert int(n) == self._above_counts()["finance"]
+
+    def test_contributing_positional_figures(self):
+        lo, hi = self._one("CONTRIBUTING.md", r"([\d.]+)–([\d.]+)% overall across 20 seeds")
+        (spread,) = self._one("CONTRIBUTING.md", r"up to\s+([\d.]+) points per family")
+        overall, fam, worst = self._measure()["positional"]
+        assert (float(lo), float(hi)) == (self._pct(min(overall)), self._pct(max(overall)))
+        assert float(spread) == self._pct(max(fam[worst]) - min(fam[worst]))
+
+    def test_readme_driving_constant(self):
+        (value,) = self._one("README.md", r"at a constant ([\d.]+)%")
+        readings = self._measure()["positional"][1]["driving"]
+        assert len(set(readings)) == 1 and float(value) == self._pct(readings[0])
 
 
 class TestShortcutResistance:

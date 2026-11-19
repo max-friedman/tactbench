@@ -41,14 +41,23 @@ def main() -> None:
     )
     builds = {s: dev(s) for s in SEEDS}
 
-    print(f"{'probe':<11} {'shipped':>8} {'min':>7} {'max':>7}")
+    print(f"{'probe':<11} {'shipped':>8} {'min':>7} {'max':>7}  worst per-family spread")
     for name, probe in (
         ("unigram", lexical_leakage),
         ("bigram", ngram_leakage),
         ("positional", positional_leakage),
     ):
         r = [probe(builds[s]).exploitable_accuracy for s in SEEDS]
-        print(f"{name:<11} {r[0]:>8.1%} {min(r):>7.1%} {max(r):>7.1%}")
+        spread = {
+            f: [
+                probe([i for i in builds[s] if i.moment.family == f]).exploitable_accuracy
+                for s in SEEDS
+            ]
+            for f in sorted(FRAMES)
+        }
+        worst = max(spread, key=lambda f: max(spread[f]) - min(spread[f]))
+        w = max(spread[worst]) - min(spread[worst])
+        print(f"{name:<11} {r[0]:>8.1%} {min(r):>7.1%} {max(r):>7.1%}  {w:.1%} ({worst})")
 
     print(f"\n{'family':<13} {'min':>7} {'max':>7} {'>60%':>5} {'decider varies':>15}")
     for fam in sorted(FRAMES):

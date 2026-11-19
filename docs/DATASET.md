@@ -129,7 +129,7 @@ Round 21 found that a *defect's* measured size moves with the build seed, and qu
 the worry that every leakage figure here is a point estimate with unquantified
 spread. Round 22 measured it on **shipped** frames over 20 seeds, through the exact
 pipeline that produces the committed split — a reconstruction that reproduces
-`data/v1/dev` byte-for-byte. The worry is half right, and the halves point opposite
+`data/v1/dev` object-for-object (`model_dump()` equal). The worry is half right, and the halves point opposite
 ways:
 
 | probe | gated? | shipped reading | range over 20 seeds | worst per-family spread |
@@ -167,12 +167,13 @@ does not control. Per family, over the same 20 seeds
 Round 22 published "6 to 14 seeds out of 20" here; the true range is **3 to 20**, and
 the correction changes the reading. For seven families the figure is a draw: read
 it as a range. **For `driving` it is not a draw at all.** Its decider sentences use a
-fixed condition vocabulary and no entity, so they are identical on every seed, and
-its body is always 19 or 21 tokens (fixed by frame) — so the position tags the probe
-sees on the decider are the same on every build, and so is the reading: **63.3%,
+fixed condition vocabulary and no entity, so they are identical on every seed, and a
+whole driving moment is always 19 or 21 tokens (fixed by frame) — position tags are
+tenths of the whole moment, so the tags the probe sees on the decider are the same
+on every build, and so is the reading: **63.3%,
 above the 60% per-family bound the gated probes must meet**, on all 20 seeds. That
 is a property of `driving`'s frames, not of a seed. `finance`'s deciders are also
-seed-invariant, but its body length varies (15–23 tokens), which shifts the tags; it
+seed-invariant, but a whole finance moment varies from 15 to 23 tokens, which shifts the tags; it
 still exceeds 60% on 17 of 20. The two families whose deciders never vary are the
 two most often above the bound. No gate fails, because the positional probe is not
 gated.
