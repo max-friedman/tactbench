@@ -123,6 +123,35 @@ families, and kept all three. Three results are worth recording:
   independent tests, same mechanism: the exception is the shared final token, not
   something particular to the stopword rule.
 
+### How much do these numbers move if you change the seed?
+
+Round 21 found that a *defect's* measured size moves with the build seed, and queued
+the worry that every leakage figure here is a point estimate with unquantified
+spread. Round 22 measured it on **shipped** frames over 20 seeds, through the exact
+pipeline that produces the committed split — a reconstruction that reproduces
+`data/v1/dev` byte-for-byte. The worry is half right, and the halves point opposite
+ways:
+
+| probe | gated? | shipped reading | range over 20 seeds | worst per-family spread |
+|---|---|---|---|---|
+| unigram | **yes** | 50.0% | 50.0 – 50.0% | **0.0 points** |
+| bigram | **yes** | 50.0% | 50.0 – 50.0% | **0.0 points** |
+| positional | no | 58.0% | 52.8 – 63.9% | **40.0 points** (`health`, 50.0–90.0%) |
+
+**The gated figures are not point estimates at all.** They are pinned at chance by
+construction — both sides of a pair carry the same token multiset, so neither a bag
+of words nor a bag of bigrams can separate them whatever entities are drawn. No seed
+puts any family over the 60% bound. `TestGatedProbesAreSeedStable` asserts the
+stability *and* the value, because a family pinned at a constant 100% would satisfy
+stability alone.
+
+**The positional figure is a point estimate, and a wide one.** Individual families
+exceed 60% on 6 to 14 seeds out of 20. It is reported rather than gated precisely
+because it reads arrangement, which a permutation does not control — but that means
+a single positional reading says little about a family, and the 58.0% quoted here
+and in the README is one draw near the middle of its own distribution. Treat it as a
+range, not a measurement.
+
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
 audit** — which is exactly what a token permutation guarantees, since that probe

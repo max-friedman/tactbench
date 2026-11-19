@@ -33,7 +33,10 @@ freedom no matter how many items the generator emits.
    unigram column**. If it doesn't, you wrote two sentences instead of one
    permutation — fix the data, not the threshold.
    The **bigram** column is gated too and should also read ~50%. The
-   **positional** column is reported but not gated; 60–63% there is expected. See
+   **positional** column is reported but not gated, and it is the one figure here
+   that **moves with the build seed**: 52.8–63.9% overall across 20 seeds, and up to
+   40 points per family. Do not read a single positional reading as a property of
+   your family. See
    "The limit of this rule" below.
 5. Run `uv run tactbench build` and commit the regenerated splits. CI verifies the
    committed data is reproducible from the generator.
