@@ -139,9 +139,11 @@ assertion. A PR that loosens a threshold to go green will be sent back.
 These matter more here than in most repos, because a benchmark that overclaims is
 worse than no benchmark.
 
-**Never publish a number you didn't produce.** No LLM figures appear anywhere in
-this repo because none have been run. If you run them, commit the numbers *and*
-say which model, which prompt version, and which split.
+**Never publish a number you didn't produce.** Every LLM figure in this repo
+is backed by committed decisions in `results/` and a manifest naming the weights,
+and a test fails the build if the README disagrees with a re-score of them. If you
+add a model, commit its decisions *and* say which model, which prompt version, and
+which split — `experiments/run_local_llms.py` does all three for local models.
 
 **When you add a capability, move its limitation out of the README's limitations
 section — and when you find a new weakness, add one.** That section is the

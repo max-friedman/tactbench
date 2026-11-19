@@ -337,6 +337,20 @@ export ANTHROPIC_API_KEY=...          # or GEMINI_API_KEY / OPENAI_API_KEY
 uv run tactbench llm --variant rubric --limit 20
 ```
 
+Or free, against any OpenAI-compatible server you run yourself (llama.cpp,
+Ollama, vLLM, LM Studio):
+
+```bash
+uv run tactbench llm --provider local --model qwen2.5-7b \
+    --base-url http://127.0.0.1:8080/v1 --variant rubric
+```
+
+The model name is required — it becomes part of the result. Some chat templates
+(Gemma 2) reject a system turn; `--no-system-role` sends the same system prompt,
+unchanged, at the top of the user turn instead. A run whose calls fail is not a
+result: the server's error is scored as silence, so the CLI marks any run above 5%
+unparsed *inconclusive*, and a test refuses to publish one containing a failed call.
+
 Two variants exist to separate two different explanations for failure. `naive` is
 asked only whether to surface, with no cost structure disclosed — it measures the
 model's untutored instinct. `rubric` is given the actual asymmetry, including that

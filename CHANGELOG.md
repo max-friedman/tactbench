@@ -5,7 +5,28 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
-Nothing yet.
+### Added (Round 23)
+
+- **The first LLM results**: small open-weight instruction models (the README
+  table lists them), Q4_K_M, on CPU through llama.cpp at temperature 0, both prompt
+  variants, on `v1/dev`. Decisions are committed in `results/v1-dev/`, weights'
+  sha256 and runtime in `results/MANIFEST.json`, and the README table is gated
+  against a fresh re-score by `tests/test_results.py`. No hosted frontier model
+  has been run.
+- **`--provider local`** for any OpenAI-compatible server, with no key and no
+  default model; `--no-system-role` for chat templates that reject a system turn.
+- **`tactbench results`**, which prints the README table from committed runs,
+  with two new columns: `pairs` (both sides of a matched pair right — a constant
+  policy scores exactly 0%) and `unparsed`.
+- `experiments/run_local_llms.py`, which reproduces every row from the weights.
+
+### Fixed (Round 23)
+
+- **The LLM response parser scored `"false"` as speaking.** It cast the field
+  with `bool()`, so a quoted `"false"`, `"no"` or `"maybe"` was an interruption;
+  an answer missing the decision was silently silence; and a stray trailing brace
+  made a valid answer unreadable. Four of six constructed cases were scored
+  wrong. Non-answers are now counted as `unparsed` and reported.
 
 ## [0.1.0] - 2026-11-12
 
