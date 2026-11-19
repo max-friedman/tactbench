@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 29 complete (`shipped`) — state file pruned: live queue first, done
-  items collapsed. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
+- **Round:** 30 complete (`shipped`) — the last ungated Results-prose figures gated.
+  R29 (#25): state file pruned. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
 - **Gate:** green — **351 passed**, `ruff check` **and** `ruff format --check` both
@@ -240,15 +240,6 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    change) — re-running them is ~10 CPU-hours locally. Batch it with any other
    generator change, or version the dataset (`v2`) and keep `v1` results as they are.
 
-4. **Cover the README figures the prose check still misses (new, R19).** The **Status R29:** the sweep
-   table is gated (R26/R27); `−87.5 normalized`, `294 more ICS` and `0.500 precision`
-   in the Results prose are still ungated.
-   R18 review named three: `−87.5 normalized` and `294 more ICS` (README:40),
-   `0.500 precision` (README:45), and the whole comprehension-sweep table, which
-   the `ROW` regex cannot match because those rows carry no backticked policy
-   name. All are correct today — recomputed on both trees — so this is a coverage
-   gap, not a stale number. Extend `PROSE`, or generalise the table regex.
-
 6. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
    was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
    Needs a ruling first: may a pair's two sides differ in `UserState` when the
@@ -273,7 +264,16 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 11. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
    even if the raters are not.
 
-<details><summary>Done or resolved — kept for history (A–D, F, G, 1–3, 5, 7)</summary>
+<details><summary>Done or resolved — kept for history (A–D, F, G, 1–5, 7)</summary>
+
+4. **Cover the README figures the prose check still misses — DONE in R30.** The **Status R29:** the sweep
+   table is gated (R26/R27); `−87.5 normalized`, `294 more ICS` and `0.500 precision`
+   in the Results prose are still ungated.
+   R18 review named three: `−87.5 normalized` and `294 more ICS` (README:40),
+   `0.500 precision` (README:45), and the whole comprehension-sweep table, which
+   the `ROW` regex cannot match because those rows carry no backticked policy
+   name. All are correct today — recomputed on both trees — so this is a coverage
+   gap, not a stale number. Extend `PROSE`, or generalise the table regex.
 
 G. **Prune the state file — DONE in R29.** Original entry: The numbered queue (items 1–11)
    is mostly DONE-pointers and pre-R16 history; the Current status block carries a
@@ -1965,6 +1965,24 @@ are not. No code, test or published figure changed; 351 tests.
 **No subagent review this round** — the change is a content-preserving reorder
 verified mechanically above, and a review would have read the same diff. Recorded so
 the gap is visible rather than implied away.
+
+**Loop:** nothing.
+
+---
+
+## Round 30 — the last three Results-prose figures, gated
+
+**Ending state: `shipped`.** Queue item 4, open since R19: `294 more ICS`,
+`−87.5 normalized` and `0.500 precision` in the README's Results prose had no test.
+All three were correct (recomputed before changing anything). They are now in
+`TestReadmeResultsAreCurrent.PROSE`, and the check carries **a tolerance per
+figure** at the precision it is quoted to: the old flat 0.05 would have let
+`0.500 precision` read `0.510` and stay green — that exact mutation was run and now
+fails, as do `295` and `−86.5`. No published figure changed; 351 tests (one test
+covers more).
+
+**No subagent review** — a test-only change whose three mutations were each run and
+caught.
 
 **Loop:** nothing.
 
