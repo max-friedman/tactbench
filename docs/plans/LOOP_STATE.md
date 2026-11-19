@@ -13,10 +13,10 @@ findings** below.
 
 ## Current status
 
-- **Round:** 26 complete (`shipped`) — policies no longer see `slices` or a
-  label-bearing `id`. R22+R25
+- **Round:** 27 complete (`shipped`) — the comprehension sweep's spread, measured.
+  R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **346 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **350 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -191,6 +191,7 @@ whenever costs, the generator, or a policy change.
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
 | `policies/llm.py` | **R23** | strict parser (unparsed counted, never silently silence); `--provider local`; `--no-system-role`. Executed on 11 open-weight models |
 | `schema.policy_view` | **R26** (new) | every path to `Policy.decide` empties `slices`; `tests/test_policy_view.py` spies on both paths, each mutation-tested |
+| `policies/skyline.py` `PartialSkylinePolicy` | **R27** | `seed` now selects the draw (which moments are comprehended), seed 0 unchanged; 20-draw properties and quoted ranges in `TestMetricDiscriminationOnEveryDraw` |
 | `runner.pair_blind_ics` | **R24** (new) | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested. Not yet in `web/server.py` |
 | `results/` + `results.py` | **R23** (new) | committed decisions + MANIFEST (sha256, runtime); README LLM table, and five conclusions drawn from it, gated against a re-score in `test_results.py` |
 | `experiments/run_local_llms.py` | **R23** (new) | reproduces every LLM row from weights; one model per invocation fits the 2h background cap |
@@ -269,7 +270,8 @@ D. **Pairs differ only in the decider, as a policy sees them — DONE in R26**, 
    over every pair, that the two sides' `policy_view` dumps differ in exactly the
    decider signal's content and nothing else. R26 closed `slices` by hand; this
    closes the class, including fields added later. Small; do next.
-F. **The comprehension sweep is one draw (new, R26).** `PartialSkylinePolicy` picks
+F. **The comprehension sweep is one draw — DONE in R27.** Kept as a pointer.
+   **Original entry:** `PartialSkylinePolicy` picks
    which moments it comprehends by hashing the id. R26 changed only the id a policy
    sees, and break-even moved 0.29 → 0.23, `p = 0.4` from +10.1 to +38.7, the
    smallest step from 13.4% to 4.8% of the range. The figures are now gated and
@@ -1795,6 +1797,42 @@ field-by-field pair diff is cheap; it is now implicit in this round's tests for
 `slices`, but not for fields added later. Candidate check for a future round: the
 two sides of a pair, viewed through `policy_view`, differ in the decider signal
 and nothing else.
+
+---
+
+## Round 27 — "how much comprehension is enough" has no single answer
+
+**Ending state: `refuted`** — of the published figure, not of the round's plan. Queue
+item F. The README stated *"a system needs about p = 0.23 to beat silence"* (0.29
+before R26, "roughly a third" before that). Measured over 20 draws of which moments
+a given `p` comprehends: **0.10 to 0.51, median 0.31.** `p = 0.4` runs from −14.0 to
++38.7 vs silence, and **the published draw is the most favourable of all 20 at that
+row** — the README had been showing its best case without knowing it.
+
+**What would have proved the round wrong, stated first:** a spread under a few
+hundredths (the "one draw" caveat overcautious), or any draw breaking the metric's
+own properties. The first was refuted hard; the second held: monotone and anchored
+on all 20, smallest step 3.7–12.1% of the range, never near the 2% floor. So the
+metric-discrimination claim stands on every draw, and the break-even claim is not a
+property of anything.
+
+**Why the spread is wide.** Comprehending a `quiet_hours` moment is worth far more
+than a `commerce` one (R8's per-family finding; the implied-p table shows the same
+thing). A draw that happens to comprehend expensive moments clears silence early.
+"How many moments" is the wrong axis; "which" dominates.
+
+**Shipped.** `PartialSkylinePolicy(seed=)` selects the draw — seed 0 hashes the bare
+id, so every published sweep figure is unchanged (asserted); nesting holds within a
+draw (asserted at seed 7). `experiments/sweep_draws.py`.
+`TestMetricDiscriminationOnEveryDraw`: the three properties on every draw of the
+shipped split, and the README/METRICS ranges recomputed (median mutation → red).
+README and METRICS.md report the range and say plainly the table is the most
+favourable draw. 346 → **350** tests.
+
+**Loop:** queued in R26 as "measure the spread", it turned out to refute a
+headline-adjacent claim the README has carried since R7 in three different forms
+("roughly a third", "about 0.29", "about 0.23"). Each revision updated the number
+and kept the framing. The framing was the error.
 
 ---
 

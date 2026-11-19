@@ -227,7 +227,10 @@ comprehension to beat silence** (0.29 before Round 26 changed only which moments
 the hash selects — so this is one draw with real spread, not a constant). A policy at
 `p = 0.2` reaches 0.605 precision — which reads as better-than-a-coin-flip — and is
 still a net loss against saying nothing. The README table is gated against a fresh
-run; the spread across draws is not yet measured.
+run. **Over 20 draws (Round 27) break-even ranges from 0.10 to 0.51**, median 0.31,
+so it is not a property of the metric. The three properties above are: they hold on
+all 20 draws of the shipped split, with the smallest step 3.7% of the range at
+worst, and `TestMetricDiscriminationOnEveryDraw` asserts them per draw.
 
 `PartialSkylinePolicy` is a diagnostic, not a baseline, and is deliberately absent
 from the leaderboard registry. Full sweep:

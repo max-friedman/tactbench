@@ -5,6 +5,16 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Changed (Round 27)
+
+- **"How much comprehension beats silence" is a range, not a number.** Over 20
+  draws of which moments `PartialSkylinePolicy` comprehends, break-even runs from
+  p = 0.10 to 0.51 (median 0.31), and the published draw is the most favourable of
+  the 20 at `p = 0.4`. The metric's own properties — monotone, anchored, every step
+  above 2% of the range — hold on all 20 and are now asserted per draw.
+  `PartialSkylinePolicy(seed=)` selects the draw (seed 0 is unchanged);
+  `experiments/sweep_draws.py` prints the table.
+
 ### Fixed (Round 26)
 
 - **Policies were handed the label, twice.** The two sides of every pair differ in

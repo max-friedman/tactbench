@@ -1883,3 +1883,86 @@ def test_metrics_doc_implied_comprehension_table_is_current():
     assert len(measured) == 3 and quoted == measured, (quoted, measured)
     span = re.findall(r"implied p varies by ([\d.]+)", out)
     assert re.findall(r"implied fractions\s+spanning \*\*([\d.]+)\*\*", doc) == span
+
+
+class TestMetricDiscriminationOnEveryDraw:
+    """Round 27. ``TestMetricDiscrimination`` checks one draw of a small generated
+    set. Round 26 showed the sweep depends heavily on *which* moments are
+    comprehended (break-even moved 0.29 -> 0.23 from re-hashing alone), so the
+    properties are asserted on 20 draws of the shipped dev split, and the range the
+    README and METRICS.md quote is recomputed here."""
+
+    POINTS = (0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0)
+    DRAWS = range(20)
+    ROOT = Path(__file__).resolve().parents[1]
+
+    @classmethod
+    def _sweeps(cls):
+        if not hasattr(cls, "_cache"):
+            items = load("v1", "dev")
+            ref = silence_ics(items)
+            cls._cache = (
+                ref,
+                {
+                    s: [
+                        evaluate(PartialSkylinePolicy(p, seed=s), items, reference=ref)
+                        for p in cls.POINTS
+                    ]
+                    for s in cls.DRAWS
+                },
+            )
+        return cls._cache
+
+    def _break_even(self, ref, cards):
+        pts = [(p, c.ics) for p, c in zip(self.POINTS, cards, strict=True)]
+        return next(
+            pa + (ca - ref) / (ca - cb) * (pb - pa)
+            for (pa, ca), (pb, cb) in zip(pts, pts[1:], strict=False)
+            if ca > ref >= cb
+        )
+
+    def test_monotone_anchored_and_responsive_on_every_draw(self):
+        ref, sweeps = self._sweeps()
+        for s, cards in sweeps.items():
+            costs = [c.ics for c in cards]
+            assert all(a >= b for a, b in zip(costs, costs[1:], strict=False)), (s, costs)
+            assert costs[-1] == 0.0 and costs[0] > ref, (s, costs)
+            span = costs[0] - costs[-1]
+            steps = [a - b for a, b in zip(costs, costs[1:], strict=False)]
+            assert min(steps) > 0.02 * span, (s, steps)
+
+    def test_nesting_holds_within_a_nonzero_draw(self):
+        ids = [i.moment.id for i in load("v1", "dev")]
+        low, high = PartialSkylinePolicy(0.3, seed=7), PartialSkylinePolicy(0.7, seed=7)
+        assert all(high.comprehends(m) for m in ids if low.comprehends(m))
+
+    def test_draw_zero_is_the_published_sweep(self):
+        items = load("v1", "dev")
+        for p in (0.2, 0.4, 0.8):
+            a = evaluate(PartialSkylinePolicy(p), items).ics
+            b = evaluate(PartialSkylinePolicy(p, seed=0), items).ics
+            assert a == b
+
+    def test_quoted_ranges(self):
+        ref, sweeps = self._sweeps()
+        xs = sorted(round(self._break_even(ref, c), 2) for c in sweeps.values())
+        v4 = [c[self.POINTS.index(0.4)].ics_normalized for c in sweeps.values()]
+        steps = []
+        for cards in sweeps.values():
+            costs = [c.ics for c in cards]
+            span = costs[0] - costs[-1]
+            steps.append(min(a - b for a, b in zip(costs, costs[1:], strict=False)) / span)
+        readme = (self.ROOT / "README.md").read_text()
+        metrics = (self.ROOT / "docs" / "METRICS.md").read_text()
+        lo, hi, med = re.findall(
+            r"break-even ranges from p = ([\d.]+) to ([\d.]+) \(median\s+([\d.]+)\)", readme
+        )[0]
+        assert (float(lo), float(hi), float(med)) == (xs[0], xs[-1], xs[len(xs) // 2])
+        assert re.findall(r"break-even ranges from ([\d.]+) to ([\d.]+)\*\*, median ([\d.]+)",
+                          metrics) == [(lo, hi, med)]  # fmt: skip
+        v_lo, v_hi = re.findall(r"`p = 0\.4` from −([\d.]+) to \+([\d.]+) against", readme)[0]
+        assert (-float(v_lo), float(v_hi)) == (round(min(v4), 1), round(max(v4), 1))
+        assert v4[0] == max(v4), "README says the published draw is the most favourable at p=0.4"
+        (worst,) = re.findall(r"no step smaller than ([\d.]+)% of the range", readme)
+        assert float(worst) == round(100 * min(steps), 1)
+        assert re.findall(r"smallest step ([\d.]+)% of the range at\s+worst", metrics) == [worst]

@@ -212,7 +212,14 @@ class PartialSkylinePolicy(Policy):
         # which is not < 1.0, so one moment in ~256 would never be comprehended and
         # p=1.0 would not reproduce the skyline. Passes on small samples, fails on
         # large ones.
-        return hashlib.sha256(moment_id.encode()).digest()[2] / 256.0 < self.p
+        #
+        # ``seed`` selects the draw: which moments a given ``p`` comprehends. Seed 0
+        # hashes the bare id, so the shipped sweep is unchanged; any other seed is a
+        # different nested set. Round 26 showed one draw is not a constant (moving
+        # only the hashed id moved break-even 0.29 -> 0.23); Round 27 measures the
+        # spread with this. Nesting in ``p`` holds within every draw.
+        key = moment_id if self.seed == 0 else f"draw{self.seed}:{moment_id}"
+        return hashlib.sha256(key.encode()).digest()[2] / 256.0 < self.p
 
     def _guess(self, moment_id: str) -> bool:
         """Fixed per moment and independent of ``p`` -- see property 2 above."""
