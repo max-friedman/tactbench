@@ -1874,7 +1874,15 @@ averaging outside 20–30% over 1000 seeds; an independent count disagreeing wit
 **Probe** (`experiments/pairs_audit.py`): reads `data/v1/dev.jsonl` and the result
 files directly, pairs by its own id parsing, does not import `tactbench.results`.
 **Result:** coin 25.1% (sd 3.9, range 13.5–36.5%); 22 of 22 runs agree with
-`tactbench results`; best run 10.3%, 3.8 sd below; no run within 2 sd. Wired into
+`tactbench results`; best run 10.3%, 3.8 sd below; no run at or above coin − 2 sd.
+
+**Review (subagent): request changes.** The first falsifier was *two-sided*
+(`|run − coin| < 2 sd`), so it flagged only runs near the coin: a run set to the gold
+labels scored 100% and the probe said `holds`. The gate could not detect the very
+thing the claim rules out. Now one-sided, and that mutation reads `fails`. Also: the
+"best run" came from the machinery under audit rather than the probe (now the
+probe's own count), and a table row with no result file went unchecked (now
+`fails`). An audit built to catch the #56 pattern exhibited it. Wired into
 the gate (`test_the_pairs_audit_holds`) and added to the standing invariants, per
 §A step 6. 350 → **351** tests.
 
@@ -1898,14 +1906,22 @@ every round).** Read the Loop lines R22–R27 against LOOP.md's six questions:
   superseded). Pruning is queue item G.
 - *Ending states:* R27 was first labelled `refuted` — "the measurement killed the
   plan" does not cleanly cover a measuring round whose *result* overturned a
-  published claim. One instance; noted, not filed.
+  published claim. R22 is a second round whose ending state needed qualifying
+  ("`shipped` as written — but its review requested changes"). Two instances, both
+  low-cost; recorded as a candidate below, not filed.
 - *Stop conditions:* §D's independent reviewer was not satisfied by any merge this
   session (owner override, recorded on each PR). No stop condition fired late.
 - *Ambiguity:* the `refuted` reading above; R23's branch-name conflict. Neither has
   a second instance.
 
-**Loop:** audit found execution failures and one ambiguity, no new protocol defect.
-Filed nothing.
+- *Recurring pattern the first draft of this audit omitted:* #56's "a check named for
+  a class tests an instance" recurred in R26 ("one path" claimed, not checked) and
+  **in this round's own audit probe** (two-sided falsifier). Added to #56 as
+  evidence.
+
+**Loop:** execution failures, one ambiguity with two instances, and a recurrence of
+an already-filed pattern — including inside the audit meant to look for it. No new
+proposal filed; #56 updated.
 
 ---
 
@@ -1927,6 +1943,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). |
+| No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
@@ -2020,8 +2037,9 @@ dataset or the policy is wrong, not the assertion.
 - **A fair coin gets ~25% of pairs both right, and every LLM run is more than 2 sd
   below it** — `experiments/pairs_audit.py`, independent of `results.py`, wired in
   as `test_the_pairs_audit_holds` (R28 §A). Coin: 25.1%, sd 3.9 over 1000 seeds;
-  best run 10.3%, 3.8 sd below. A model reaching coin level fails the build until the
-  README's headline is revisited.
+  best run 10.3%, 3.8 sd below. One-sided: any run at or above coin − 2 sd (17.2%)
+  fails the build until the README's headline is revisited — verified by setting a
+  run to the gold labels (100%) in a scratch copy: `fails`.
 - **No policy is handed the label** — every path to `Policy.decide` goes through
   `policies.base.ask` → `schema.policy_view`: no `slices`, an opaque `id` (R26). A
   pair's two views may differ only in the decider text and the opaque id —

@@ -255,8 +255,10 @@ def test_the_pairs_audit_holds():
     """Round 28 §A audit, wired in because it held. ``experiments/pairs_audit.py`` is
     independent of ``results.pairs_both_right``: it reads the JSONL directly. It
     fails if a fair coin's pairs-both-right leaves 20-30%, if its count disagrees
-    with ``tactbench results`` on any run, or if any run is within 2 sd of the coin
-    -- which would make the README's "no model beats a coin" headline stale."""
+    with ``tactbench results`` on any run, or if any run reaches coin - 2 sd *or
+    anything above it* -- which would make the README's "no model beats a coin"
+    headline stale. One-sided since review: the first version flagged only runs
+    near the coin, and a run scoring 100% passed it."""
     import subprocess
     import sys
 

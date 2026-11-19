@@ -71,27 +71,39 @@ def main() -> None:
     quoted = {m.group(1): float(m.group(2)) for m in re.finditer(
         r"^\| `(llm:[^`]+)` \|.*\| ([\d.]+)% \| [\d.]+% \|$", table, re.M)}  # fmt: skip
 
-    mismatches, near_coin = [], []
+    # One-sided: the claim is that no run reaches the coin. R28's review found the
+    # first version tested |run - coin| < 2 sd, so a run scoring 100% passed it.
+    floor = mean - 2 * sd
+    mismatches, reaches_coin, mine_by_run = [], [], {}
     for path in sorted((ROOT / "results" / "v1-dev").glob("*.jsonl")):
         variant, model = path.stem.removesuffix("-dev").split("_", 2)[1:]
         name = f"llm:{variant}:{model}"
         decide = {json.loads(x)["moment_id"]: json.loads(x)["surface"]
                   for x in path.read_text().splitlines()}  # fmt: skip
-        mine = both_right(decide, labels, ps)
-        if round(100 * mine, 1) != quoted[name]:
-            mismatches.append((name, mine, quoted[name]))
-        if abs(mine - mean) < 2 * sd:
-            near_coin.append((name, mine))
+        mine = mine_by_run[name] = both_right(decide, labels, ps)
+        if name not in quoted or round(100 * mine, 1) != quoted[name]:
+            mismatches.append((name, mine, quoted.get(name)))
+        if mine >= floor:
+            reaches_coin.append((name, mine))
+    unmatched_rows = sorted(set(quoted) - set(mine_by_run))
     print(
-        f"independent vs `tactbench results`: {len(quoted)} runs, "
-        f"{len(mismatches)} mismatches {mismatches}"
+        f"independent vs `tactbench results`: {len(mine_by_run)} files compared to "
+        f"{len(quoted)} table rows; {len(mismatches)} mismatches {mismatches}; "
+        f"rows with no file {unmatched_rows}"
     )
-    best = max(quoted.values())
+    best = max(mine_by_run.values())
     print(
-        f"best LLM run {best:.1f}% = {(mean * 100 - best) / (sd * 100):.1f} sd below the coin; "
-        f"runs within 2 sd of the coin: {near_coin}"
+        f"best run (this probe's count) {best:.1%} = {abs(mean - best) / sd:.1f} sd "
+        f"{'below' if best < mean else 'above'} the coin; "
+        f"runs at or above coin - 2 sd ({floor:.1%}): {reaches_coin}"
     )
-    holds = 0.20 <= mean <= 0.30 and not mismatches and not near_coin
+    holds = (
+        0.20 <= mean <= 0.30
+        and not mismatches
+        and not unmatched_rows
+        and not reaches_coin
+        and len(mine_by_run) == len(quoted) > 0
+    )
     print(f"\nverdict: {'holds' if holds else 'fails'}")
 
 
