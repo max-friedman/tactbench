@@ -46,6 +46,7 @@ src/tactbench/
   schema.py            Moment, Signal, UserState, GoldLabel, Decision, Item
   metrics.py           ICS, hard violations, calibration, slice reporting
   runner.py            runs a policy over a split, times each decision
+  labeling.py          human labels: sampling, rater view, Fleiss' kappa
   cli.py               build / eval / failures / serve
   dataset/generate.py  scenario families, matched-pair generation
   dataset/loader.py    JSONL read/write, split paths

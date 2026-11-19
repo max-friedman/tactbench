@@ -13,11 +13,11 @@ findings** below.
 
 ## Current status
 
-- **Round:** 30 complete (`shipped`) — the last ungated Results-prose figures gated.
-  R29 (#25): state file pruned. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
+- **Round:** 31 complete (`shipped`) — `tactbench label` / `agreement`: the
+  human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **351 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **368 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -218,8 +218,10 @@ halt the loop.**
    **No numbers may be published without actually running it.** Hosted runs land
    in `runs/`, not `results/`; committing one needs a MANIFEST entry shaped for a
    hosted model (no sha256), which `test_results.py` does not yet accept.
-2. **Human label validation.** Labels remain by construction (`raters: 0`). Needs
-   real raters and a reported κ.
+2. **Human label validation.** Labels remain by construction (`raters: 0`). The tool
+   exists since R31 (`tactbench label --rater NAME`, then `tactbench agreement`);
+   what is missing is people — two or more raters on ~20 pairs each. Writing their
+   results back into `raters` / `agreement` is not built yet.
 3. **PyPI release** — deliberately held until (1) lands, so the first release ships
    with the finding that makes it worth installing.
 
@@ -261,7 +263,7 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    README and not here. The 97.2% figure was already wrong on `main`, so it is not
    R16's doing — but R16 moved bigram overall 51.1% → 50.0% and did not look.
 
-11. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+11. **Human label validation — tool DONE in R31; labels need people (NEEDS-MAX 2).** A labelling CLI is buildable now
    even if the raters are not.
 
 <details><summary>Done or resolved — kept for history (A–D, F, G, 1–5, 7)</summary>
@@ -1983,6 +1985,53 @@ covers more).
 
 **No subagent review** — a test-only change whose three mutations were each run and
 caught.
+
+**Loop:** nothing.
+
+---
+
+## Round 31 — a way to collect human labels
+
+**Ending state: `shipped`.** Queue item 11, CLAUDE.md priority 2. Before: every
+label is constructed (`raters: 0`) and there was no way to collect a human judgment
+at all — the before-number is zero collectable labels.
+
+**What would have proved it wrong:** a κ implementation disagreeing with a published
+worked example, or a rater being shown anything that encodes the answer.
+
+**Shipped.** `labeling.py` and two commands. `tactbench label --rater NAME` samples
+whole pairs (by `hashlib` on the pair key), shows each moment exactly as a model
+sees it (`render_moment(policy_view(...))`: no id, slices or family), in a
+per-rater order so a pair's sides are not adjacent, and appends y/n answers to
+`labels/<version>-<split>/<rater>.jsonl` after each one; a rerun resumes.
+`tactbench agreement` reports Fleiss' κ over moments every rater answered, the
+majority's agreement with construction, the majority's pairs-both-right (reported
+*beside* the LLM column, not as the same quantity — see the review below), and each
+rater's agreement. Tests first (red on
+import): κ = 0.210 on Fleiss (1971)'s example as reproduced on Wikipedia, edges
+(perfect → 1.0; one category used → undefined, not 0), whole-pair deterministic
+sample, no leak in the rater view, per-rater shuffle, CLI record/resume, agreement
+on constructed raters. Mutations: a wrong chance-agreement term → 2 failures; an id
+in the rater view → 1. 351 → **359** tests.
+
+**Review (subagent): request changes.** κ itself was right (matches an independent
+Fleiss implementation on 2000 random tables to 4e-16, and Scott's π for two raters).
+The reporting around it was not: (1) κ and the majority silently used only moments
+every rater answered — one late rater with 2 answers shrank a report to 2 items and
+the CLI printed κ = −1.000 without comment; now every rater's answer count, the
+common moments and whole pairs are printed, and κ is withheld below 20 common
+moments; (2) with two raters every disagreement is a tie and was scored as a miss —
+ties are now counted separately; (3) `--rater ../x` wrote outside `labels/` where
+resume never looked — names are now `[A-Za-z0-9_-]+`; (4) "directly comparable to
+the models'" was false — a rater sees both sides of each pair in one session; the
+README and module now say so; (5) answers were stored under the real id
+(`-pos-`/`-near-`), readable in the rater's own file — now the opaque id; (6) a
+rater with no in-split answers scored 0.0% — now "--". Each has a test. 359 →
+**368** tests.
+
+**Not claimed:** no human has labelled anything; no κ is reported anywhere. README,
+DATASET.md and CHANGELOG say so. Writing human results back into `GoldLabel.raters`
+/ `agreement` is not built.
 
 **Loop:** nothing.
 
