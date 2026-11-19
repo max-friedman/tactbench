@@ -313,7 +313,10 @@ class TestGatedProbesAreSeedStable:
       family over the 60% bound.
     - **positional probe** (reported, not gated): overall spread **11.1%**
       (52.8-63.9%, published value 58.0%), and per-family up to **40.0 points**
-      (``health`` 50.0-90.0%). Families exceed 60% on 6 to 14 seeds out of 20.
+      (``health`` 50.0-90.0%). Families exceed 60% on **3 to 20** seeds out of 20 --
+      R22 published "6 to 14"; R25 corrected it and gated the table. ``driving``
+      is not a draw: its deciders never vary with the seed, so it reads 63.3% on
+      every one.
 
     So the gated numbers are not point estimates at all, and this asserts that. They
     are pinned at chance by construction: both sides of a pair carry the same token
@@ -344,9 +347,9 @@ class TestGatedProbesAreSeedStable:
             "reconstruction has drifted from `tactbench build`, so the seed-stability "
             "result below would be about some other dataset."
         )
-        assert [i.moment.signals[-1].content for i in committed] == [
-            i.moment.signals[-1].content for i in rebuilt
-        ]
+        # Whole objects, not the last signal: R22 compared only the decider while
+        # this docstring and the PR said "byte-for-byte". Review caught it in R23.
+        assert [i.model_dump() for i in committed] == [i.model_dump() for i in rebuilt]
 
     @pytest.mark.parametrize("family", sorted(FRAMES))
     def test_the_gated_probes_do_not_move_with_the_seed(self, family):
@@ -366,6 +369,32 @@ class TestGatedProbesAreSeedStable:
             "spread here means that construction has broken for this family; fix the "
             "frames, do not widen this assertion."
         )
+
+    def test_the_dataset_doc_per_family_positional_table_is_current(self):
+        """R22 published "6 to 14 seeds" with no script behind it; the true range was
+        3 to 20. The table in docs/DATASET.md is now recomputed here, over the same
+        20 seeds ``experiments/seed_spread_probe.py`` uses."""
+        doc = (Path(__file__).resolve().parents[1] / "docs" / "DATASET.md").read_text()
+        block = doc.split("<!-- seed-spread:start -->")[1].split("<!-- seed-spread:end -->")[0]
+        rows = re.findall(
+            r"^\| (\w+) \| ([\d.]+)% \| ([\d.]+)% \| (\d+) \| (yes|no) \|$", block, re.M
+        )
+        assert {r[0] for r in rows} == set(FRAMES), "the table must cover every family once"
+
+        seeds = [20260726 + k for k in range(20)]
+        builds = {s: self._dev(s) for s in seeds}
+        for family, lo, hi, above, varies in rows:
+            readings, deciders = [], set()
+            for s in seeds:
+                sub = sorted(
+                    (i for i in builds[s] if i.moment.family == family), key=lambda i: i.moment.id
+                )
+                readings.append(positional_leakage(sub).exploitable_accuracy)
+                deciders.add(tuple(i.moment.signals[-1].content for i in sub))
+            assert float(lo) == round(100 * min(readings), 1), family
+            assert float(hi) == round(100 * max(readings), 1), family
+            assert int(above) == sum(r > 0.60 for r in readings), family
+            assert (varies == "yes") == (len(deciders) > 1), family
 
     def test_that_stability_is_at_chance_and_not_merely_constant(self):
         """A family pinned at a *constant* 100% would satisfy the test above.

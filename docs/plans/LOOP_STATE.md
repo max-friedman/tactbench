@@ -13,9 +13,9 @@ findings** below.
 
 ## Current status
 
-- **Round:** 24 complete (`shipped`) — the pair-blind bar. R23 also `shipped`. **R22 is PR #19, open, review = request
-  changes** — not on `main`, so this branch does not contain it; see queue item B.
-- **Gate:** green — **311 passed** on the R23/R24 branch, `ruff check` **and** `ruff format --check` both
+- **Round:** 25 complete (`shipped`) — R22's fixes; R22 merged with them. R23 and
+  R24 merged as #20.
+- **Gate:** green — **323 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -246,6 +246,13 @@ A. **Close the pair-blind gain — DONE in R24, by option (b).** Kept as a point
    whichever round takes it: **+29.2**. Then add a general test — the pair-blind
    oracle (`speak on both sides iff net-positive`) may not beat silence — and the
    specific keyword set becomes one instance of it. </details>
+B. **Fix PR #19 (Round 22) — DONE in R25.** Kept as a pointer.
+   **Original entry:** Reviewed in R23 per §D: **request changes**. Named
+   failures: the "6 to 14 seeds" figure does not match what the round measured; the
+   20-seed tables have no `experiments/` script that reproduces them (the test runs
+   5 seeds); `driving` reads a constant 63.3% that the writeup does not explain;
+   the reconstruction test checks only the last signal. Fix on a separate branch;
+   the queue entry is the link to #19.
 C. **Policies are handed the answer in `moment.slices` (new, review of R24).** Both
    sides of every pair differ in slice tags, and "no `near_miss` tag ⇒ speak" is
    **100%** on dev and test. LLM prompts withhold `slices`/`family` (four tests), so
@@ -253,13 +260,12 @@ C. **Policies are handed the answer in `moment.slices` (new, review of R24).** B
    receives them and nothing stops a submission. Fix: the runner hands a policy a
    moment with provenance fields stripped; `skyline` reads `family` and must be
    handled explicitly (it is a ceiling, not a submission). Before-number: 100%.
-   Ranked after B only because B is older and smaller; it is the more serious.
-B. **Fix PR #19 (Round 22).** Reviewed in R23 per §D: **request changes**. Named
-   failures: the "6 to 14 seeds" figure does not match what the round measured; the
-   20-seed tables have no `experiments/` script that reproduces them (the test runs
-   5 seeds); `driving` reads a constant 63.3% that the writeup does not explain;
-   the reconstruction test checks only the last signal. Fix on a separate branch;
-   the queue entry is the link to #19.
+   **Next round's item** — B is done, and this is the most serious open item.
+D. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
+   contain no seed-drawn entity, so the reading is a property of the frames and sits
+   above the 60% per-family bound on every seed. Reported, not gated, so nothing
+   fails. Option: draw an entity into driving's deciders and re-measure. Low priority
+   next to C.
 
 1. **Decide whether the probe should cross signal boundaries — DONE in R21.**
    Kept as a pointer: the join **stays**, because the probe takes the upper bound
@@ -1644,6 +1650,49 @@ rewording an assertion it failed.
 
 ---
 
+## Round 25 — Round 22's figure was wrong, and one family is not a draw
+
+**Ending state: `shipped`.** Queue item B: the fix for PR #19 (Round 22), which
+review in R23 left at *request changes*. R22's branch is merged into this one and
+fixed here; #19 is closed as superseded.
+
+**Before-number.** R22 published *"Individual families exceed 60% on 6 to 14 seeds
+out of 20"*. Measured with the reconstructed pipeline: **3 to 20**. What would have
+proved the round wrong: `driving`'s constant 63.3% turning out to be seed noise
+that more seeds dissolve, rather than structure.
+
+**Finding — `driving` is not a draw.** Its decider sentences are identical on all 20
+seeds (fixed condition vocabulary, no entity), and the probe on the decider alone
+reproduces the full 63.3%. Positions are tagged in tenths of the whole text, and
+driving's body length is fixed per frame (frame 0: 21 tokens, frames 1–4: 19), so the
+tags the probe sees are identical on every build. `finance`'s deciders are also
+seed-invariant, but its length varies 15–23, which shifts the tags — it still
+exceeds 60% on 17 of 20. The two families with seed-invariant deciders are the two
+most often over the bound. R22's advice to "treat it as a range" is right for seven
+families and wrong for `driving`. No invariant breaks: positional is reported, not
+gated.
+
+**Shipped.** `experiments/seed_spread_probe.py` (R22's 20-seed tables had no
+script; it asserts the reconstruction equals `data/v1/dev` object-for-object first);
+the per-family table in `docs/DATASET.md` with a *decider varies* column, recomputed
+by `test_the_dataset_doc_per_family_positional_table_is_current` (mutation: R22's
+travel count restored → red); `test_the_reconstruction_matches_the_committed_split`
+now compares `model_dump()`, matching its "byte-for-byte" description;
+CONTRIBUTING, README and the standing invariant carry the `driving` exception.
+311 → **323** tests (R22's 11 plus 1).
+
+**Noted, not built.** Whether `driving`'s fixed 63.3% should be removed — giving its
+deciders a seed-drawn entity — is a dataset change and its own round; it would also
+move a reported figure published in several places. Added to the queue.
+
+**Loop:** R22's error was a number with no script behind it; review caught it only
+by re-measuring. The fix is the R17 pattern again — a table gated against a
+recomputation — applied to a fourth document. The R23 review of #19 named the
+missing script as "closest to failing" and the wrong number as the failure; the
+missing script is what allowed the wrong number.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -1687,7 +1736,9 @@ dataset or the policy is wrong, not the assertion.
   gated. **R22: it is also the only published figure that moves with the build
   seed** — 52.8–63.9% overall over 20 seeds (shipped reading 58.0%), and up to 40
   points per family. The gated probes move **0.0%**, asserted by
-  `TestGatedProbesAreSeedStable`.
+  `TestGatedProbesAreSeedStable`. **R25:** not every family's positional reading
+  moves — `driving`'s deciders contain no seed-drawn entity, so it reads 63.3% on
+  every seed, above the 60% bound. Per-family table gated against `docs/DATASET.md`.
   **Known limit (R21, queue item 2): the bound is a point estimate sampled once.**
   The clause-initial defect breaches it for 2 of 9 families on `seed=20260726` and
   5 of 9 at its worst over eight seeds. This limits the *bound*, not the gate —

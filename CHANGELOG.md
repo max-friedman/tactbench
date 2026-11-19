@@ -5,6 +5,18 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Fixed (Rounds 22 and 25)
+
+- **The positional figure's seed spread is published per family, and gated.** Round
+  22 measured the leakage probes over 20 build seeds (the gated unigram and bigram
+  probes do not move at all; `TestGatedProbesAreSeedStable`) and published "6 to 14
+  seeds out of 20" for families above 60% on the positional probe, with no script
+  behind it. The true range is 3 to 20. `experiments/seed_spread_probe.py` now
+  prints the table, `docs/DATASET.md` carries it, and a test recomputes it.
+  `driving` reads a constant 63.3% on every seed — its deciders contain no
+  seed-drawn entity — so for that family the figure is a property of the frames,
+  not a draw.
+
 ### Added (Round 24)
 
 - **The pair-blind bar** (`runner.pair_blind_ics`), reported as a `vs pair-blind`

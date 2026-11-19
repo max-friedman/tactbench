@@ -145,12 +145,37 @@ puts any family over the 60% bound. `TestGatedProbesAreSeedStable` asserts the
 stability *and* the value, because a family pinned at a constant 100% would satisfy
 stability alone.
 
-**The positional figure is a point estimate, and a wide one.** Individual families
-exceed 60% on 6 to 14 seeds out of 20. It is reported rather than gated precisely
-because it reads arrangement, which a permutation does not control — but that means
-a single positional reading says little about a family, and the 58.0% quoted here
-and in the README is one draw near the middle of its own distribution. Treat it as a
-range, not a measurement.
+**The positional figure is, for most families, a point estimate — and a wide one.**
+It is reported rather than gated because it reads arrangement, which a permutation
+does not control. Per family, over the same 20 seeds
+(`experiments/seed_spread_probe.py` prints this table; a test recomputes it):
+
+<!-- seed-spread:start -->
+| family | min | max | seeds > 60% | decider varies with seed |
+|---|---|---|---|---|
+| childcare | 50.0% | 76.7% | 6 | yes |
+| commerce | 50.0% | 83.3% | 14 | yes |
+| deadline | 50.0% | 80.0% | 11 | yes |
+| driving | 63.3% | 63.3% | 20 | no |
+| finance | 50.0% | 63.3% | 17 | no |
+| health | 50.0% | 90.0% | 7 | yes |
+| meeting_prep | 53.3% | 70.0% | 11 | yes |
+| quiet_hours | 50.0% | 80.0% | 8 | yes |
+| travel | 50.0% | 65.0% | 3 | yes |
+<!-- seed-spread:end -->
+
+Round 22 published "6 to 14 seeds out of 20" here; the true range is **3 to 20**, and
+the correction changes the reading. For seven families the figure is a draw: read
+it as a range. **For `driving` it is not a draw at all.** Its decider sentences use a
+fixed condition vocabulary and no entity, so they are identical on every seed, and
+its body is always 19 or 21 tokens (fixed by frame) — so the position tags the probe
+sees on the decider are the same on every build, and so is the reading: **63.3%,
+above the 60% per-family bound the gated probes must meet**, on all 20 seeds. That
+is a property of `driving`'s frames, not of a seed. `finance`'s deciders are also
+seed-invariant, but its body length varies (15–23 tokens), which shifts the tags; it
+still exceeds 60% on 17 of 20. The two families whose deciders never vary are the
+two most often above the bound. No gate fails, because the positional probe is not
+gated.
 
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words

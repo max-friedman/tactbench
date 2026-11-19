@@ -36,7 +36,9 @@ freedom no matter how many items the generator emits.
    **positional** column is reported but not gated, and it is the one figure here
    that **moves with the build seed**: 52.8–63.9% overall across 20 seeds, and up to
    40 points per family. Do not read a single positional reading as a property of
-   your family. See
+   your family — *unless your deciders contain no seed-drawn entity*: then the reading
+   is the same on every seed and **is** a property of your frames (`driving` reads
+   63.3% on all 20). `uv run python experiments/seed_spread_probe.py` shows which. See
    "The limit of this rule" below.
 5. Run `uv run tactbench build` and commit the regenerated splits. CI verifies the
    committed data is reproducible from the generator.
