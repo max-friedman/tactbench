@@ -146,3 +146,43 @@ class TestPairsBothRight:
 
         gold = [Decision(moment_id=i.moment.id, surface=i.label.should_surface) for i in self.ITEMS]
         assert pairs_both_right(self.ITEMS, gold) == 1.0
+
+
+class TestReadmeClaimsAboutTheLLMTable:
+    """The README draws three conclusions from the table. If a committed run
+    breaks one, the conclusion is stale and the prose must change with it."""
+
+    def test_no_run_reads_the_deciding_signal_better_than_a_coin(self):
+        best = max(pairs for _, _, pairs in scorecards())
+        assert best < 0.25, f"a run scores {best:.1%} pairs-both-right; update the README"
+
+    def test_no_run_reaches_the_five_word_topic_policy(self):
+        from test_metrics import TestReadmeResultsAreCurrent, _TopicPolicy
+
+        from tactbench.runner import evaluate, silence_ics
+
+        items = load("v1", "dev")
+        topic = evaluate(
+            _TopicPolicy(TestReadmeResultsAreCurrent.TOPIC_WORDS),
+            items,
+            reference=silence_ics(items),
+        ).ics_normalized
+        best = max(card.ics_normalized for card, _, _ in scorecards())
+        assert best < topic, f"an LLM run ({best:+.1f}) reaches the topic policy ({topic:+.1f})"
+
+    def test_every_run_above_silence_has_zero_hard_violations(self):
+        above = [card for card, _, _ in scorecards() if card.ics_normalized > 0]
+        assert above
+        assert all(card.hard_violations == 0 for card in above), [c.policy for c in above]
+
+    def test_the_hard_violation_split_is_clean(self):
+        """README: no run above silence has one; every run below has 11-28."""
+        for card, _, _ in scorecards():
+            if card.ics_normalized > 0:
+                assert card.hard_violations == 0, card.policy
+            elif card.ics_normalized < 0:
+                assert 11 <= card.hard_violations <= 28, card.policy
+
+    def test_eight_runs_are_constant(self):
+        constant = [c.policy for c, _, _ in scorecards() if c.surfaced in (0, c.n)]
+        assert len(constant) == 8, constant
