@@ -265,3 +265,24 @@ class TestLocalProvider:
     def test_local_requires_an_explicit_model(self, fake_server):
         with pytest.raises(ValueError):
             LLMPolicy(provider="local", base_url=fake_server)
+
+    def test_without_a_system_role_the_same_text_leads_the_user_turn(self, fake_server):
+        """For chat templates that reject a system turn (Gemma 2). The prompt must
+        be the documented one, byte for byte -- only the turn it arrives in moves."""
+        policy = LLMPolicy(
+            provider="local",
+            model="gemma-test",
+            variant="naive",
+            base_url=fake_server,
+            system_role=False,
+        )
+        moment = generate(n_pairs_per_scenario=1)[0].moment
+        policy.decide(moment)
+        (call,) = _FakeOpenAI.seen
+        assert call["body"]["messages"] == [
+            {"role": "user", "content": f"{NAIVE_SYSTEM}\n\n{render_moment(moment)}"}
+        ]
+
+    def test_dropping_the_system_role_is_local_only(self):
+        with pytest.raises(ValueError):
+            LLMPolicy(provider="anthropic", model="x", system_role=False)

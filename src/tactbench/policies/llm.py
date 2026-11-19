@@ -257,6 +257,7 @@ class LLMPolicy(Policy):
         variant: str = "rubric",
         max_tokens: int = 200,
         base_url: str | None = None,
+        system_role: bool = True,
     ):
         if provider not in PROVIDERS:
             raise ValueError(f"unknown provider {provider!r}; pick one of {list(PROVIDERS)}")
@@ -270,6 +271,9 @@ class LLMPolicy(Policy):
         self.base_url = (
             base_url or os.environ.get("TACTBENCH_BASE_URL") or DEFAULT_LOCAL_URL
         ).rstrip("/")
+        if not system_role and provider != "local":
+            raise ValueError("system_role=False is only for --provider local")
+        self.system_role = system_role
         self.variant = variant
         self.max_tokens = max_tokens
         self.system = NAIVE_SYSTEM if variant == "naive" else RUBRIC_SYSTEM
@@ -288,6 +292,20 @@ class LLMPolicy(Policy):
             )
         return key
 
+    def _local_messages(self, prompt: str) -> list[dict[str, str]]:
+        """Some chat templates (Gemma 2) refuse a system turn outright, and the
+        server answers HTTP 500 to every call. Their documented convention is to
+        put the instructions at the top of the user turn, so with
+        ``system_role=False`` the same system text, unchanged, leads the user
+        message. Which delivery a run used is recorded in results/MANIFEST.json.
+        """
+        if self.system_role:
+            return [
+                {"role": "system", "content": self.system},
+                {"role": "user", "content": prompt},
+            ]
+        return [{"role": "user", "content": f"{self.system}\n\n{prompt}"}]
+
     def _complete(self, prompt: str) -> str:
         self._require_key()
         if self.provider == "local":
@@ -298,10 +316,7 @@ class LLMPolicy(Policy):
                 "model": self.model,
                 "temperature": 0,
                 "max_tokens": self.max_tokens,
-                "messages": [
-                    {"role": "system", "content": self.system},
-                    {"role": "user", "content": prompt},
-                ],
+                "messages": self._local_messages(prompt),
             }
             req = urllib.request.Request(
                 f"{self.base_url}/chat/completions",

@@ -184,6 +184,11 @@ def llm_cmd(
     base_url: str = typer.Option(
         None, help="For --provider local. Default $TACTBENCH_BASE_URL or http://127.0.0.1:8080/v1"
     ),
+    system_role: bool = typer.Option(
+        True,
+        help="For --provider local. --no-system-role puts the system prompt, unchanged, "
+        "at the top of the user turn, for chat templates that reject a system turn.",
+    ),
 ) -> None:
     """Score an LLM against a split. Hosted providers need an API key and cost money;
     ``--provider local`` runs open-weight models on your own server for free.
@@ -208,7 +213,9 @@ def llm_cmd(
         )
         raise typer.Exit(1)
 
-    policy = LLMPolicy(provider=provider, model=model, variant=variant, base_url=base_url)
+    policy = LLMPolicy(
+        provider=provider, model=model, variant=variant, base_url=base_url, system_role=system_role
+    )
     items = load(version, split)
     if limit:
         items = items[:limit]

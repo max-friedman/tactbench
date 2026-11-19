@@ -54,6 +54,10 @@ MODELS: dict[str, tuple[str, str]] = {
     ),
 }
 
+#: Chat templates that raise on a system turn. Their convention is instructions at
+#: the top of the user turn; the run passes --no-system-role and the manifest says so.
+NO_SYSTEM_ROLE = frozenset({"gemma-2-2b"})
+
 VARIANTS = ("naive", "rubric")
 N_CTX = 2048
 
@@ -94,7 +98,8 @@ def run_model(name: str, path: Path, server_python: str, threads: int) -> dict:
             t0 = time.time()
             subprocess.run(
                 ["uv", "run", "tactbench", "llm", "--provider", "local", "--model", name,
-                 "--variant", variant, "--base-url", f"http://127.0.0.1:{PORT}/v1"],
+                 "--variant", variant, "--base-url", f"http://127.0.0.1:{PORT}/v1",
+                 *(["--no-system-role"] if name in NO_SYSTEM_ROLE else [])],
                 cwd=ROOT, check=True,
             )  # fmt: skip
             timings[variant] = round(time.time() - t0, 1)
@@ -143,6 +148,7 @@ def main() -> None:
             "runtime": f"llama-cpp-python {runtime}",
             "n_ctx": N_CTX,
             "temperature": 0,
+            "system_role": name not in NO_SYSTEM_ROLE,
             "threads": args.threads,
             "wall_seconds": timings,
         }

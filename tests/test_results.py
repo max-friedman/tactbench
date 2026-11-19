@@ -58,6 +58,20 @@ def test_every_committed_run_is_complete(name):
 
 
 @pytest.mark.parametrize("name", sorted(RUNS))
+def test_no_committed_run_contains_a_failed_call(name):
+    """A failed call is the server's answer, not the model's.
+
+    Round 23's first Gemma 2 run returned HTTP 500 on all 504 calls: its chat
+    template rejects a system turn. Scored, that is a perfect copy of silence -- ICS
+    336, zero hard violations -- attributed to a model that never saw a prompt. An
+    unparsed *answer* is the model's failure and is reported; a failed *call* is
+    ours, and the run is redone rather than published.
+    """
+    failed = [d.moment_id for d in RUNS[name] if (d.rationale or "").startswith("call failed")]
+    assert not failed, f"{name}: {len(failed)} calls failed, e.g. {failed[0]}"
+
+
+@pytest.mark.parametrize("name", sorted(RUNS))
 def test_every_committed_run_records_what_produced_it(name):
     model = name.split(":", 2)[2]
     entry = manifest().get(model)
