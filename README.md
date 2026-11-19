@@ -156,7 +156,7 @@ now fails the build instead of relying on anyone remembering.)
 There is no exempt family now, and every family must probe under 60%.
 `TestNoKeywordExploit` fails the build if *that* keyword policy beats silence — it
 does not cover keyword policies in general. A five-word topic policy beats silence
-by +29.2 today; see [Results](#results).
+today; see [Results](#results).
 
 ### The blind spot in that number, and how it was closed
 
@@ -424,7 +424,7 @@ What it shows:
   answer, which is the one thing the pair design exists to catch.
 - **Some beat silence, none beat five keywords.** The best row, Gemma-3-4B with the
   rubric, clears silence by +16.4 with zero hard violations — and the five-word
-  topic policy in [Results](#results) clears it by +29.2 without reading anything.
+  topic policy in [Results](#results) clears it by more, without reading anything.
   Every run above silence is there by speaking rarely: 54 of 252 moments at most.
 - **The rubric works by making models quieter.** For the models whose naive run
   talks a lot, disclosing the costs cuts how often they speak and turns a loss into
