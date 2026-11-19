@@ -222,9 +222,12 @@ Three properties, all holding, all now guarded by `TestMetricDiscrimination`:
 | **Anchored** | `p=1` → exactly 0; `p=0` loses to silence | the scale means what it claims at both ends |
 | **Responsive** | every step moves ICS > 2% of the range | rules out a metric that is flat through the middle while looking fine at the ends |
 
-**The number this produced:** a system needs roughly **30% comprehension to beat
-silence**. A policy at `p = 0.2` reaches 0.556 precision — which reads as
-better-than-a-coin-flip — and is still a net loss against saying nothing.
+**The number this produced:** in the shipped draw a system needs about **p = 0.23
+comprehension to beat silence** (0.29 before Round 26 changed only which moments
+the hash selects — so this is one draw with real spread, not a constant). A policy at
+`p = 0.2` reaches 0.605 precision — which reads as better-than-a-coin-flip — and is
+still a net loss against saying nothing. The README table is gated against a fresh
+run; the spread across draws is not yet measured.
 
 `PartialSkylinePolicy` is a diagnostic, not a baseline, and is deliberately absent
 from the leaderboard registry. Full sweep:
@@ -310,15 +313,23 @@ an appealing shortcut: score a system, look its ICS up on the curve, report *"th
 model understands about 40% of these moments."*
 
 **That number is not real.** The curve was built from uniformly random errors;
-real systems fail systematically. Three policies understanding the same share of
-moments — true fractions within 0.033 of each other — land at implied fractions
-spanning **0.36**, purely from *which* families they understand:
+real systems fail systematically. Three policies understanding exactly the same
+share of moments land at implied fractions spanning **0.274**, purely from *which*
+families they understand:
 
+<!-- implied:start -->
 | comprehends | true fraction | ICS | implied p |
 |---|---|---|---|
-| cheap families (`commerce`, `health`, `meeting_prep`) | 0.350 | 382.0 | 0.163 |
-| mixed (`travel`, `deadline`, `finance`) | 0.333 | 319.0 | 0.333 |
-| costly (`quiet_hours`, `driving`, `childcare`) | 0.317 | 192.0 | 0.527 |
+| cheap families (`commerce`, `health`, `meeting_prep`) | 0.333 | 360.0 | 0.203 |
+| mixed (`travel`, `deadline`, `finance`) | 0.333 | 318.0 | 0.242 |
+| costly (`quiet_hours`, `driving`, `childcare`) | 0.333 | 181.0 | 0.476 |
+<!-- implied:end -->
+
+`experiments/implied_comprehension_probe.py` prints this table and a test compares
+it. The implied column inverts the comprehension sweep, which is one draw (see
+*Does the metric discriminate?*): Round 26 changed only the id it hashes and the
+span moved from 0.36 to 0.274. The conclusion — same comprehension, very different
+implied values — held on both draws.
 
 The metric is not wrong here — ICS weights by consequence, and a system that
 handles `quiet_hours` correctly genuinely *is* better than one that only handles

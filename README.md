@@ -88,17 +88,20 @@ guesses on the rest:
 
 | comprehension `p` | ICS ↓ | vs silence | prec@int |
 |---|---|---|---|
-| 0.0 | 470.0 | −39.9 | 0.496 |
-| 0.2 | 365.0 | −8.6 | 0.593 |
-| **0.4** | **302.0** | **+10.1** | 0.669 |
-| 0.6 | 173.0 | +48.5 | 0.781 |
-| 0.8 | 99.0 | +70.5 | 0.878 |
+| 0.0 | 482.0 | −43.5 | 0.508 |
+| 0.2 | 363.0 | −8.0 | 0.605 |
+| **0.4** | **206.0** | **+38.7** | 0.744 |
+| 0.6 | 142.0 | +57.7 | 0.849 |
+| 0.8 | 94.0 | +72.0 | 0.901 |
 | 1.0 | 0.0 | +100.0 | 1.000 |
 
-**A system needs roughly a third comprehension before it beats silence at all.**
-Below that it is worse than shipping nothing, however well-intentioned — and note
-that `p = 0.2` still reaches 0.593 precision, which reads as "better than a coin
-flip" and is still a net loss.
+**In this draw a system needs about p = 0.23 comprehension to beat silence**, and
+`p = 0.2` still loses while reaching 0.605 precision — which reads as "better than a
+coin flip" and is a net loss. **Read that as one draw, not a constant.** Which
+moments a given `p` comprehends is chosen by hashing the moment's id; Round 26
+changed only the id the policy sees (to stop it leaking the label), and the
+break-even point moved from 0.29 to 0.23, with `p = 0.4` moving from +10.1 to +38.7.
+Two draws have given 0.29 and 0.23; the spread across draws is not yet measured.
 
 The sweep also establishes that ICS is **monotone, anchored, and responsive across
 the whole range** — it ranks partial comprehension rather than merely separating
@@ -156,7 +159,7 @@ benchmark (asleep, DND-doubled), so it drives **87% of the gap** between `always
 and silence from 11% of the moments. Concentration plus exploitability meant a
 policy matching two substrings — `admitt` / `discharg` — and coin-flipping on the
 other eight families **beat silence at +28.0**, while the honest structural
-heuristic scored −22.9. On the current dataset that same policy scores **−89.3**,
+heuristic scored −22.9. On the current dataset that same policy scores **−78.0**,
 against the honest heuristic's −47.6. (The heuristic figure has now gone stale
 twice — three rounds in R13, and again in R16 — each time because a round changed
 the generator and checked only the rows it expected to move. `TestReadmeResultsAreCurrent`
@@ -464,7 +467,12 @@ emits only a number is hard to trust and harder to improve.
 
 Implement one method. Policies see moments one at a time and never see labels —
 proactive assistance is an online decision, so batching would leak information a
-real system wouldn't have.
+real system wouldn't have. The moment your `decide` receives has `slices` emptied
+and an opaque `id`: both encoded the label (`near_miss` tags; ids like
+`travel-pos-0003`), and until Round 26 a one-line policy reading either tied the
+skyline. Return your decision under the id you were given; the runner maps it back.
+This keeps the label out of what a policy is *handed* — it is not a defence against
+a policy built to cheat, since dev and test labels are published in `data/`.
 
 ```python
 from tactbench.policies.base import Policy
@@ -532,13 +540,6 @@ otherwise would defeat the purpose of building a benchmark:
   rather than something a policy could implement. It is only as meaningful as the
   pairing: a pair whose sides differ in anything but the decider lets a policy beat
   it without comprehension.
-- **A policy is handed the answer in `moment.slices`.** The two sides of every pair
-  also differ in their slice tags, and "no `near_miss` tag means speak" is right on
-  100% of dev and held-out. The LLM prompt withholds `slices` and `family` (tests
-  enforce it), so no published LLM figure is affected. The built-in policies do not
-  read slices. But nothing stops a submitted `Policy` from reading them. Found in
-  review of Round 24; the fix — stripping provenance fields before a policy sees
-  the moment — is queued.
 - **The LLM results are one sample at temperature 0, on dev.** No variance across
   seeds or prompts is reported, and no model has been run on the held-out split.
 

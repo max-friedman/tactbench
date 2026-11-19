@@ -13,9 +13,10 @@ findings** below.
 
 ## Current status
 
-- **Round:** 25 complete (`shipped`) — R22's fixes; R22 merged with them. R23 and
-  R24 merged as #20.
-- **Gate:** green — **330 passed**, `ruff check` **and** `ruff format --check` both
+- **Round:** 26 complete (`shipped`) — policies no longer see `slices` or a
+  label-bearing `id`. R22+R25
+  merged as #21, R23+R24 as #20.
+- **Gate:** green — **346 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -189,6 +190,7 @@ whenever costs, the generator, or a policy change.
 | `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
 | `policies/llm.py` | **R23** | strict parser (unparsed counted, never silently silence); `--provider local`; `--no-system-role`. Executed on 11 open-weight models |
+| `schema.policy_view` | **R26** (new) | every path to `Policy.decide` empties `slices`; `tests/test_policy_view.py` spies on both paths, each mutation-tested |
 | `runner.pair_blind_ics` | **R24** (new) | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested. Not yet in `web/server.py` |
 | `results/` + `results.py` | **R23** (new) | committed decisions + MANIFEST (sha256, runtime); README LLM table, and five conclusions drawn from it, gated against a re-score in `test_results.py` |
 | `experiments/run_local_llms.py` | **R23** (new) | reproduces every LLM row from weights; one model per invocation fits the 2h background cap |
@@ -253,15 +255,29 @@ B. **Fix PR #19 (Round 22) — DONE in R25.** Kept as a pointer.
    5 seeds); `driving` reads a constant 63.3% that the writeup does not explain;
    the reconstruction test checks only the last signal. Fix on a separate branch;
    the queue entry is the link to #19.
-C. **Policies are handed the answer in `moment.slices` (new, review of R24).** Both
+C. **Policies are handed the answer in `moment.slices` — DONE in R26.** Kept as a
+   pointer. **Original entry:** Both
    sides of every pair differ in slice tags, and "no `near_miss` tag ⇒ speak" is
    **100%** on dev and test. LLM prompts withhold `slices`/`family` (four tests), so
    no LLM figure is affected and built-ins do not read them — but `Policy.decide`
    receives them and nothing stops a submission. Fix: the runner hands a policy a
    moment with provenance fields stripped; `skyline` reads `family` and must be
    handled explicitly (it is a ceiling, not a submission). Before-number: 100%.
-   **Next round's item** — B is done, and this is the most serious open item.
-D. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
+   (Was next round's item; done.)
+D. **Pairs differ only in the decider, as a policy sees them — DONE in R26**, pulled
+   in by its review. Kept as a pointer. **Original entry:** Assert,
+   over every pair, that the two sides' `policy_view` dumps differ in exactly the
+   decider signal's content and nothing else. R26 closed `slices` by hand; this
+   closes the class, including fields added later. Small; do next.
+F. **The comprehension sweep is one draw (new, R26).** `PartialSkylinePolicy` picks
+   which moments it comprehends by hashing the id. R26 changed only the id a policy
+   sees, and break-even moved 0.29 → 0.23, `p = 0.4` from +10.1 to +38.7, the
+   smallest step from 13.4% to 4.8% of the range. The figures are now gated and
+   labelled "one draw", but the spread is unmeasured. Add a draw seed to
+   `comprehends`, report break-even as a range over ~20 draws, and check
+   `TestMetricDiscrimination`'s 2% responsiveness floor holds on every draw — at
+   4.8% on this one it has less margin than it did.
+E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    contain no seed-drawn entity, so the reading is a property of the frames and sits
    above the 60% per-family bound on every seed. Reported, not gated, so nothing
    fails. Option: draw an entity into driving's deciders and re-measure. Low priority
@@ -1713,6 +1729,75 @@ missing script is what allowed the wrong number.
 
 ---
 
+## Round 26 — the answer was in the moment
+
+**Ending state: `shipped`.** Queue item C, found by the review of R24.
+
+**Before-number.** A three-line policy — speak iff `near_miss` is absent from
+`moment.slices` — scored **ICS 0.0, +100 vs silence, on dev and on test**, tying
+the skyline. `Moment`'s docstring called itself "everything a policy is allowed to
+see", and `docs/DATASET.md` said slices were "not visible to policies in any
+meaningful sense" — both false. **What would have proved the round wrong:** a
+published figure moving (it would mean some policy *had* read slices), or slice
+reporting breaking once policies stop seeing them.
+
+**Shipped.** `schema.policy_view` empties `slices`; `runner.run_policy` and the `llm`
+command both use it, and the web viewer goes through `run_policy`. `family` is kept
+deliberately — both sides of a pair share it, so it carries no label, and the
+skyline ceiling reads it. Tests written first (red on import): a spy on each path
+sees no slices, and reverting either call site turns its test red; the snoop
+policy now speaks on everything; reporting still slices on the stored item.
+Built-in leaderboard and LLM table unchanged — no policy read slices, and the LLM
+prompt already omitted them. README limitation removed; *Scoring your own system*
+says what `decide` receives; DATASET.md corrected. 330 → **335** tests.
+
+**Review (subagent): request changes, and it was right.** The round closed `slices`
+and declared the leak closed while `moment.id` — `travel-pos-0003` /
+`travel-near-0003` — still handed every policy the label: a one-line policy scored
+ICS 0.0 on both splits. The project already knew (`test_llm.py` says "Ids encode the
+label outright"; the LLM prompt omits the id for that reason), and the round's
+author spotted it while writing the review brief, *after* opening the PR. The
+reviewer's field-by-field diff found exactly two differing fields per pair: `id` and
+the decider. Fixed in-round, not deferred: `policies.base.ask` is the single path
+(runner, `llm`, and `Policy.run`, which had passed raw moments); the view carries
+`opaque_id`; decisions map back to the stored id; queue item D's pair-diff test
+landed here and failed on `id` before the fix. Deterministic hash, stated plainly as
+not a defence against a deliberate cheat — labels are published in `data/`.
+
+**Two published figures moved, both because they hash the id.** The R9 keyword
+policy coin-flips on it: −89.3 → **−78.0** (still far below silence; the README
+claim holds). The comprehension sweep picks its comprehending set by it:
+break-even **0.29 → 0.23**, `p = 0.4` +10.1 → +38.7. That table was ungated (R19
+queue item 4), so it would have gone stale silently; it is now gated in README and
+METRICS.md and labelled one draw. METRICS.md's "0.556 precision at p = 0.2" was
+already stale before R26 (0.593). The spread across draws is queue item F.
+
+**Second review (of the fix): request changes.** A *third* id-hashed figure had
+moved — METRICS.md's implied-comprehension span, 0.36 → 0.274, whose table was
+already stale in two other columns — and this entry, the commit and the CHANGELOG
+all said "two". Now gated by running the experiment and comparing its printed rows.
+And "one path" was a claim, not a check: handing the `llm` command a slices-only
+view with the raw id passed every test. Now a scan of `src/` and `experiments/`
+fails on any `decide` call outside `ask` (three allowed delegations), plus a spy on
+the `llm` command's ids; the mutation fails 2. README's "a quarter to a third"
+rested on two draws; it now says so. 330 → **346** tests.
+
+**What the round should have done first:** before changing what a policy sees,
+list every published figure produced by a policy that reads the field being
+changed. Each of the three that moved hashes `moment.id`; one grep would have found
+all three. Both reviews found them one at a time instead.
+
+**Loop:** the leak was found by a reviewer checking a *different* claim — that the
+pair-blind bar is only as good as the pairing — by diffing every field of every
+pair. Nobody had asked what else differs between a pair's sides; the invariant
+named one field (`UserState`) and the docs asserted the rest by description. A
+field-by-field pair diff is cheap; it is now implicit in this round's tests for
+`slices`, but not for fields added later. Candidate check for a future round: the
+two sides of a pair, viewed through `policy_view`, differ in the decider signal
+and nothing else.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -1820,6 +1905,11 @@ dataset or the policy is wrong, not the assertion.
   replaced it with a property of the optimizer that could not fail on any data**,
   and called that "stronger-in-meaning"; review caught it. Best single word today:
   308 on dev (bar 238), 132 on test (bar 102). A planted one-word leak is caught.
+- **No policy is handed the label** — every path to `Policy.decide` goes through
+  `policies.base.ask` → `schema.policy_view`: no `slices`, an opaque `id` (R26). A
+  pair's two views may differ only in the decider text and the opaque id —
+  asserted field by field over every pair, so a field added later is covered.
+  Before R26 a one-line policy reading `slices`, or the `id`, scored ICS 0.0.
 - The pair-blind bar never pays with a hard violation, is never worse than silence,
   equals silence at `base_rate=100`, and skyline clears it (task stays solvable).
   `test_no_pair_blind_policy_beats_the_bar` guards the optimizer itself. R24.

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ..schema import Decision, Moment
+from ..schema import Decision, Moment, policy_view
 
 
 class Policy:
@@ -20,4 +20,16 @@ class Policy:
         raise NotImplementedError
 
     def run(self, moments: list[Moment]) -> list[Decision]:
-        return [self.decide(m) for m in moments]
+        return [ask(self, m) for m in moments]
+
+
+def ask(policy: Policy, moment: Moment) -> Decision:
+    """The one way to put a moment to a policy. Round 26.
+
+    The policy sees :func:`schema.policy_view` -- no ``slices``, an opaque ``id`` --
+    and its decision comes back under the stored id, so scoring and caching are
+    unchanged. Whatever id the policy wrote, the decision is for the moment that was
+    asked about.
+    """
+    d = policy.decide(policy_view(moment))
+    return d.model_copy(update={"moment_id": moment.id})

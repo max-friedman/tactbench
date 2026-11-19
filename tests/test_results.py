@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from tactbench.dataset.loader import load
+from tactbench.policies.base import ask
 from tactbench.policies.builtin import AlwaysPolicy, NeverPolicy
 from tactbench.results import (
     load_results,
@@ -138,7 +139,7 @@ class TestPairsBothRight:
     ITEMS = load("v1", "dev")
 
     def _run(self, policy):
-        return [policy.decide(i.moment) for i in self.ITEMS]
+        return [ask(policy, i.moment) for i in self.ITEMS]
 
     def test_a_constant_policy_scores_zero(self):
         assert pairs_both_right(self.ITEMS, self._run(NeverPolicy())) == 0.0

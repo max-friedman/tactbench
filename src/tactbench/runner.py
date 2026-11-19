@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 
 from .metrics import Scorecard, score
-from .policies.base import Policy
+from .policies.base import Policy, ask
 from .policies.builtin import NeverPolicy
 from .schema import Decision, Item, pair_key
 
@@ -13,14 +13,15 @@ from .schema import Decision, Item, pair_key
 def run_policy(policy: Policy, items: list[Item]) -> list:
     """Run a policy over the moments, timing each decision.
 
-    Policies see moments one at a time and never see labels. Latency is measured
+    Policies see moments one at a time and never see labels -- including the label
+    hidden in ``slices`` (see :func:`schema.policy_view`). Latency is measured
     here rather than trusted from the policy, so a system cannot claim to be
     faster than it is.
     """
     decisions = []
     for item in items:
         started = time.perf_counter()
-        d = policy.decide(item.moment)
+        d = ask(policy, item.moment)
         elapsed_ms = (time.perf_counter() - started) * 1000.0
         if d.latency_ms is None:
             d = d.model_copy(update={"latency_ms": elapsed_ms})
