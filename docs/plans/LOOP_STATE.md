@@ -13,10 +13,11 @@ findings** below.
 
 ## Current status
 
-- **Round:** 27 complete (`shipped`) — the comprehension sweep's spread, measured.
+- **Round:** 28 complete — §A audit of the pairs headline: `holds`; first loop
+  audit. R27 (#23): the comprehension sweep's spread, measured.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **350 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **351 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -29,7 +30,7 @@ findings** below.
   five-word topic policy beats silence by **+29.2** without reading the decider —
   so beating silence no longer certifies comprehension. **R24 added the pair-blind
   bar** (ICS 238 on dev vs silence 336): no LLM clears it, best −18.1.
-- **Headline (to R21):** silence (ICS 336) is unbeaten by any baseline; skyline (ICS 0)
+- **Headline (to R21, superseded — kept for history):** silence (ICS 336) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable. The surface-model exploit stays closed. **R16
   restored prose deciders** — *"Behind the screen is your prescription. Through the
   till is Elena's prescription."* — with every family at **50.0% on unigram and
@@ -279,11 +280,18 @@ F. **The comprehension sweep is one draw — DONE in R27.** Kept as a pointer.
    `comprehends`, report break-even as a range over ~20 draws, and check
    `TestMetricDiscrimination`'s 2% responsiveness floor holds on every draw — at
    4.8% on this one it has less margin than it did.
+G. **Prune the state file (new, R28 loop audit).** The numbered queue (items 1–11)
+   is mostly DONE-pointers and pre-R16 history; the Current status block carries a
+   superseded headline. Move done items to a collapsed *Done* section so the live
+   queue is the first thing a round reads. No content deleted.
 E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    contain no seed-drawn entity, so the reading is a property of the frames and sits
    above the 60% per-family bound on every seed. Reported, not gated, so nothing
    fails. Option: draw an entity into driving's deciders and re-measure. Low priority
-   next to C.
+   next to C. **Blast radius (R28):** a generator change regenerates `data/v1`, which
+   invalidates all 22 committed LLM runs in `results/` (their moment ids and text
+   change) — re-running them is ~10 CPU-hours locally. Batch it with any other
+   generator change, or version the dataset (`v2`) and keep `v1` results as they are.
 
 1. **Decide whether the probe should cross signal boundaries — DONE in R21.**
    Kept as a pointer: the join **stays**, because the probe takes the upper bound
@@ -1851,6 +1859,72 @@ numbers were right and the explanation of them was not.
 
 ---
 
+## Round 28 — §A audit: the pairs headline holds; first loop audit
+
+**Ending state:** §A audits name a verdict instead — **`holds`**.
+
+**Claim audited, verbatim (README):** *"No model reads the deciding signal. The best
+`pairs` score is 10.3%, below the ~25% a coin gets."* Chosen because it is the
+session's headline and its two supports were never measured on this data: the coin
+figure was arithmetic, and `results.pairs_both_right` had been tested only on
+constant policies and gold labels. **Falsifiers, stated first:** a fair coin
+averaging outside 20–30% over 1000 seeds; an independent count disagreeing with
+`tactbench results` on any run; any run within 2 sd of the coin.
+
+**Probe** (`experiments/pairs_audit.py`): reads `data/v1/dev.jsonl` and the result
+files directly, pairs by its own id parsing, does not import `tactbench.results`.
+**Result:** coin 25.1% (sd 3.9, range 13.5–36.5%); 22 of 22 runs agree with
+`tactbench results`; best run 10.3%, 3.8 sd below; no run at or above coin − 2 sd.
+
+**Review (subagent): request changes.** The first falsifier was *two-sided*
+(`|run − coin| < 2 sd`), so it flagged only runs near the coin: a run set to the gold
+labels scored 100% and the probe said `holds`. The gate could not detect the very
+thing the claim rules out. Now one-sided, and that mutation reads `fails`. Also: the
+"best run" came from the machinery under audit rather than the probe (now the
+probe's own count), and a table row with no result file went unchecked (now
+`fails`). An audit built to catch the #56 pattern exhibited it. Wired into
+the gate (`test_the_pairs_audit_holds`) and added to the standing invariants, per
+§A step 6. 350 → **351** tests.
+
+**A reading the headline invites and the data does not support:** "below a coin"
+is not "anti-correlated with the truth". A policy that gives both sides of a pair
+the same answer scores exactly 0 on that pair; the models do that most of the time,
+which is what puts them under the coin. The README already says this ("every model
+mostly gives both sides of a pair the same answer").
+
+**Loop audit (first recorded; due — five rounds since R22, Loop lines non-empty
+every round).** Read the Loop lines R22–R27 against LOOP.md's six questions:
+
+- *Disproportionate effort:* two subagent reviews per round — but each changed the
+  outcome; every round R23–R27 shipped a fix a review found. Not waste.
+- *Skipped step:* §5 step 3 (re-run earlier measurements a change could move) in
+  R26 — three published figures moved and were found by two reviews one at a time.
+  Skipping was *tempting* because the change looked non-numeric. The rule exists and
+  fires in time; this was execution, not protocol.
+- *Unread state-file sections:* the numbered queue is mostly DONE-pointers, and a
+  "Headline (to R21)" status bullet sat stale for seven rounds (now marked
+  superseded). Pruning is queue item G.
+- *Ending states:* R27 was first labelled `refuted` — "the measurement killed the
+  plan" does not cleanly cover a measuring round whose *result* overturned a
+  published claim. R22 is a second round whose ending state needed qualifying
+  ("`shipped` as written — but its review requested changes"). Two instances, both
+  low-cost; recorded as a candidate below, not filed.
+- *Stop conditions:* §D's independent reviewer was not satisfied by any merge this
+  session (owner override, recorded on each PR). No stop condition fired late.
+- *Ambiguity:* the `refuted` reading above; R23's branch-name conflict. Neither has
+  a second instance.
+
+- *Recurring pattern the first draft of this audit omitted:* #56's "a check named for
+  a class tests an instance" recurred in R26 ("one path" claimed, not checked) and
+  **in this round's own audit probe** (two-sided falsifier). Added to #56 as
+  evidence.
+
+**Loop:** execution failures, one ambiguity with two instances, and a recurrence of
+an already-filed pattern — including inside the audit meant to look for it. No new
+proposal filed; #56 updated.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -1869,6 +1943,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). |
+| No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
@@ -1959,6 +2034,12 @@ dataset or the policy is wrong, not the assertion.
   replaced it with a property of the optimizer that could not fail on any data**,
   and called that "stronger-in-meaning"; review caught it. Best single word today:
   308 on dev (bar 238), 132 on test (bar 102). A planted one-word leak is caught.
+- **A fair coin gets ~25% of pairs both right, and every LLM run is more than 2 sd
+  below it** — `experiments/pairs_audit.py`, independent of `results.py`, wired in
+  as `test_the_pairs_audit_holds` (R28 §A). Coin: 25.1%, sd 3.9 over 1000 seeds;
+  best run 10.3%, 3.8 sd below. One-sided: any run at or above coin − 2 sd (17.2%)
+  fails the build until the README's headline is revisited — verified by setting a
+  run to the gold labels (100%) in a scratch copy: `fails`.
 - **No policy is handed the label** — every path to `Policy.decide` goes through
   `policies.base.ask` → `schema.policy_view`: no `slices`, an opaque `id` (R26). A
   pair's two views may differ only in the decider text and the opaque id —
