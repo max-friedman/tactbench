@@ -7,6 +7,7 @@ assistant should have done, and how much it would have been worth.
 
 from __future__ import annotations
 
+import hashlib
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
@@ -106,18 +107,33 @@ def pair_key(moment_id: str) -> str:
     return f"{parts[0]}-{parts[-1]}" if len(parts) >= 3 else moment_id
 
 
+def opaque_id(moment_id: str) -> str:
+    """A stand-in id that carries no label. Stored ids read ``travel-pos-0003`` /
+    ``travel-near-0003``, so the side -- the label -- is in the id itself.
+
+    Deterministic, so a policy that hashes its id (``PartialSkylinePolicy``) stays
+    reproducible. Not a secret: anyone can recompute it, and dev and test labels are
+    published in ``data/`` anyway. It removes the label from what a policy is
+    *handed*; it does not stop a policy built to cheat.
+    """
+    return "m-" + hashlib.sha256(moment_id.encode()).hexdigest()[:16]
+
+
 def policy_view(moment: Moment) -> Moment:
-    """The moment as a policy is allowed to see it: ``slices`` removed.
+    """The moment as a policy is allowed to see it: ``slices`` emptied and ``id``
+    replaced by :func:`opaque_id`.
 
     Slice tags (``near_miss``, ``time_critical``, ``frame:N``...) are provenance for
     stratified reporting, and they encode the label: "no ``near_miss`` tag means
     speak" was right on 100% of dev and held-out, and a three-line policy reading
     it scored ICS 0.0 -- tying the skyline. Review of Round 24 found it; Round 26
-    closed it. Every path that hands a moment to ``Policy.decide`` goes through
-    here. ``family`` stays: both sides of a pair share it, so it carries no label,
+    closed it -- and its review found the id leaked the label too (``-pos-`` /
+    ``-near-``; a one-line policy reading it also scored ICS 0.0). Every path that
+    hands a moment to ``Policy.decide`` goes through ``policies.base.ask``, which
+    goes through here. ``family`` stays: both sides of a pair share it, so it carries no label,
     and the skyline ceiling needs it.
     """
-    return moment.model_copy(update={"slices": []})
+    return moment.model_copy(update={"slices": [], "id": opaque_id(moment.id)})
 
 
 def frame_of(moment: Moment) -> int:

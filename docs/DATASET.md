@@ -11,11 +11,14 @@ A **moment** is everything a policy is allowed to see:
   `location`, `app_event`, `notification`, `sensor`. Each carries `age_s` (how
   stale it is) and optional `meta` (sender, contact class, priority).
 - **user_state** — `activity`, `dnd`, `device`, `last_interaction_s`, `local_hour`.
-- **family** and **slices** — for stratified reporting. **`slices` is removed before
-  any policy sees a moment** (`schema.policy_view`): the tags encode the label —
-  "no `near_miss` tag means speak" is right on 100% of items — and until Round 26 a
-  policy reading them scored ICS 0.0. `family` is passed through: both sides of a
-  pair share it, so it carries no label. The LLM prompt omits both.
+- **family** and **slices** — for stratified reporting. **`slices` is removed, and
+  `id` replaced by an opaque hash, before any policy sees a moment**
+  (`schema.policy_view`, via `policies.base.ask`). Both encoded the label — "no
+  `near_miss` tag means speak", and `-pos-` / `-near-` in the id, are each right on
+  100% of items — and until Round 26 a policy reading either scored ICS 0.0. `family`
+  is passed through: both sides of a pair share it, so it carries no label. A test
+  asserts that a pair's two views differ only in the decider text and the opaque id.
+  The LLM prompt omits `id`, `family` and `slices`.
 
 A **gold label** carries `should_surface`, a `value` in 0–3, `acceptable_intents`,
 an optional `window_s`, a human-readable `rationale`, and `raters` / `agreement`

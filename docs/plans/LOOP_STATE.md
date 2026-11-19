@@ -13,9 +13,10 @@ findings** below.
 
 ## Current status
 
-- **Round:** 26 complete (`shipped`) — policies no longer see `slices`. R22+R25
+- **Round:** 26 complete (`shipped`) — policies no longer see `slices` or a
+  label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **335 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **343 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -263,10 +264,19 @@ C. **Policies are handed the answer in `moment.slices` — DONE in R26.** Kept a
    moment with provenance fields stripped; `skyline` reads `family` and must be
    handled explicitly (it is a ceiling, not a submission). Before-number: 100%.
    (Was next round's item; done.)
-D. **Pairs differ only in the decider, as a policy sees them (new, R26).** Assert,
+D. **Pairs differ only in the decider, as a policy sees them — DONE in R26**, pulled
+   in by its review. Kept as a pointer. **Original entry:** Assert,
    over every pair, that the two sides' `policy_view` dumps differ in exactly the
    decider signal's content and nothing else. R26 closed `slices` by hand; this
    closes the class, including fields added later. Small; do next.
+F. **The comprehension sweep is one draw (new, R26).** `PartialSkylinePolicy` picks
+   which moments it comprehends by hashing the id. R26 changed only the id a policy
+   sees, and break-even moved 0.29 → 0.23, `p = 0.4` from +10.1 to +38.7, the
+   smallest step from 13.4% to 4.8% of the range. The figures are now gated and
+   labelled "one draw", but the spread is unmeasured. Add a draw seed to
+   `comprehends`, report break-even as a range over ~20 draws, and check
+   `TestMetricDiscrimination`'s 2% responsiveness floor holds on every draw — at
+   4.8% on this one it has less margin than it did.
 E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    contain no seed-drawn entity, so the reading is a property of the frames and sits
    above the 60% per-family bound on every seed. Reported, not gated, so nothing
@@ -1741,6 +1751,28 @@ Built-in leaderboard and LLM table unchanged — no policy read slices, and the 
 prompt already omitted them. README limitation removed; *Scoring your own system*
 says what `decide` receives; DATASET.md corrected. 330 → **335** tests.
 
+**Review (subagent): request changes, and it was right.** The round closed `slices`
+and declared the leak closed while `moment.id` — `travel-pos-0003` /
+`travel-near-0003` — still handed every policy the label: a one-line policy scored
+ICS 0.0 on both splits. The project already knew (`test_llm.py` says "Ids encode the
+label outright"; the LLM prompt omits the id for that reason), and the round's
+author spotted it while writing the review brief, *after* opening the PR. The
+reviewer's field-by-field diff found exactly two differing fields per pair: `id` and
+the decider. Fixed in-round, not deferred: `policies.base.ask` is the single path
+(runner, `llm`, and `Policy.run`, which had passed raw moments); the view carries
+`opaque_id`; decisions map back to the stored id; queue item D's pair-diff test
+landed here and failed on `id` before the fix. Deterministic hash, stated plainly as
+not a defence against a deliberate cheat — labels are published in `data/`.
+
+**Two published figures moved, both because they hash the id.** The R9 keyword
+policy coin-flips on it: −89.3 → **−78.0** (still far below silence; the README
+claim holds). The comprehension sweep picks its comprehending set by it:
+break-even **0.29 → 0.23**, `p = 0.4` +10.1 → +38.7. That table was ungated (R19
+queue item 4), so it would have gone stale silently; it is now gated in README and
+METRICS.md and labelled one draw. METRICS.md's "0.556 precision at p = 0.2" was
+already stale before R26 (0.593). The spread across draws is queue item F.
+330 → **343** tests.
+
 **Loop:** the leak was found by a reviewer checking a *different* claim — that the
 pair-blind bar is only as good as the pairing — by diffing every field of every
 pair. Nobody had asked what else differs between a pair's sides; the invariant
@@ -1859,9 +1891,11 @@ dataset or the policy is wrong, not the assertion.
   replaced it with a property of the optimizer that could not fail on any data**,
   and called that "stronger-in-meaning"; review caught it. Best single word today:
   308 on dev (bar 238), 132 on test (bar 102). A planted one-word leak is caught.
-- **No policy sees `moment.slices`** — every path to `Policy.decide` goes through
-  `schema.policy_view` (R26). The tags encode the label; before R26 a policy reading
-  them scored ICS 0.0 on both splits. A new path to `decide` must use it.
+- **No policy is handed the label** — every path to `Policy.decide` goes through
+  `policies.base.ask` → `schema.policy_view`: no `slices`, an opaque `id` (R26). A
+  pair's two views may differ only in the decider text and the opaque id —
+  asserted field by field over every pair, so a field added later is covered.
+  Before R26 a one-line policy reading `slices`, or the `id`, scored ICS 0.0.
 - The pair-blind bar never pays with a hard violation, is never worse than silence,
   equals silence at `base_rate=100`, and skyline clears it (task stays solvable).
   `test_no_pair_blind_policy_beats_the_bar` guards the optimizer itself. R24.

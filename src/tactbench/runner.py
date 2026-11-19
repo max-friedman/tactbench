@@ -5,9 +5,9 @@ from __future__ import annotations
 import time
 
 from .metrics import Scorecard, score
-from .policies.base import Policy
+from .policies.base import Policy, ask
 from .policies.builtin import NeverPolicy
-from .schema import Decision, Item, pair_key, policy_view
+from .schema import Decision, Item, pair_key
 
 
 def run_policy(policy: Policy, items: list[Item]) -> list:
@@ -21,7 +21,7 @@ def run_policy(policy: Policy, items: list[Item]) -> list:
     decisions = []
     for item in items:
         started = time.perf_counter()
-        d = policy.decide(policy_view(item.moment))
+        d = ask(policy, item.moment)
         elapsed_ms = (time.perf_counter() - started) * 1000.0
         if d.latency_ms is None:
             d = d.model_copy(update={"latency_ms": elapsed_ms})

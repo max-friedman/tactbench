@@ -1791,3 +1791,64 @@ class TestReadmeResultsAreCurrent:
             "README.md prose quotes figures `tactbench eval` no longer produces:\n  "
             + "\n  ".join(stale)
         )
+
+
+class TestSweepFiguresAreCurrent:
+    """The comprehension-sweep table in the README and the break-even figure in
+    README and METRICS.md. Ungated until Round 26 (R19 queue item 4), when changing
+    only the id a policy sees moved break-even from 0.29 to 0.23 and every row --
+    and METRICS.md's "0.556" had already been stale before that."""
+
+    ROOT = Path(__file__).resolve().parents[1]
+    POINTS = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]
+
+    @classmethod
+    def _sweep(cls):
+        if not hasattr(cls, "_cache"):
+            items = load("v1", "dev")
+            ref = silence_ics(items)
+            cls._cache = (
+                ref,
+                {p: evaluate(PartialSkylinePolicy(p), items, reference=ref) for p in cls.POINTS},
+            )
+        return cls._cache
+
+    def test_readme_sweep_rows(self):
+        _, cards = self._sweep()
+        rows = re.findall(
+            r"(?m)^\| \*{0,2}([\d.]+)\*{0,2} \| \*{0,2}([\d.]+)\*{0,2} "
+            r"\| \*{0,2}([+−-]?[\d.]+)\*{0,2} \| ([\d.]+) \|$",
+            (self.ROOT / "README.md").read_text(),
+        )
+        assert len(rows) == 6, rows
+        for p, ics, vs, prec in rows:
+            c = cards[float(p)]
+            assert float(ics) == c.ics, p
+            assert float(vs.replace("−", "-")) == round(c.ics_normalized, 1), p
+            assert float(prec) == round(c.precision_at_interrupt, 3), p
+
+    def test_break_even_figure(self):
+        ref, cards = self._sweep()
+        pts = [(p, cards[p].ics) for p in self.POINTS]
+        crossover = next(
+            pa + (ca - ref) / (ca - cb) * (pb - pa)
+            for (pa, ca), (pb, cb) in zip(pts, pts[1:], strict=False)
+            if ca > ref >= cb
+        )
+        for path, pattern in (
+            ("README.md", r"needs about p = ([\d.]+) comprehension"),
+            ("docs/METRICS.md", r"needs about \*\*p = ([\d.]+)\s+comprehension"),
+        ):
+            found = re.findall(pattern, (self.ROOT / path).read_text())
+            assert len(found) == 1, (path, found)
+            assert float(found[0]) == round(crossover, 2), path
+
+    def test_p_02_precision_quoted_in_prose(self):
+        _, cards = self._sweep()
+        want = f"{cards[0.2].precision_at_interrupt:.3f}"
+        for path, pattern in (
+            ("README.md", r"`p = 0\.2` still loses while reaching ([\d.]+) precision"),
+            ("docs/METRICS.md", r"`p = 0\.2` reaches ([\d.]+) precision"),
+        ):
+            found = re.findall(pattern, (self.ROOT / path).read_text())
+            assert found == [want], (path, found)

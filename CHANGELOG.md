@@ -7,12 +7,17 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ### Fixed (Round 26)
 
-- **Policies were handed the label in `moment.slices`.** The two sides of every pair
-  differ in their reporting tags, and a three-line policy speaking whenever
-  `near_miss` was absent scored ICS 0.0 on dev and held-out — tying the skyline.
-  `schema.policy_view` now empties `slices` on every path to `Policy.decide`
-  (`runner.run_policy`, the `llm` command). No published figure changes: the
-  built-in policies never read slices, and the LLM prompt already omitted them.
+- **Policies were handed the label, twice.** The two sides of every pair differ in
+  their `slices` tags and in their `id` (`travel-pos-0003` / `travel-near-0003`); a
+  one-line policy reading either scored ICS 0.0 on dev and held-out — tying the
+  skyline. `policies.base.ask` is now the one path to `Policy.decide` (runner, `llm`
+  command, `Policy.run`): the policy sees `schema.policy_view` — no `slices`, an
+  opaque `id` — and its decision is mapped back to the stored id. A test asserts a
+  pair's two views differ only in the decider text and the opaque id. Leaderboard and
+  LLM table unchanged. Two figures moved because they hash the id: the Round 9
+  keyword policy (−89.3 → −78.0 vs silence) and the comprehension sweep, whose
+  break-even moved 0.29 → 0.23 — so that figure is one draw, now gated and labelled
+  as such.
 
 ### Fixed (Rounds 22 and 25)
 

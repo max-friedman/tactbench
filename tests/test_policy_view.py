@@ -10,10 +10,12 @@ but ``runner.run_policy`` and the ``llm`` command passed the full ``Moment`` to
 
 from __future__ import annotations
 
+from collections import defaultdict
+
 from tactbench.dataset.loader import load
-from tactbench.policies.base import Policy
+from tactbench.policies.base import Policy, ask
 from tactbench.runner import evaluate, run_policy
-from tactbench.schema import Decision, policy_view
+from tactbench.schema import Decision, pair_key, policy_view
 
 
 class _SlicesSnoop(Policy):
@@ -46,11 +48,15 @@ def test_a_slices_reading_policy_no_longer_solves_the_split():
 
 
 def test_the_view_keeps_everything_a_policy_may_read():
-    item = load("v1", "dev")[0]
-    view = policy_view(item.moment)
-    assert view.slices == []
-    assert view.model_dump(exclude={"slices"}) == item.moment.model_dump(exclude={"slices"})
-    assert item.moment.slices, "the stored moment itself must be left intact"
+    """Only ``slices`` and ``id`` change -- and ``id`` changes on purpose (R26
+    review): it encoded the label as ``-pos-`` / ``-near-``."""
+    for item in load("v1", "dev"):
+        view = policy_view(item.moment)
+        assert view.slices == []
+        assert view.id != item.moment.id
+        keep = {"slices", "id"}
+        assert view.model_dump(exclude=keep) == item.moment.model_dump(exclude=keep)
+        assert item.moment.slices, "the stored moment itself must be left intact"
 
 
 def test_reporting_still_slices_on_the_stored_moment():
@@ -79,3 +85,71 @@ def test_the_llm_command_hands_policies_no_slices(tmp_path, monkeypatch):
     result = CliRunner().invoke(app, args)
     assert result.exit_code == 0, result.output
     assert len(seen) == 5 and all(m.slices == [] for m in seen)
+
+
+class _IdSnoop(Policy):
+    """Reads the label out of the id. Found by the review of R26: ICS 0.0."""
+
+    name = "id-snoop"
+
+    def decide(self, moment):
+        return Decision(moment_id=moment.id, surface="-pos-" in moment.id)
+
+
+def test_an_id_reading_policy_no_longer_solves_the_split():
+    for split in ("dev", "test"):
+        card = evaluate(_IdSnoop(), load("v1", split))
+        assert card.surfaced == 0  # the opaque id never contains "-pos-"
+
+
+def test_decisions_come_back_under_the_real_id():
+    """The policy answers under the opaque id; scoring needs the stored one."""
+    items = load("v1", "dev")
+    decisions = run_policy(_SlicesSnoop(), items)
+    assert [d.moment_id for d in decisions] == [i.moment.id for i in items]
+
+
+def test_a_pairs_two_views_differ_only_in_the_decider_and_the_opaque_id():
+    """Queue item D. The two sides of a pair, as a policy sees them, may differ in
+    the decider signal's text and in nothing that carries the label. Written field
+    by field over the whole dump, so a field added later is covered too. Before
+    R26 this failed twice: on ``slices`` and on ``id``."""
+
+    def flat(obj, prefix=""):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                yield from flat(v, f"{prefix}.{k}" if prefix else k)
+        elif isinstance(obj, list):
+            for idx, v in enumerate(obj):
+                yield from flat(v, f"{prefix}[{idx}]")
+        else:
+            yield prefix, obj
+
+    for split in ("dev", "test"):
+        pairs = defaultdict(list)
+        for item in load("v1", split):
+            pairs[pair_key(item.moment.id)].append(item)
+        for key, (a, b) in pairs.items():
+            va, vb = (dict(flat(policy_view(i.moment).model_dump())) for i in (a, b))
+            assert va.keys() == vb.keys(), key
+            differ = {f for f in va if va[f] != vb[f]}
+            last = len(a.moment.signals) - 1
+            assert differ <= {"id", f"signals[{last}].content"}, (key, differ)
+            for view in (va, vb):
+                assert "pos" not in view["id"] and "near" not in view["id"], view["id"]
+
+
+def test_policy_run_goes_through_the_view():
+    """The third path to ``decide``. Review of R26: it passed raw moments."""
+    items = load("v1", "dev")[:5]
+    snoop = _SlicesSnoop()
+    out = snoop.run([i.moment for i in items])
+    assert all(m.slices == [] for m in snoop.seen)
+    assert [d.moment_id for d in out] == [i.moment.id for i in items]
+
+
+def test_ask_is_the_one_path():
+    item = load("v1", "dev")[0]
+    snoop = _SlicesSnoop()
+    d = ask(snoop, item.moment)
+    assert d.moment_id == item.moment.id and snoop.seen[0].slices == []
