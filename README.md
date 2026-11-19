@@ -464,7 +464,9 @@ emits only a number is hard to trust and harder to improve.
 
 Implement one method. Policies see moments one at a time and never see labels —
 proactive assistance is an online decision, so batching would leak information a
-real system wouldn't have.
+real system wouldn't have. The moment your `decide` receives has `slices` emptied:
+those reporting tags encode the label, and until Round 26 a three-line policy
+reading them tied the skyline.
 
 ```python
 from tactbench.policies.base import Policy
@@ -532,13 +534,6 @@ otherwise would defeat the purpose of building a benchmark:
   rather than something a policy could implement. It is only as meaningful as the
   pairing: a pair whose sides differ in anything but the decider lets a policy beat
   it without comprehension.
-- **A policy is handed the answer in `moment.slices`.** The two sides of every pair
-  also differ in their slice tags, and "no `near_miss` tag means speak" is right on
-  100% of dev and held-out. The LLM prompt withholds `slices` and `family` (tests
-  enforce it), so no published LLM figure is affected. The built-in policies do not
-  read slices. But nothing stops a submitted `Policy` from reading them. Found in
-  review of Round 24; the fix — stripping provenance fields before a policy sees
-  the moment — is queued.
 - **The LLM results are one sample at temperature 0, on dev.** No variance across
   seeds or prompts is reported, and no model has been run on the held-out split.
 

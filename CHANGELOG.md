@@ -5,6 +5,15 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Fixed (Round 26)
+
+- **Policies were handed the label in `moment.slices`.** The two sides of every pair
+  differ in their reporting tags, and a three-line policy speaking whenever
+  `near_miss` was absent scored ICS 0.0 on dev and held-out — tying the skyline.
+  `schema.policy_view` now empties `slices` on every path to `Policy.decide`
+  (`runner.run_policy`, the `llm` command). No published figure changes: the
+  built-in policies never read slices, and the LLM prompt already omitted them.
+
 ### Fixed (Rounds 22 and 25)
 
 - **The positional figure's seed spread is published per family, and gated.** Round

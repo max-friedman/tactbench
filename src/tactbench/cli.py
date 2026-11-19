@@ -14,7 +14,7 @@ from .dataset.loader import load, split_path, write_jsonl
 from .metrics import Scorecard, score
 from .policies.builtin import registry
 from .runner import evaluate, normalized, pair_blind_ics, silence_ics
-from .schema import Decision, frame_of
+from .schema import Decision, frame_of, policy_view
 
 app = typer.Typer(
     add_completion=False,
@@ -250,7 +250,7 @@ def llm_cmd(
         with cache_path.open("a") as f, console.status("querying...") as status:
             for n, item in enumerate(todo, 1):
                 try:
-                    d = policy.decide(item.moment)
+                    d = policy.decide(policy_view(item.moment))
                 except MissingCredential as e:
                     console.print(f"[red]{e}[/red]")
                     raise typer.Exit(1) from e

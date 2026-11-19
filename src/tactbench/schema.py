@@ -69,7 +69,8 @@ class UserState(BaseModel):
 
 
 class Moment(BaseModel):
-    """A single benchmark item: everything a policy is allowed to see."""
+    """A single benchmark item. A policy sees it through :func:`policy_view`, which
+    empties ``slices`` -- those tags are for reporting and encode the label."""
 
     id: str
     signals: list[Signal]
@@ -103,6 +104,20 @@ def pair_key(moment_id: str) -> str:
     """
     parts = moment_id.split("-")
     return f"{parts[0]}-{parts[-1]}" if len(parts) >= 3 else moment_id
+
+
+def policy_view(moment: Moment) -> Moment:
+    """The moment as a policy is allowed to see it: ``slices`` removed.
+
+    Slice tags (``near_miss``, ``time_critical``, ``frame:N``...) are provenance for
+    stratified reporting, and they encode the label: "no ``near_miss`` tag means
+    speak" was right on 100% of dev and held-out, and a three-line policy reading
+    it scored ICS 0.0 -- tying the skyline. Review of Round 24 found it; Round 26
+    closed it. Every path that hands a moment to ``Policy.decide`` goes through
+    here. ``family`` stays: both sides of a pair share it, so it carries no label,
+    and the skyline ceiling needs it.
+    """
+    return moment.model_copy(update={"slices": []})
 
 
 def frame_of(moment: Moment) -> int:
