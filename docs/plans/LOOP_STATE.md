@@ -13,10 +13,10 @@ findings** below.
 
 ## Current status
 
-- **Round:** 26 complete (`shipped`) — policies no longer see `slices` or a
-  label-bearing `id`. R22+R25
+- **Round:** 27 complete (`shipped`) — the comprehension sweep's spread, measured.
+  R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **346 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **350 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -191,6 +191,7 @@ whenever costs, the generator, or a policy change.
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
 | `policies/llm.py` | **R23** | strict parser (unparsed counted, never silently silence); `--provider local`; `--no-system-role`. Executed on 11 open-weight models |
 | `schema.policy_view` | **R26** (new) | every path to `Policy.decide` empties `slices`; `tests/test_policy_view.py` spies on both paths, each mutation-tested |
+| `policies/skyline.py` `PartialSkylinePolicy` | **R27** | `draw` selects which moments are comprehended (draw 0 = bare id, pinned), `seed` the coin flips; 20-draw properties and quoted ranges in `TestMetricDiscriminationOnEveryDraw` |
 | `runner.pair_blind_ics` | **R24** (new) | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested. Not yet in `web/server.py` |
 | `results/` + `results.py` | **R23** (new) | committed decisions + MANIFEST (sha256, runtime); README LLM table, and five conclusions drawn from it, gated against a re-score in `test_results.py` |
 | `experiments/run_local_llms.py` | **R23** (new) | reproduces every LLM row from weights; one model per invocation fits the 2h background cap |
@@ -269,7 +270,8 @@ D. **Pairs differ only in the decider, as a policy sees them — DONE in R26**, 
    over every pair, that the two sides' `policy_view` dumps differ in exactly the
    decider signal's content and nothing else. R26 closed `slices` by hand; this
    closes the class, including fields added later. Small; do next.
-F. **The comprehension sweep is one draw (new, R26).** `PartialSkylinePolicy` picks
+F. **The comprehension sweep is one draw — DONE in R27.** Kept as a pointer.
+   **Original entry:** `PartialSkylinePolicy` picks
    which moments it comprehends by hashing the id. R26 changed only the id a policy
    sees, and break-even moved 0.29 → 0.23, `p = 0.4` from +10.1 to +38.7, the
    smallest step from 13.4% to 4.8% of the range. The figures are now gated and
@@ -1798,6 +1800,57 @@ and nothing else.
 
 ---
 
+## Round 27 — "how much comprehension is enough" has no single answer
+
+**Ending state: `shipped`.** Queue item F: measure the spread of the comprehension
+sweep. The plan stood; what it measured overturned a published figure. The README
+had said a system needs *"about p = 0.23 to beat silence"* (0.29 before R26,
+"roughly a third" before that), from one draw.
+
+**What would have proved the round wrong, stated first:** a spread under a few
+hundredths (the R26 "one draw" caveat overcautious), or any draw breaking the
+metric's own properties.
+
+**Finding.** The sweep rests on two random choices, now separate knobs on
+`PartialSkylinePolicy`: `draw` (which moments a given `p` comprehends) and `seed`
+(coin flips on the rest). Break-even — smallest `p` on a 0.01 grid beating silence,
+by bisection — over 20 values each:
+
+| varied | range | median |
+|---|---|---|
+| which moments are comprehended | 0.22 – 0.43 | 0.325 |
+| coin flips on the rest | 0.13 – 0.38 | 0.235 |
+| both | 0.10 – 0.53 | 0.295 |
+
+Each alone moves break-even two- to threefold; neither dominates. With both varied,
+`p = 0.4` runs −14.0 to +38.7 vs silence and **the published draw is the most
+favourable of the 20 at that row**. The metric's own properties hold on every draw
+of every source — monotone, anchored, smallest step 2.5% of the range at worst,
+which is close to the 2% floor `TestMetricDiscrimination` enforces.
+
+**Shipped.** `PartialSkylinePolicy(draw=)`; draw 0 hashes the bare id, pinned by a
+test against the hash itself. `experiments/sweep_draws.py`.
+`TestMetricDiscriminationOnEveryDraw`: properties per draw for all three sources,
+and the README/METRICS tables recomputed exactly. README and METRICS.md report the
+decomposition. 346 → **350** tests.
+
+**Review (subagent): request changes, and it caught the round's central claim
+being wrong.** The first version reused `seed`, which already drove the coin flips,
+so every "draw" redrew both sources — and the writeup attributed the whole spread to
+*which* moments are comprehended ("which dominates how many", "the framing was the
+error"). The reviewer separated them by hand: guess noise alone is as large. Also:
+interpolated break-evens on a 7-point grid (now exact on 0.01); a median taken as
+the upper middle value (now `statistics.median`); a draw-0 test that compared a
+default with itself and could not fail (now pinned to the hash; mutation → red);
+and this entry naming `refuted` against a status line saying `shipped`.
+
+**Loop:** an experiment that varies one knob must check the knob moves only one
+thing. The confound was a pre-existing parameter reused for a new purpose, and the
+author's own §5 checks could not see it because every number reproduced — the
+numbers were right and the explanation of them was not.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -1815,7 +1868,8 @@ already covered or out of scope, and filing them would have wasted triage.
 | A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **folded into [#39](https://github.com/max-friedman/agentic-coding-loop/issues/39)** as the counter-argument section, since a naive fix to the first finding licenses exactly this error. Not filed separately. |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
-| A check named for a class tests an instance | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **candidate, not yet filed** — four instances now; strongest candidate on this list. Check `LOOP.md` §D's "nothing weakened" first; this is a different failure (never strong, not weakened). |
+| A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). |
+| An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
 | Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |

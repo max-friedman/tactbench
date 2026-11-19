@@ -1883,3 +1883,99 @@ def test_metrics_doc_implied_comprehension_table_is_current():
     assert len(measured) == 3 and quoted == measured, (quoted, measured)
     span = re.findall(r"implied p varies by ([\d.]+)", out)
     assert re.findall(r"implied fractions\s+spanning \*\*([\d.]+)\*\*", doc) == span
+
+
+class TestMetricDiscriminationOnEveryDraw:
+    """Round 27. ``TestMetricDiscrimination`` checks one draw of a small generated
+    set. The sweep depends on two random choices, kept separate since R27's review:
+    ``draw`` (which moments a given ``p`` comprehends) and ``seed`` (the coin flips on
+    the rest). The properties are asserted for every one of 20 values of each, alone
+    and together, on the shipped dev split; and the ranges the README and METRICS.md
+    quote are recomputed exactly -- break-even is the smallest ``p`` on a 0.01 grid
+    that beats silence, found by bisection, and medians use ``statistics.median``."""
+
+    GRID = (0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0)
+    DRAWS = range(20)
+    CONFIGS = {
+        "set": lambda k: {"draw": k, "seed": 0},
+        "guess": lambda k: {"draw": 0, "seed": k},
+        "both": lambda k: {"draw": k, "seed": k},
+    }
+    ROOT = Path(__file__).resolve().parents[1]
+
+    @classmethod
+    def _data(cls):
+        if not hasattr(cls, "_cache"):
+            items = load("v1", "dev")
+            ref = silence_ics(items)
+
+            def ics(p, kw):
+                return evaluate(PartialSkylinePolicy(p, **kw), items, reference=ref).ics
+
+            def break_even(kw):
+                lo, hi = 0, 100
+                while lo < hi:
+                    mid = (lo + hi) // 2
+                    lo, hi = (lo, mid) if ics(mid / 100, kw) < ref else (mid + 1, hi)
+                return lo / 100
+
+            out = {}
+            for name, make in cls.CONFIGS.items():
+                out[name] = {
+                    k: ([ics(p, make(k)) for p in cls.GRID], break_even(make(k))) for k in cls.DRAWS
+                }
+            cls._cache = (ref, out, items)
+        return cls._cache
+
+    def test_monotone_anchored_and_responsive_on_every_draw(self):
+        ref, out, _ = self._data()
+        for name, draws in out.items():
+            for k, (costs, _) in draws.items():
+                assert all(a >= b for a, b in zip(costs, costs[1:], strict=False)), (name, k)
+                assert costs[-1] == 0.0 and costs[0] > ref, (name, k)
+                steps = [a - b for a, b in zip(costs, costs[1:], strict=False)]
+                assert min(steps) > 0.02 * (costs[0] - costs[-1]), (name, k, steps)
+
+    def test_nesting_holds_within_a_nonzero_draw(self):
+        ids = [i.moment.id for i in load("v1", "dev")]
+        low, high = PartialSkylinePolicy(0.3, draw=7), PartialSkylinePolicy(0.7, draw=7)
+        assert all(high.comprehends(m) for m in ids if low.comprehends(m))
+
+    def test_draw_zero_hashes_the_bare_id(self):
+        """Pins the published sweep. R27's review: the first version of this test
+        compared ``seed=0`` with the default ``seed=0`` and could not fail."""
+        policy = PartialSkylinePolicy(0.4)
+        for item in load("v1", "dev"):
+            mid = item.moment.id
+            expected = hashlib.sha256(mid.encode()).digest()[2] / 256.0 < 0.4
+            assert policy.comprehends(mid) == expected
+
+    def test_quoted_ranges(self):
+        import statistics
+
+        ref, out, items = self._data()
+        readme = (self.ROOT / "README.md").read_text()
+        metrics = (self.ROOT / "docs" / "METRICS.md").read_text()
+        for name, label in (("set", "which moments"), ("guess", "coin flips"), ("both", "both")):
+            xs = [x for _, x in out[name].values()]
+            # Ranges sit on the 0.01 grid; a median of 20 is a midpoint, so 3 places.
+            want = (f"{min(xs):.2f}", f"{max(xs):.2f}", f"{statistics.median(xs):.3f}")
+            pattern = rf"\| {label}[^|]*\| ([\d.]+) – ([\d.]+) \| ([\d.]+) \|"
+            for doc, text in (("README", readme), ("METRICS", metrics)):
+                assert re.findall(pattern, text) == [want], (doc, name, want)
+        v4 = [
+            evaluate(PartialSkylinePolicy(0.4, draw=k, seed=k), items, reference=ref).ics_normalized
+            for k in self.DRAWS
+        ]
+        v_pat = r"`p = 0\.4` runs\s+from\s+−([\d.]+) to \+([\d.]+) against"
+        v_lo, v_hi = re.findall(v_pat, readme)[0]
+        assert (-float(v_lo), float(v_hi)) == (round(min(v4), 1), round(max(v4), 1))
+        assert v4[0] == max(v4), "README says the published draw is the most favourable at p=0.4"
+        steps = []
+        for draws in out.values():
+            for costs, _ in draws.values():
+                span = costs[0] - costs[-1]
+                steps.append(min(a - b for a, b in zip(costs, costs[1:], strict=False)) / span)
+        (worst,) = re.findall(r"no step smaller than ([\d.]+)% of the range", readme)
+        assert float(worst) == round(100 * min(steps), 1)
+        assert re.findall(r"smallest step\s+([\d.]+)% of the range at\s+worst", metrics) == [worst]

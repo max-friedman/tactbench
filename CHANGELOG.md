@@ -5,6 +5,17 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Changed (Round 27)
+
+- **"How much comprehension beats silence" is a range, not a number.** Two random
+  choices feed the sweep, now separate knobs on `PartialSkylinePolicy`: `draw`
+  (which moments are comprehended; draw 0 is unchanged) and `seed` (coin flips on
+  the rest). Over 20 values of each, break-even runs 0.22–0.43 from the set alone,
+  0.13–0.38 from the coin flips alone, and 0.10–0.53 from both; the published draw
+  is the most favourable of 20 at `p = 0.4`. The metric's properties — monotone,
+  anchored, every step above 2% of the range — hold on every draw and are asserted
+  per draw. `experiments/sweep_draws.py` prints the table.
+
 ### Fixed (Round 26)
 
 - **Policies were handed the label, twice.** The two sides of every pair differ in
