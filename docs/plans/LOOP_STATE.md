@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 28 complete — §A audit of the pairs headline: `holds`; first loop
-  audit. R27 (#23): the comprehension sweep's spread, measured.
+- **Round:** 29 complete (`shipped`) — state file pruned: live queue first, done
+  items collapsed. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
 - **Gate:** green — **351 passed**, `ruff check` **and** `ruff format --check` both
@@ -227,8 +227,58 @@ halt the loop.**
 
 ## Queue — next rounds
 
-**Ranked ahead of the numbered list (R23).** Lettered so the numbered references
-elsewhere in this file stay valid.
+**Live items first, in rank order (R29).** Labels are kept from when each item was
+filed — letters for R23 onward, numbers before — because other entries refer to them
+by label. Finished items are collapsed below; nothing was deleted.
+
+E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
+   contain no seed-drawn entity, so the reading is a property of the frames and sits
+   above the 60% per-family bound on every seed. Reported, not gated, so nothing
+   fails. Option: draw an entity into driving's deciders and re-measure. Low priority
+   next to C. **Blast radius (R28):** a generator change regenerates `data/v1`, which
+   invalidates all 22 committed LLM runs in `results/` (their moment ids and text
+   change) — re-running them is ~10 CPU-hours locally. Batch it with any other
+   generator change, or version the dataset (`v2`) and keep `v1` results as they are.
+
+4. **Cover the README figures the prose check still misses (new, R19).** The **Status R29:** the sweep
+   table is gated (R26/R27); `−87.5 normalized`, `294 more ICS` and `0.500 precision`
+   in the Results prose are still ungated.
+   R18 review named three: `−87.5 normalized` and `294 more ICS` (README:40),
+   `0.500 precision` (README:45), and the whole comprehension-sweep table, which
+   the `ROW` regex cannot match because those rows carry no backticked policy
+   name. All are correct today — recomputed on both trees — so this is a coverage
+   gap, not a stale number. Extend `PROSE`, or generalise the table regex.
+
+6. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
+   was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
+   Needs a ruling first: may a pair's two sides differ in `UserState` when the
+   state difference *is* the judgment under test? The invariant currently
+   forbids it. Refine with a named exception, as `quiet_hours` is named in the
+   audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
+
+8. **More families still welcome** — nine is better than six but still one
+   author's idea of a working life. Candidates: home security, commute
+   disruption, pet care.
+
+9. **Type checking** — no mypy/pyright configured; worth adding to CI once the
+   schema surface settles.
+
+10. **`CHANGELOG.md` has no entries for R15–R18**, still asserts *"Bigrams reach
+   97.2%"* against a current 50.0%, and its R13 block still lists the
+   `Label: value` uniformity as a live limitation that R16 removed. The tone rule
+   requires retiring a limitation when the capability ships; that was done in
+   README and not here. The 97.2% figure was already wrong on `main`, so it is not
+   R16's doing — but R16 moved bigram overall 51.1% → 50.0% and did not look.
+
+11. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
+   even if the raters are not.
+
+<details><summary>Done or resolved — kept for history (A–D, F, G, 1–3, 5, 7)</summary>
+
+G. **Prune the state file — DONE in R29.** Original entry: The numbered queue (items 1–11)
+   is mostly DONE-pointers and pre-R16 history; the Current status block carries a
+   superseded headline. Move done items to a collapsed *Done* section so the live
+   queue is the first thing a round reads. No content deleted.
 
 A. **Close the pair-blind gain — DONE in R24, by option (b).** Kept as a pointer.
    The owner delegated the choice ("you choose the rest of the options"). R23
@@ -250,6 +300,7 @@ A. **Close the pair-blind gain — DONE in R24, by option (b).** Kept as a point
    whichever round takes it: **+29.2**. Then add a general test — the pair-blind
    oracle (`speak on both sides iff net-positive`) may not beat silence — and the
    specific keyword set becomes one instance of it. </details>
+
 B. **Fix PR #19 (Round 22) — DONE in R25.** Kept as a pointer.
    **Original entry:** Reviewed in R23 per §D: **request changes**. Named
    failures: the "6 to 14 seeds" figure does not match what the round measured; the
@@ -257,6 +308,7 @@ B. **Fix PR #19 (Round 22) — DONE in R25.** Kept as a pointer.
    5 seeds); `driving` reads a constant 63.3% that the writeup does not explain;
    the reconstruction test checks only the last signal. Fix on a separate branch;
    the queue entry is the link to #19.
+
 C. **Policies are handed the answer in `moment.slices` — DONE in R26.** Kept as a
    pointer. **Original entry:** Both
    sides of every pair differ in slice tags, and "no `near_miss` tag ⇒ speak" is
@@ -266,11 +318,13 @@ C. **Policies are handed the answer in `moment.slices` — DONE in R26.** Kept a
    moment with provenance fields stripped; `skyline` reads `family` and must be
    handled explicitly (it is a ceiling, not a submission). Before-number: 100%.
    (Was next round's item; done.)
+
 D. **Pairs differ only in the decider, as a policy sees them — DONE in R26**, pulled
    in by its review. Kept as a pointer. **Original entry:** Assert,
    over every pair, that the two sides' `policy_view` dumps differ in exactly the
    decider signal's content and nothing else. R26 closed `slices` by hand; this
    closes the class, including fields added later. Small; do next.
+
 F. **The comprehension sweep is one draw — DONE in R27.** Kept as a pointer.
    **Original entry:** `PartialSkylinePolicy` picks
    which moments it comprehends by hashing the id. R26 changed only the id a policy
@@ -280,18 +334,6 @@ F. **The comprehension sweep is one draw — DONE in R27.** Kept as a pointer.
    `comprehends`, report break-even as a range over ~20 draws, and check
    `TestMetricDiscrimination`'s 2% responsiveness floor holds on every draw — at
    4.8% on this one it has less margin than it did.
-G. **Prune the state file (new, R28 loop audit).** The numbered queue (items 1–11)
-   is mostly DONE-pointers and pre-R16 history; the Current status block carries a
-   superseded headline. Move done items to a collapsed *Done* section so the live
-   queue is the first thing a round reads. No content deleted.
-E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
-   contain no seed-drawn entity, so the reading is a property of the frames and sits
-   above the 60% per-family bound on every seed. Reported, not gated, so nothing
-   fails. Option: draw an entity into driving's deciders and re-measure. Low priority
-   next to C. **Blast radius (R28):** a generator change regenerates `data/v1`, which
-   invalidates all 22 committed LLM runs in `results/` (their moment ids and text
-   change) — re-running them is ~10 CPU-hours locally. Batch it with any other
-   generator change, or version the dataset (`v2`) and keep `v1` results as they are.
 
 1. **Decide whether the probe should cross signal boundaries — DONE in R21.**
    Kept as a pointer: the join **stays**, because the probe takes the upper bound
@@ -314,6 +356,7 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    probe stops joining, two of `TestProseFrameStructure`'s three properties are
    guarding nothing. Pick one and say why. Whichever way it lands, re-derive whether
    those assertions still earn their place. </details>
+
 2. **Seed sensitivity of the published leakage figures — RESOLVED in R22, and the
    premise was half wrong.** Kept as a pointer. Measured on **shipped** frames over
    20 seeds through the committed pipeline (reconstruction reproduces `data/v1/dev`
@@ -335,6 +378,7 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    which R22 falsified for the gated probes. The seed-dependence R21 measured is real
    but is a property of how sensitively the bound **detects a defect**, not of the
    figures the project publishes. </details>
+
 3. **The `−89.3` keyword-exploit figure — RESOLVED in R18, and R17 was wrong
    about it.** R17 recorded that a reviewer's reconstruction "gave **−77.4**" and
    queued a round to *"verify or remove"* the README claim. R18 ran the
@@ -343,22 +387,12 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    both `main` and the branch**. The README was correct all along, and a queue item
    was standing that could have deleted a true claim. The figure is now covered by
    `TestReadmeResultsAreCurrent.test_prose_figures_match_a_fresh_eval`.
-4. **Cover the README figures the prose check still misses (new, R19).** The
-   R18 review named three: `−87.5 normalized` and `294 more ICS` (README:40),
-   `0.500 precision` (README:45), and the whole comprehension-sweep table, which
-   the `ROW` regex cannot match because those rows carry no backticked policy
-   name. All are correct today — recomputed on both trees — so this is a coverage
-   gap, not a stale number. Extend `PROSE`, or generalise the table regex.
+
 5. **Restore prose deciders — DONE in R16.** Kept as a pointer: R15's rule
    (*filler not clause-initial*) was necessary but not sufficient; clause-final
    moves the leak to the internal junction. Three properties now asserted in
    `TestProseFrameStructure`. See `experiments/prose_decider_probe.py`.
-6. **Fatigue as decisive context** (re-specified in R6; the cost-multiplier form
-   was measured and rejected — see `experiments/fatigue_multiplier_probe.py`).
-   Needs a ruling first: may a pair's two sides differ in `UserState` when the
-   state difference *is* the judgment under test? The invariant currently
-   forbids it. Refine with a named exception, as `quiet_hours` is named in the
-   audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
+
 7. **An order-sensitive shortcut probe (R10) — DONE in R11.** Kept here only as a
    pointer: the answer was that the audit had a structural blind spot.
    Superseded by item 1.
@@ -370,19 +404,8 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    genuinely evidenced; if it separates families, the deciders leak in a way
    nine rounds of auditing could not see. Either result is worth the round.
    </details>
-8. **More families still welcome** — nine is better than six but still one
-   author's idea of a working life. Candidates: home security, commute
-   disruption, pet care.
-9. **Type checking** — no mypy/pyright configured; worth adding to CI once the
-   schema surface settles.
-10. **`CHANGELOG.md` has no entries for R15–R18**, still asserts *"Bigrams reach
-   97.2%"* against a current 50.0%, and its R13 block still lists the
-   `Label: value` uniformity as a live limitation that R16 removed. The tone rule
-   requires retiring a limitation when the capability ships; that was done in
-   README and not here. The 97.2% figure was already wrong on `main`, so it is not
-   R16's doing — but R16 moved bigram overall 51.1% → 50.0% and did not look.
-11. **Human label validation** (also NEEDS-MAX) — a labelling CLI is buildable now
-   even if the raters are not.
+
+</details>
 
 ---
 
@@ -1922,6 +1945,28 @@ every round).** Read the Loop lines R22–R27 against LOOP.md's six questions:
 **Loop:** execution failures, one ambiguity with two instances, and a recurrence of
 an already-filed pattern — including inside the audit meant to look for it. No new
 proposal filed; #56 updated.
+
+---
+
+## Round 29 — prune the state file
+
+**Ending state: `shipped`.** Queue item G, from R28's loop audit: the queue led with
+five DONE pointers and eleven numbered items, most finished, so a round had to read
+past history to find the work. Now the live items come first, in rank order (E, 4,
+6, 8, 9, 10, 11), and the finished ones (A–D, F, G, 1–3, 5, 7) sit in a collapsed
+*Done* section.
+
+**What would have proved it wrong:** any line of content lost. **Check:** the
+multiset of non-blank lines before and after differs only by the replaced two-line
+queue intro, item G's header (marked done), and the `<details>` wrapper. Item 4 got
+a status line: the sweep table is gated since R26/R27; three Results-prose figures
+are not. No code, test or published figure changed; 351 tests.
+
+**No subagent review this round** — the change is a content-preserving reorder
+verified mechanically above, and a review would have read the same diff. Recorded so
+the gap is visible rather than implied away.
+
+**Loop:** nothing.
 
 ---
 
