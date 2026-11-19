@@ -8,6 +8,10 @@ easy to do by accident and very hard to notice in the results.
 
 from __future__ import annotations
 
+import http.server
+import json
+import threading
+
 import pytest
 
 from tactbench.dataset.generate import generate
@@ -16,8 +20,10 @@ from tactbench.policies.llm import (
     RUBRIC_SYSTEM,
     LLMPolicy,
     MissingCredential,
+    is_unparsed,
     parse_response,
     render_moment,
+    unparsed_rate,
 )
 
 
@@ -138,3 +144,124 @@ class TestCredentials:
     def test_policy_name_records_variant_and_model(self):
         policy = LLMPolicy(provider="anthropic", model="claude-sonnet-5", variant="naive")
         assert policy.name == "llm:naive:claude-sonnet-5"
+
+
+class TestParsingIsStrictAboutTheDecision:
+    """Round 23: the parser decides what a model *said*, so it must not guess.
+
+    ``bool("false")`` is ``True`` in Python. Before R23 a model that quoted its
+    boolean -- common in small open-weight models -- was scored as speaking when it
+    had answered "stay silent". And because unparseable output is scored as silence,
+    which is exactly the bar, a model that never produced valid JSON would tie the
+    bar while looking like a real result. Both are checked here.
+    """
+
+    @pytest.mark.parametrize("raw", ['"false"', '"False"', '"no"', "0"])
+    def test_a_quoted_or_numeric_no_is_silence(self, raw):
+        d = parse_response(f'{{"surface": {raw}, "confidence": 0.9}}', "m1")
+        assert d.surface is False
+        assert not is_unparsed(d)
+
+    @pytest.mark.parametrize("raw", ['"true"', '"True"', '"yes"', "1"])
+    def test_a_quoted_or_numeric_yes_is_speech(self, raw):
+        d = parse_response(f'{{"surface": {raw}, "confidence": 0.9}}', "m1")
+        assert d.surface is True
+        assert not is_unparsed(d)
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            '{"confidence": 0.9}',  # no decision at all
+            '{"surface": "maybe", "confidence": 0.9}',
+            '{"surface": null}',
+            "no json here",
+            '{"surface": tru',
+        ],
+    )
+    def test_no_decision_is_silence_and_is_flagged(self, text):
+        d = parse_response(text, "m1")
+        assert d.surface is False
+        assert is_unparsed(d), "a non-answer must be countable, or it reads as the bar"
+
+    def test_a_clean_answer_is_not_flagged(self):
+        assert not is_unparsed(parse_response('{"surface": false}', "m1"))
+
+    def test_the_first_object_wins_over_trailing_braces(self):
+        d = parse_response('{"surface": true, "confidence": 0.7} (see {notes})', "m1")
+        assert d.surface is True and not is_unparsed(d)
+
+    def test_unparsed_rate_counts_only_non_answers(self):
+        ds = [
+            parse_response('{"surface": true}', "a"),
+            parse_response("garbage", "b"),
+            parse_response('{"surface": false}', "c"),
+            parse_response('{"surface": "perhaps"}', "d"),
+        ]
+        assert unparsed_rate(ds) == 0.5
+
+
+class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
+    seen: list[dict] = []
+
+    def do_POST(self):  # noqa: N802 - stdlib name
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        _FakeOpenAI.seen.append(
+            {"path": self.path, "body": body, "auth": self.headers.get("Authorization")}
+        )
+        reply = {"choices": [{"message": {"content": '{"surface": "false", "confidence": 0.8}'}}]}
+        data = json.dumps(reply).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def log_message(self, *args):
+        pass
+
+
+@pytest.fixture
+def fake_server():
+    _FakeOpenAI.seen = []
+    srv = http.server.HTTPServer(("127.0.0.1", 0), _FakeOpenAI)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    yield f"http://127.0.0.1:{srv.server_port}/v1"
+    srv.shutdown()
+    srv.server_close()
+
+
+class TestLocalProvider:
+    """An OpenAI-compatible endpoint -- llama.cpp, Ollama, vLLM, LM Studio.
+
+    Lets open-weight models run with no API key and no spend. Tested against a
+    stdlib fake, so the wire format is checked without a model.
+    """
+
+    def test_needs_no_key_and_sends_the_documented_prompt(self, fake_server, monkeypatch):
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        policy = LLMPolicy(
+            provider="local", model="qwen-test", variant="rubric", base_url=fake_server
+        )
+        moment = generate(n_pairs_per_scenario=1)[0].moment
+        d = policy.decide(moment)
+
+        (call,) = _FakeOpenAI.seen
+        assert call["path"] == "/v1/chat/completions"
+        body = call["body"]
+        assert body["model"] == "qwen-test"
+        assert body["temperature"] == 0
+        assert body["messages"][0] == {"role": "system", "content": RUBRIC_SYSTEM}
+        assert body["messages"][1] == {"role": "user", "content": render_moment(moment)}
+        # and the quoted "false" the fake returns is silence, not speech
+        assert d.surface is False and not is_unparsed(d)
+
+    def test_name_records_the_model(self, fake_server):
+        policy = LLMPolicy(
+            provider="local", model="qwen-test", variant="naive", base_url=fake_server
+        )
+        assert policy.name == "llm:naive:qwen-test"
+
+    def test_local_requires_an_explicit_model(self, fake_server):
+        with pytest.raises(ValueError):
+            LLMPolicy(provider="local", base_url=fake_server)

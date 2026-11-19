@@ -165,24 +165,40 @@ def evaluate_cmd(
         )
 
 
+#: Above this share of unreadable answers an LLM score is reported as inconclusive:
+#: each non-answer is scored as silence, which is exactly the bar.
+MAX_UNPARSED = 0.05
+
+
 @app.command(name="llm")
 def llm_cmd(
-    provider: str = typer.Option("anthropic", help="anthropic | gemini | openai"),
+    provider: str = typer.Option(
+        "anthropic", help="anthropic | gemini | openai | local (any OpenAI-compatible server)"
+    ),
     variant: str = typer.Option("rubric", help="naive (no cost info) | rubric (cost disclosed)"),
     model: str = typer.Option(None, help="Override the provider's default model."),
     version: str = typer.Option("v1"),
     split: str = typer.Option("dev"),
     limit: int = typer.Option(0, help="Only run the first N moments. 0 runs all."),
     fresh: bool = typer.Option(False, help="Ignore cached decisions and re-query."),
+    base_url: str = typer.Option(
+        None, help="For --provider local. Default $TACTBENCH_BASE_URL or http://127.0.0.1:8080/v1"
+    ),
 ) -> None:
-    """Score an LLM against a split. Requires an API key and costs money.
+    """Score an LLM against a split. Hosted providers need an API key and cost money;
+    ``--provider local`` runs open-weight models on your own server for free.
 
     Decisions are cached per (policy, split) so re-scoring, slicing, and viewing
     are free after the first run.
     """
     import json as _json
 
-    from .policies.llm import LLMPolicy, MissingCredential, available_providers
+    from .policies.llm import (
+        LLMPolicy,
+        MissingCredential,
+        available_providers,
+        unparsed_rate,
+    )
 
     have = available_providers()
     if not have.get(provider):
@@ -192,7 +208,7 @@ def llm_cmd(
         )
         raise typer.Exit(1)
 
-    policy = LLMPolicy(provider=provider, model=model, variant=variant)
+    policy = LLMPolicy(provider=provider, model=model, variant=variant, base_url=base_url)
     items = load(version, split)
     if limit:
         items = items[:limit]
@@ -237,13 +253,45 @@ def llm_cmd(
     card = score(items, decisions, policy.name, reference_ics=silence)
 
     console.print(_table([card], silence))
-    verdict = (
-        "[green]beats silence[/green]"
-        if card.ics < silence
-        else "[red]worse than saying nothing[/red]"
+    bad = unparsed_rate(decisions)
+    console.print(
+        f"unparsed: {bad:.1%} of decisions gave no readable answer and were scored as silence"
     )
+    if bad > MAX_UNPARSED:
+        # A non-answer is scored as silence, and silence is the bar. Past this rate the
+        # score says more about the output format than about the judgment.
+        verdict = f"[yellow]inconclusive[/yellow] — over {MAX_UNPARSED:.0%} unparsed"
+    elif card.ics < silence:
+        verdict = "[green]beats silence[/green]"
+    else:
+        verdict = "[red]worse than saying nothing[/red]"
     console.print(f"\n{policy.name} is {verdict} (silence ICS {silence:.1f}).")
     console.print(f"[dim]cached at {cache_path}[/dim]")
+
+
+@app.command()
+def results(
+    version: str = typer.Option("v1"),
+    split: str = typer.Option("dev"),
+) -> None:
+    """Re-score the committed LLM decisions in results/ and print README rows.
+
+    Free: nothing is queried. The README's LLM table must equal this output, and
+    a test enforces it.
+    """
+    from .results import markdown_row, scorecards
+
+    cards = scorecards(version, split)
+    if not cards:
+        console.print(f"No committed LLM results for {version}/{split}.")
+        raise typer.Exit(1)
+    print(
+        "| model | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ "
+        "| hard viol. ↓ | spoke | unparsed |"
+    )
+    print("|---|---|---|---|---|---|---|---|---|")
+    for card, unparsed in cards:
+        print(markdown_row(card, unparsed))
 
 
 @app.command()
