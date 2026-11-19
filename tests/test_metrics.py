@@ -47,7 +47,7 @@ from tactbench.policies.builtin import (
     registry,
 )
 from tactbench.policies.skyline import PartialSkylinePolicy, SkylinePolicy
-from tactbench.runner import evaluate, run_policy, silence_ics
+from tactbench.runner import evaluate, normalized, pair_blind_ics, run_policy, silence_ics
 from tactbench.schema import (
     Activity,
     Decision,
@@ -1440,6 +1440,7 @@ class TestReadmeResultsAreCurrent:
     ROW = re.compile(
         r"^\|\s*`(?P<policy>\w+(?:@[\d.]+)?)`[^|]*\|\s*\*{0,2}(?P<ics>[\d.]+)\*{0,2}\s*"
         r"\|\s*\*{0,2}(?P<vs>[+−-][\d.]+|0\.0)\*{0,2}\s*"
+        r"\|\s*\*{0,2}(?P<bar>[+−-][\d.]+|0\.0)\*{0,2}\s*"
         r"\|\s*(?P<prec>[\d.]+|—)\s*\|\s*(?P<recall>[\d.]+)\s*"
         r"\|\s*(?P<ece>[\d.]+)\s*\|\s*(?P<hv>\d+)\s*\|\s*(?P<spoke>\d+)/(?P<n>\d+)\s*\|",
         re.MULTILINE,
@@ -1456,6 +1457,7 @@ class TestReadmeResultsAreCurrent:
         items = load("v1", "dev")
         silence = silence_ics(items)
         cards = {name: evaluate(p, items, reference=silence) for name, p in registry().items()}
+        bar = pair_blind_ics(items)
 
         missing = sorted(set(cards) - set(rows))
         assert not missing, f"README results table is missing policies: {missing}"
@@ -1472,6 +1474,12 @@ class TestReadmeResultsAreCurrent:
             for label, quoted, actual, tol in (
                 ("ICS", row.group("ics"), card.ics, 0.05),
                 ("vs silence", row.group("vs").replace("−", "-"), card.ics_normalized, 0.05),
+                (
+                    "vs pair-blind",
+                    row.group("bar").replace("−", "-"),
+                    normalized(card.ics, bar),
+                    0.05,
+                ),
                 ("prec@int", row.group("prec"), card.precision_at_interrupt, 0.0005),
                 ("recall-hv", row.group("recall"), card.recall_high_value, 0.0005),
                 ("ECE", row.group("ece"), card.ece, 0.0005),

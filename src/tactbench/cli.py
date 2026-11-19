@@ -13,7 +13,7 @@ from .dataset.generate import HELD_OUT_FRAMES, generate
 from .dataset.loader import load, split_path, write_jsonl
 from .metrics import Scorecard, score
 from .policies.builtin import registry
-from .runner import evaluate, silence_ics
+from .runner import evaluate, normalized, pair_blind_ics, silence_ics
 from .schema import Decision, frame_of
 
 app = typer.Typer(
@@ -33,11 +33,16 @@ def _bucket(key: str) -> int:
     return digest[0] % 100
 
 
-def _table(cards: list[Scorecard], silence: float) -> Table:
+def _signed(x: float) -> str:
+    return f"[green]+{x:.1f}[/green]" if x > 0 else f"[red]{x:.1f}[/red]" if x < 0 else "0.0"
+
+
+def _table(cards: list[Scorecard], silence: float, bar: float) -> Table:
     t = Table(title="TactBench results", title_style="bold")
     t.add_column("policy", style="bold")
     t.add_column("ICS ↓", justify="right")
     t.add_column("vs silence", justify="right")
+    t.add_column("vs pair-blind", justify="right")
     t.add_column("prec@int ↑", justify="right")
     t.add_column("recall-hv ↑", justify="right")
     t.add_column("intent ↑", justify="right")
@@ -46,17 +51,12 @@ def _table(cards: list[Scorecard], silence: float) -> Table:
     t.add_column("spoke", justify="right")
 
     for c in sorted(cards, key=lambda c: c.ics):
-        better = c.ics < silence
-        verdict = (
-            f"[green]+{c.ics_normalized:.1f}[/green]"
-            if better
-            else (f"[red]{c.ics_normalized:.1f}[/red]")
-        )
         viol = f"[red]{c.hard_violations}[/red]" if c.hard_violations else "0"
         t.add_row(
             c.policy,
             f"{c.ics:.1f}",
-            verdict,
+            _signed(c.ics_normalized),
+            _signed(normalized(c.ics, bar)),
             _fmt(c.precision_at_interrupt),
             _fmt(c.recall_high_value),
             _fmt(c.intent_accuracy),
@@ -134,11 +134,13 @@ def evaluate_cmd(
     chosen = list(reg.values()) if policy == "all" else [reg[policy]]
     cards = [evaluate(p, items, reference=silence, base_rate=base_rate) for p in chosen]
 
-    console.print(_table(cards, silence))
+    bar = pair_blind_ics(items, base_rate=base_rate)
+    console.print(_table(cards, silence, bar))
     console.print(
-        f"\n[dim]{len(items)} moments · silence baseline ICS = {silence:.1f}. "
-        "'vs silence' above 0 means the policy is worth shipping; "
-        "below 0 means it is worse than saying nothing.[/dim]"
+        f"\n[dim]{len(items)} moments · silence ICS = {silence:.1f} · pair-blind ICS = "
+        f"{bar:.1f}. 'vs silence' above 0 means the policy is worth shipping. "
+        "'vs pair-blind' above 0 means it reads the moment: no policy that answers both "
+        "sides of a pair alike can get there.[/dim]"
     )
     if base_rate > 1.0:
         console.print(
@@ -259,7 +261,7 @@ def llm_cmd(
     silence = silence_ics(items)
     card = score(items, decisions, policy.name, reference_ics=silence)
 
-    console.print(_table([card], silence))
+    console.print(_table([card], silence, pair_blind_ics(items)))
     bad = unparsed_rate(decisions)
     console.print(
         f"unparsed: {bad:.1%} of decisions gave no readable answer and were scored as silence"
@@ -289,16 +291,17 @@ def results(
     from .results import markdown_row, scorecards
 
     cards = scorecards(version, split)
+    bar = pair_blind_ics(load(version, split))
     if not cards:
         console.print(f"No committed LLM results for {version}/{split}.")
         raise typer.Exit(1)
     print(
-        "| model | ICS ↓ | vs silence | prec@int ↑ | recall-hv ↑ | ECE ↓ "
+        "| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ "
         "| hard viol. ↓ | spoke | pairs ↑ | unparsed |"
     )
-    print("|---|---|---|---|---|---|---|---|---|---|")
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
     for card, unparsed, pairs in cards:
-        print(markdown_row(card, unparsed, pairs))
+        print(markdown_row(card, unparsed, pairs, bar))
 
 
 @app.command()

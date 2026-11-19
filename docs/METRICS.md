@@ -110,6 +110,40 @@ Two deliberate choices:
   number meaning neither.
 - **`base_rate < 1` raises** rather than silently inverting the caller's intent.
 
+## The pair-blind bar
+
+Silence is the bar for *worth shipping*. It is not the bar for *reads the moment*,
+and until Round 23 this document and the README treated them as one.
+
+Both sides of a matched pair share a body and a user state and differ only in the
+decider, so a policy that does not read the decider answers them alike. For each
+pair such a policy can only choose "both silent" (pay the positive side's miss) or
+"both speak" (pay the near side's false alarm). Where a miss costs more than a
+false alarm — value 3 against an idle user, 3 against 1 — speaking on both sides
+wins. Five of nine families have that shape, and a policy keying on one topic word
+per family beat silence by +29.2 with no comprehension at all.
+
+`runner.pair_blind_ics` is the optimum over every such policy: per pair, the
+cheaper of the two, **never choosing "both speak" when either side would be a hard
+violation** — those are not traded for cost, here or anywhere. Beating it requires
+answering at least one pair's sides differently and correctly, which requires
+reading the decider. It is reported as `vs pair-blind` beside `vs silence`, on the
+same scale (100 at zero cost, 0 at the reference).
+
+Properties, each a test in `tests/test_pair_blind.py`: it answers both sides of
+every pair alike; it has zero hard violations, including on a constructed pair where
+a DND violation would be cheaper (idle under DND costs 2, a value-3 miss 3); it is
+never worse than silence; at a realistic `base_rate=100` it *is* silence, because no
+false alarm is then worth any miss; no random pair-blind policy beats it; skyline
+does, so the task stays solvable.
+
+**The costs were deliberately not changed to close the gap.** Making each pair
+cost-symmetric would make a pair-blind policy score exactly silence, but no
+false-alarm cost in the table equals a value-3 miss, so it would mean inventing
+costs or rebuilding every family's user state — and the asymmetry is real: telling
+an idle traveller about a gate change on both sides of the pair really is better for
+them than silence. What was wrong was the inference, not the costs.
+
 ## Hard violations
 
 A raw count of unwanted interruptions that occurred while the user was asleep or

@@ -5,6 +5,15 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 24)
+
+- **The pair-blind bar** (`runner.pair_blind_ics`), reported as a `vs pair-blind`
+  column beside `vs silence` in `eval`, `llm`, `results` and both README tables.
+  It is the best cost any policy reaches without telling a matched pair's sides
+  apart, never paying with a hard violation. Silence stays the bar for worth
+  shipping; this is the bar for reading the moment. ICS 238 on `v1/dev` against
+  silence's 336. No LLM measured so far clears it. Costs are unchanged.
+
 ### Added (Round 23)
 
 - **The first LLM results**: eleven open-weight instruction models from 0.5B to

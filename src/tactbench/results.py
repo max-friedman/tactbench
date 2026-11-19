@@ -16,7 +16,7 @@ from pathlib import Path
 from .dataset.loader import load
 from .metrics import Scorecard, score
 from .policies.llm import unparsed_rate
-from .runner import silence_ics
+from .runner import normalized, silence_ics
 from .schema import Decision, Item, pair_key
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -92,10 +92,14 @@ def _f(x: float | None) -> str:
     return "—" if x is None else f"{x:.3f}"
 
 
-def markdown_row(card: Scorecard, unparsed: float, pairs: float) -> str:
-    vs = f"{card.ics_normalized:+.1f}".replace("-", "−")
+def _signed(x: float) -> str:
+    return f"{x:+.1f}".replace("-", "−")
+
+
+def markdown_row(card: Scorecard, unparsed: float, pairs: float, bar: float) -> str:
+    vs, vb = _signed(card.ics_normalized), _signed(normalized(card.ics, bar))
     return (
-        f"| `{card.policy}` | {card.ics:.1f} | {vs} | {_f(card.precision_at_interrupt)} "
+        f"| `{card.policy}` | {card.ics:.1f} | {vs} | {vb} | {_f(card.precision_at_interrupt)} "
         f"| {_f(card.recall_high_value)} | {card.ece:.3f} | {card.hard_violations} "
         f"| {card.surfaced}/{card.n} | {pairs:.1%} | {unparsed:.1%} |"
     )

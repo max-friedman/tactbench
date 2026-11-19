@@ -24,12 +24,13 @@ from tactbench.results import (
     results_dir,
     scorecards,
 )
+from tactbench.runner import normalized, pair_blind_ics
 
 README = Path(__file__).resolve().parents[1] / "README.md"
 
 ROW = re.compile(
     r"^\|\s*`(?P<policy>llm:(?:naive|rubric):[\w.\-]+)`\s*\|\s*(?P<ics>[\d.]+)\s*"
-    r"\|\s*(?P<vs>[+−-][\d.]+|0\.0)\s*\|\s*(?P<prec>[\d.]+|—)\s*\|\s*(?P<recall>[\d.]+|—)\s*"
+    r"\|\s*(?P<vs>[+−-][\d.]+|0\.0)\s*\|\s*(?P<bar>[+−-][\d.]+|0\.0)\s*\|\s*(?P<prec>[\d.]+|—)\s*\|\s*(?P<recall>[\d.]+|—)\s*"
     r"\|\s*(?P<ece>[\d.]+)\s*\|\s*(?P<hv>\d+)\s*\|\s*(?P<spoke>\d+)/(?P<n>\d+)\s*"
     r"\|\s*(?P<pairs>[\d.]+)%\s*\|\s*(?P<unparsed>[\d.]+)%\s*\|\s*$",
     re.MULTILINE,
@@ -99,12 +100,14 @@ def test_runs_and_readme_rows_correspond_one_to_one():
 
 def test_every_readme_figure_equals_a_fresh_rescore():
     rows = _readme_rows()
+    bar = pair_blind_ics(load("v1", "dev"))
     stale = []
     for card, unparsed, pairs in scorecards():
         row = rows[card.policy]
         for label, quoted, actual, tol in (
             ("ICS", row["ics"], card.ics, 0.05),
             ("vs silence", row["vs"].replace("−", "-"), card.ics_normalized, 0.05),
+            ("vs pair-blind", row["bar"].replace("−", "-"), normalized(card.ics, bar), 0.05),
             ("prec@int", row["prec"], card.precision_at_interrupt, 0.0005),
             ("recall-hv", row["recall"], card.recall_high_value, 0.0005),
             ("ECE", row["ece"], card.ece, 0.0005),
@@ -186,3 +189,9 @@ class TestReadmeClaimsAboutTheLLMTable:
     def test_eight_runs_are_constant(self):
         constant = [c.policy for c, _, _ in scorecards() if c.surfaced in (0, c.n)]
         assert len(constant) == 8, constant
+
+    def test_no_run_clears_the_pair_blind_bar(self):
+        """README: 'none clears the pair-blind bar'."""
+        bar = pair_blind_ics(load("v1", "dev"))
+        cleared = [c.policy for c, _, _ in scorecards() if c.ics < bar]
+        assert not cleared, f"{cleared} clear the pair-blind bar; update the README"
