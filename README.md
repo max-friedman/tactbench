@@ -97,24 +97,25 @@ guesses on the rest:
 
 **In this draw a system needs about p = 0.23 comprehension to beat silence**, and
 `p = 0.2` still loses while reaching 0.605 precision — which reads as "better than a
-coin flip" and is a net loss. **Read that as one draw, not a constant.** Which
-moments a given `p` comprehends is chosen by hashing the moment's id; Round 26
-changed only the id the policy sees (to stop it leaking the label), and the
-break-even point moved from 0.29 to 0.23, with `p = 0.4` moving from +10.1 to +38.7.
+coin flip" and is a net loss. **Read that as one draw, not a constant.** Both
+which moments a given `p` comprehends and the coin flip on the others are chosen by
+hashing the moment's id; Round 26 changed only the id the policy sees (to stop it
+leaking the label), which redrew both at once, and break-even moved from 0.29 to
+0.23, with `p = 0.4` moving from +10.1 to +38.7.
 The sweep rests on two random choices: *which* moments a given `p` understands, and
 the coin flip on every moment it does not. Varying each over 20 draws, the smallest
 `p` that beats silence (0.01 grid):
 
 | varied | break-even range | median |
 |---|---|---|
-| which moments are understood | 0.22 – 0.43 | 0.33 |
-| coin flips on the rest | 0.13 – 0.38 | 0.23 |
-| both | 0.10 – 0.53 | 0.29 |
+| which moments are understood | 0.22 – 0.43 | 0.325 |
+| coin flips on the rest | 0.13 – 0.38 | 0.235 |
+| both | 0.10 – 0.53 | 0.295 |
 
 **So there is no single "comprehension needed" figure.** Each source alone moves it
-by about a factor of two, and neither dominates. With both varied, `p = 0.4` runs
-from −14.0 to +38.7 against silence, and the table above is the most favourable of
-the 20 draws at that row. What holds on every draw of every source is the metric's
+two- to threefold, and neither dominates. With both varied, `p = 0.4` runs from
+−14.0 to +38.7 against silence, and the sweep table earlier in this section is the
+most favourable of the 20 draws at that row. What holds on every draw of every source is the metric's
 own behaviour — monotone, anchored, and no step smaller than 2.5% of the range
 (`experiments/sweep_draws.py`; asserted per draw), though that is close to the 2%
 floor the test enforces.

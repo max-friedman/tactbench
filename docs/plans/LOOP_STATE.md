@@ -191,7 +191,7 @@ whenever costs, the generator, or a policy change.
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
 | `policies/llm.py` | **R23** | strict parser (unparsed counted, never silently silence); `--provider local`; `--no-system-role`. Executed on 11 open-weight models |
 | `schema.policy_view` | **R26** (new) | every path to `Policy.decide` empties `slices`; `tests/test_policy_view.py` spies on both paths, each mutation-tested |
-| `policies/skyline.py` `PartialSkylinePolicy` | **R27** | `seed` now selects the draw (which moments are comprehended), seed 0 unchanged; 20-draw properties and quoted ranges in `TestMetricDiscriminationOnEveryDraw` |
+| `policies/skyline.py` `PartialSkylinePolicy` | **R27** | `draw` selects which moments are comprehended (draw 0 = bare id, pinned), `seed` the coin flips; 20-draw properties and quoted ranges in `TestMetricDiscriminationOnEveryDraw` |
 | `runner.pair_blind_ics` | **R24** (new) | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested. Not yet in `web/server.py` |
 | `results/` + `results.py` | **R23** (new) | committed decisions + MANIFEST (sha256, runtime); README LLM table, and five conclusions drawn from it, gated against a re-score in `test_results.py` |
 | `experiments/run_local_llms.py` | **R23** (new) | reproduces every LLM row from weights; one model per invocation fits the 2h background cap |
@@ -1818,11 +1818,11 @@ by bisection — over 20 values each:
 
 | varied | range | median |
 |---|---|---|
-| which moments are comprehended | 0.22 – 0.43 | 0.33 |
-| coin flips on the rest | 0.13 – 0.38 | 0.23 |
-| both | 0.10 – 0.53 | 0.29 |
+| which moments are comprehended | 0.22 – 0.43 | 0.325 |
+| coin flips on the rest | 0.13 – 0.38 | 0.235 |
+| both | 0.10 – 0.53 | 0.295 |
 
-Each alone moves break-even about twofold; neither dominates. With both varied,
+Each alone moves break-even two- to threefold; neither dominates. With both varied,
 `p = 0.4` runs −14.0 to +38.7 vs silence and **the published draw is the most
 favourable of the 20 at that row**. The metric's own properties hold on every draw
 of every source — monotone, anchored, smallest step 2.5% of the range at worst,
@@ -1869,6 +1869,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). |
+| An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
 | Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |

@@ -223,8 +223,9 @@ Three properties, all holding, all now guarded by `TestMetricDiscrimination`:
 | **Responsive** | every step moves ICS > 2% of the range | rules out a metric that is flat through the middle while looking fine at the ends |
 
 **The number this produced:** in the shipped draw a system needs about **p = 0.23
-comprehension to beat silence** (0.29 before Round 26 changed only which moments
-the hash selects — so this is one draw with real spread, not a constant). A policy at
+comprehension to beat silence** (0.29 before Round 26 changed the id that both the
+comprehended set and the coin flips are hashed from — so this is one draw with real
+spread, not a constant). A policy at
 `p = 0.2` reaches 0.605 precision — which reads as better-than-a-coin-flip — and is
 still a net loss against saying nothing. The README table is gated against a fresh
 run. **Over 20 draws (Round 27) break-even is not a constant.** Two random choices
@@ -233,9 +234,9 @@ feed it — which moments are comprehended (`draw`) and the coin flips on the re
 
 | varied | break-even range | median |
 |---|---|---|
-| which moments are comprehended | 0.22 – 0.43 | 0.33 |
-| coin flips on the rest | 0.13 – 0.38 | 0.23 |
-| both | 0.10 – 0.53 | 0.29 |
+| which moments are comprehended | 0.22 – 0.43 | 0.325 |
+| coin flips on the rest | 0.13 – 0.38 | 0.235 |
+| both | 0.10 – 0.53 | 0.295 |
 
 So break-even is not a property of the metric. The three properties above are: they
 hold on all 20 draws of each source, on the shipped split, with the smallest step

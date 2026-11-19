@@ -220,8 +220,9 @@ class PartialSkylinePolicy(Policy):
         #
         # ``draw`` selects which moments a given ``p`` comprehends. Draw 0 hashes the
         # bare id, so the shipped sweep is unchanged; any other draw is a different
-        # nested set. Round 26 showed one draw is not a constant (moving only the
-        # hashed id moved break-even 0.29 -> 0.23); Round 27 measures the spread.
+        # nested set. Round 26 showed one draw is not a constant: changing the id
+        # redrew this set *and* ``_guess``'s coin flips, and break-even moved 0.29 ->
+        # 0.23. Round 27 separates the two sources and measures each.
         # Nesting in ``p`` holds within every draw.
         key = moment_id if self.draw == 0 else f"draw{self.draw}:{moment_id}"
         return hashlib.sha256(key.encode()).digest()[2] / 256.0 < self.p

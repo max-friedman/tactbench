@@ -1958,7 +1958,8 @@ class TestMetricDiscriminationOnEveryDraw:
         metrics = (self.ROOT / "docs" / "METRICS.md").read_text()
         for name, label in (("set", "which moments"), ("guess", "coin flips"), ("both", "both")):
             xs = [x for _, x in out[name].values()]
-            want = (f"{min(xs):.2f}", f"{max(xs):.2f}", f"{statistics.median(xs):.2f}")
+            # Ranges sit on the 0.01 grid; a median of 20 is a midpoint, so 3 places.
+            want = (f"{min(xs):.2f}", f"{max(xs):.2f}", f"{statistics.median(xs):.3f}")
             pattern = rf"\| {label}[^|]*\| ([\d.]+) – ([\d.]+) \| ([\d.]+) \|"
             for doc, text in (("README", readme), ("METRICS", metrics)):
                 assert re.findall(pattern, text) == [want], (doc, name, want)
@@ -1966,7 +1967,7 @@ class TestMetricDiscriminationOnEveryDraw:
             evaluate(PartialSkylinePolicy(0.4, draw=k, seed=k), items, reference=ref).ics_normalized
             for k in self.DRAWS
         ]
-        v_pat = r"`p = 0\.4` runs\s+from −([\d.]+) to \+([\d.]+) against"
+        v_pat = r"`p = 0\.4` runs\s+from\s+−([\d.]+) to \+([\d.]+) against"
         v_lo, v_hi = re.findall(v_pat, readme)[0]
         assert (-float(v_lo), float(v_hi)) == (round(min(v4), 1), round(max(v4), 1))
         assert v4[0] == max(v4), "README says the published draw is the most favourable at p=0.4"
