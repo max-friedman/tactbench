@@ -1720,16 +1720,40 @@ class TestReadmeResultsAreCurrent:
             "honest heuristic, vs silence",
             re.compile(r"against the honest heuristic's \*{0,2}(−?\d+\.\d+)"),
             "heuristic",
+            0.05,
         ),
         (
             "keyword-exploit policy, vs silence",
             re.compile(r"that same policy scores \*{0,2}(−?\d+\.\d+)"),
             "keyword",
+            0.05,
         ),
         (
             "five-word topic policy, vs silence",
             re.compile(r"`gate` — and is silent otherwise scores \*{0,2}([+−]?\d+\.\d+)"),
             "topic",
+            0.05,
+        ),
+        # Round 30 (queue item 4, open since R19): the three Results-prose figures
+        # the table check could not reach. Tolerance per figure, at the precision
+        # it is quoted to -- a flat 0.05 would let "0.500 precision" drift to 0.54.
+        (
+            "always, ICS above silence",
+            re.compile(r"costing (\d+)\s+more ICS than saying nothing"),
+            "always_gap",
+            0.5,
+        ),
+        (
+            "always, vs silence",
+            re.compile(r"saying nothing at all \((−?\d+\.\d+) normalized\)"),
+            "always",
+            0.05,
+        ),
+        (
+            "heuristic precision",
+            re.compile(r"lands\s+at \*\*(\d\.\d+) precision — a coin flip"),
+            "heuristic_prec",
+            0.0005,
         ),
     )
 
@@ -1773,9 +1797,15 @@ class TestReadmeResultsAreCurrent:
                 reference=silence,
             ).ics_normalized,
         }
+        always = evaluate(registry()["always"], items, reference=silence)
+        computed["always"] = always.ics_normalized
+        computed["always_gap"] = always.ics - silence
+        computed["heuristic_prec"] = evaluate(
+            registry()["heuristic"], items, reference=silence
+        ).precision_at_interrupt
 
         stale: list[str] = []
-        for label, locator, key in self.PROSE:
+        for label, locator, key, tol in self.PROSE:
             found = locator.findall(readme)
             assert len(found) == 1, (
                 f"the locator for '{label}' matched {len(found)} times in README.md, "
@@ -1784,8 +1814,8 @@ class TestReadmeResultsAreCurrent:
             )
             quoted = float(found[0].replace("−", "-").replace("+", ""))
             actual = computed[key]
-            if abs(quoted - actual) > 0.05:
-                stale.append(f"{label}: README {quoted}, eval {actual:.1f}")
+            if abs(quoted - actual) > tol:
+                stale.append(f"{label}: README {quoted}, eval {actual:.3f}")
 
         assert not stale, (
             "README.md prose quotes figures `tactbench eval` no longer produces:\n  "
