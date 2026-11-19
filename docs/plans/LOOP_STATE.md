@@ -1802,37 +1802,52 @@ and nothing else.
 
 ## Round 27 — "how much comprehension is enough" has no single answer
 
-**Ending state: `refuted`** — of the published figure, not of the round's plan. Queue
-item F. The README stated *"a system needs about p = 0.23 to beat silence"* (0.29
-before R26, "roughly a third" before that). Measured over 20 draws of which moments
-a given `p` comprehends: **0.10 to 0.51, median 0.31.** `p = 0.4` runs from −14.0 to
-+38.7 vs silence, and **the published draw is the most favourable of all 20 at that
-row** — the README had been showing its best case without knowing it.
+**Ending state: `shipped`.** Queue item F: measure the spread of the comprehension
+sweep. The plan stood; what it measured overturned a published figure. The README
+had said a system needs *"about p = 0.23 to beat silence"* (0.29 before R26,
+"roughly a third" before that), from one draw.
 
 **What would have proved the round wrong, stated first:** a spread under a few
-hundredths (the "one draw" caveat overcautious), or any draw breaking the metric's
-own properties. The first was refuted hard; the second held: monotone and anchored
-on all 20, smallest step 3.7–12.1% of the range, never near the 2% floor. So the
-metric-discrimination claim stands on every draw, and the break-even claim is not a
-property of anything.
+hundredths (the R26 "one draw" caveat overcautious), or any draw breaking the
+metric's own properties.
 
-**Why the spread is wide.** Comprehending a `quiet_hours` moment is worth far more
-than a `commerce` one (R8's per-family finding; the implied-p table shows the same
-thing). A draw that happens to comprehend expensive moments clears silence early.
-"How many moments" is the wrong axis; "which" dominates.
+**Finding.** The sweep rests on two random choices, now separate knobs on
+`PartialSkylinePolicy`: `draw` (which moments a given `p` comprehends) and `seed`
+(coin flips on the rest). Break-even — smallest `p` on a 0.01 grid beating silence,
+by bisection — over 20 values each:
 
-**Shipped.** `PartialSkylinePolicy(seed=)` selects the draw — seed 0 hashes the bare
-id, so every published sweep figure is unchanged (asserted); nesting holds within a
-draw (asserted at seed 7). `experiments/sweep_draws.py`.
-`TestMetricDiscriminationOnEveryDraw`: the three properties on every draw of the
-shipped split, and the README/METRICS ranges recomputed (median mutation → red).
-README and METRICS.md report the range and say plainly the table is the most
-favourable draw. 346 → **350** tests.
+| varied | range | median |
+|---|---|---|
+| which moments are comprehended | 0.22 – 0.43 | 0.33 |
+| coin flips on the rest | 0.13 – 0.38 | 0.23 |
+| both | 0.10 – 0.53 | 0.29 |
 
-**Loop:** queued in R26 as "measure the spread", it turned out to refute a
-headline-adjacent claim the README has carried since R7 in three different forms
-("roughly a third", "about 0.29", "about 0.23"). Each revision updated the number
-and kept the framing. The framing was the error.
+Each alone moves break-even about twofold; neither dominates. With both varied,
+`p = 0.4` runs −14.0 to +38.7 vs silence and **the published draw is the most
+favourable of the 20 at that row**. The metric's own properties hold on every draw
+of every source — monotone, anchored, smallest step 2.5% of the range at worst,
+which is close to the 2% floor `TestMetricDiscrimination` enforces.
+
+**Shipped.** `PartialSkylinePolicy(draw=)`; draw 0 hashes the bare id, pinned by a
+test against the hash itself. `experiments/sweep_draws.py`.
+`TestMetricDiscriminationOnEveryDraw`: properties per draw for all three sources,
+and the README/METRICS tables recomputed exactly. README and METRICS.md report the
+decomposition. 346 → **350** tests.
+
+**Review (subagent): request changes, and it caught the round's central claim
+being wrong.** The first version reused `seed`, which already drove the coin flips,
+so every "draw" redrew both sources — and the writeup attributed the whole spread to
+*which* moments are comprehended ("which dominates how many", "the framing was the
+error"). The reviewer separated them by hand: guess noise alone is as large. Also:
+interpolated break-evens on a 7-point grid (now exact on 0.01); a median taken as
+the upper middle value (now `statistics.median`); a draw-0 test that compared a
+default with itself and could not fail (now pinned to the hash; mutation → red);
+and this entry naming `refuted` against a status line saying `shipped`.
+
+**Loop:** an experiment that varies one knob must check the knob moves only one
+thing. The confound was a pre-existing parameter reused for a new purpose, and the
+author's own §5 checks could not see it because every number reproduced — the
+numbers were right and the explanation of them was not.
 
 ---
 
@@ -1853,7 +1868,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **folded into [#39](https://github.com/max-friedman/agentic-coding-loop/issues/39)** as the counter-argument section, since a naive fix to the first finding licenses exactly this error. Not filed separately. |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
-| A check named for a class tests an instance | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **candidate, not yet filed** — four instances now; strongest candidate on this list. Check `LOOP.md` §D's "nothing weakened" first; this is a different failure (never strong, not weakened). |
+| A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
 | Never publish a number the round didn't produce | The LLM harness has been built and unrun since R2; no figure appears anywhere. | **not filed** — already a `LOOP.md` hard rule verbatim, plus principle 5. Fully covered. |

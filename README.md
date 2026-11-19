@@ -101,13 +101,23 @@ coin flip" and is a net loss. **Read that as one draw, not a constant.** Which
 moments a given `p` comprehends is chosen by hashing the moment's id; Round 26
 changed only the id the policy sees (to stop it leaking the label), and the
 break-even point moved from 0.29 to 0.23, with `p = 0.4` moving from +10.1 to +38.7.
-**Over 20 draws break-even ranges from p = 0.10 to 0.51 (median
-0.31), and `p = 0.4` from −14.0 to +38.7 against silence — this table is the most
-favourable of the 20 at that row.** So there is no single "comprehension needed"
-figure: *which* moments a system understands matters as much as how many, the same
-lesson as the per-family breakdown. What does hold on every draw is the metric's
-own behaviour — monotone, anchored, and no step smaller than 3.7% of the range
-(`experiments/sweep_draws.py`; asserted per draw).
+The sweep rests on two random choices: *which* moments a given `p` understands, and
+the coin flip on every moment it does not. Varying each over 20 draws, the smallest
+`p` that beats silence (0.01 grid):
+
+| varied | break-even range | median |
+|---|---|---|
+| which moments are understood | 0.22 – 0.43 | 0.33 |
+| coin flips on the rest | 0.13 – 0.38 | 0.23 |
+| both | 0.10 – 0.53 | 0.29 |
+
+**So there is no single "comprehension needed" figure.** Each source alone moves it
+by about a factor of two, and neither dominates. With both varied, `p = 0.4` runs
+from −14.0 to +38.7 against silence, and the table above is the most favourable of
+the 20 draws at that row. What holds on every draw of every source is the metric's
+own behaviour — monotone, anchored, and no step smaller than 2.5% of the range
+(`experiments/sweep_draws.py`; asserted per draw), though that is close to the 2%
+floor the test enforces.
 
 The sweep also establishes that ICS is **monotone, anchored, and responsive across
 the whole range** — it ranks partial comprehension rather than merely separating

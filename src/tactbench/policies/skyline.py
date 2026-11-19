@@ -199,11 +199,16 @@ class PartialSkylinePolicy(Policy):
     every other decision untouched, so cost can only fall or stay level.
     """
 
-    def __init__(self, p: float, seed: int = 0):
+    def __init__(self, p: float, seed: int = 0, draw: int = 0):
         if not 0.0 <= p <= 1.0:
             raise ValueError("p is a comprehension fraction and must be in [0, 1]")
         self.p = p
+        #: Selects the coin flips on non-comprehended moments.
         self.seed = seed
+        #: Selects *which* moments a given ``p`` comprehends. Separate from ``seed``
+        #: since Round 27's review: one knob moving both blamed guess noise on the
+        #: comprehended set.
+        self.draw = draw
         self.name = f"partial@{p:.1f}"
         self._skyline = SkylinePolicy()
 
@@ -213,12 +218,12 @@ class PartialSkylinePolicy(Policy):
         # p=1.0 would not reproduce the skyline. Passes on small samples, fails on
         # large ones.
         #
-        # ``seed`` selects the draw: which moments a given ``p`` comprehends. Seed 0
-        # hashes the bare id, so the shipped sweep is unchanged; any other seed is a
-        # different nested set. Round 26 showed one draw is not a constant (moving
-        # only the hashed id moved break-even 0.29 -> 0.23); Round 27 measures the
-        # spread with this. Nesting in ``p`` holds within every draw.
-        key = moment_id if self.seed == 0 else f"draw{self.seed}:{moment_id}"
+        # ``draw`` selects which moments a given ``p`` comprehends. Draw 0 hashes the
+        # bare id, so the shipped sweep is unchanged; any other draw is a different
+        # nested set. Round 26 showed one draw is not a constant (moving only the
+        # hashed id moved break-even 0.29 -> 0.23); Round 27 measures the spread.
+        # Nesting in ``p`` holds within every draw.
+        key = moment_id if self.draw == 0 else f"draw{self.draw}:{moment_id}"
         return hashlib.sha256(key.encode()).digest()[2] / 256.0 < self.p
 
     def _guess(self, moment_id: str) -> bool:
