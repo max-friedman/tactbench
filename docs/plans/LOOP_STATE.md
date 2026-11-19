@@ -13,9 +13,9 @@ findings** below.
 
 ## Current status
 
-- **Round:** 23 complete (`shipped`). **R22 is PR #19, open, review = request
+- **Round:** 24 complete (`shipped`) — the pair-blind bar. R23 also `shipped`. **R22 is PR #19, open, review = request
   changes** — not on `main`, so this branch does not contain it; see queue item B.
-- **Gate:** green — **262 passed** on the R23 branch, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **288 passed** on the R23/R24 branch, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -26,7 +26,8 @@ findings** below.
   measured on `v1/dev`. Best: Gemma-3-4B rubric, +16.4 vs silence, 0 hard
   violations. **No run beats a coin on pairs-both-right (best 10.3%)**, and a
   five-word topic policy beats silence by **+29.2** without reading the decider —
-  so beating silence no longer certifies comprehension (queue item A).
+  so beating silence no longer certifies comprehension. **R24 added the pair-blind
+  bar** (ICS 238 on dev vs silence 336): no LLM clears it, best −18.1.
 - **Headline (to R21):** silence (ICS 336) is unbeaten by any baseline; skyline (ICS 0)
   proves the bar is clearable. The surface-model exploit stays closed. **R16
   restored prose deciders** — *"Behind the screen is your prescription. Through the
@@ -188,6 +189,7 @@ whenever costs, the generator, or a policy change.
 | `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
 | `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
 | `policies/llm.py` | **R23** | strict parser (unparsed counted, never silently silence); `--provider local`; `--no-system-role`. Executed on 11 open-weight models |
+| `runner.pair_blind_ics` | **R24** (new) | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested. Not yet in `web/server.py` |
 | `results/` + `results.py` | **R23** (new) | committed decisions + MANIFEST (sha256, runtime); README LLM table, and five conclusions drawn from it, gated against a re-score in `test_results.py` |
 | `experiments/run_local_llms.py` | **R23** (new) | reproduces every LLM row from weights; one model per invocation fits the 2h background cap |
 
@@ -224,7 +226,10 @@ halt the loop.**
 **Ranked ahead of the numbered list (R23).** Lettered so the numbered references
 elsewhere in this file stay valid.
 
-A. **Close the pair-blind gain.** R23 measured a policy that speaks iff one of
+A. **Close the pair-blind gain — DONE in R24, by option (b).** Kept as a pointer.
+   The owner delegated the choice ("you choose the rest of the options"). R23
+   recommended (a); R24 reversed that before building, recorded in its entry.
+   <details><summary>original entry</summary> R23 measured a policy that speaks iff one of
    `return` / `autopay` / `prescription` / `contract` / `gate` appears (each marks one
    family, and sits in the shared body) at **+29.2 vs silence on dev and test**, 0
    hard violations, precision 0.500. Mechanism: in commerce, meeting_prep, health,
@@ -240,7 +245,7 @@ A. **Close the pair-blind gain.** R23 measured a policy that speaks iff one of
    benchmark-design call, listed in the owner decision matrix. Before-number for
    whichever round takes it: **+29.2**. Then add a general test — the pair-blind
    oracle (`speak on both sides iff net-positive`) may not beat silence — and the
-   specific keyword set becomes one instance of it.
+   specific keyword set becomes one instance of it. </details>
 B. **Fix PR #19 (Round 22).** Reviewed in R23 per §D: **request changes**. Named
    failures: the "6 to 14 seeds" figure does not match what the round measured; the
    20-seed tables have no `experiments/` script that reproduces them (the test runs
@@ -1502,6 +1507,58 @@ and fourth instances; see Method findings.
 
 ---
 
+## Round 24 — the pair-blind bar
+
+**Ending state: `shipped`.** Queue item A, by option (b).
+
+**Who decided.** R23 put three options to the owner. The owner answered "I'm not
+spending any money — you choose the rest of the options". R23 had recommended (a),
+cost-symmetric pairs. **R24 reversed that before building anything**, for two
+reasons found by reading `metrics.py`: no false-alarm cost in the table equals a
+value-3 miss (FP ∈ {1, 2, 5, 10, 20}, FN ∈ {0.5, 2, 3}), so (a) means inventing
+costs or rebuilding every family's user state; and the asymmetry is *correct* —
+telling an idle traveller about a gate change on both sides of the pair beats
+silence for that user. The defect was the inference "beats silence ⇒ comprehends",
+not the costs. (b) fixes exactly the inference.
+
+**What would prove the round wrong, stated first.** (1) The bar fails to bound a
+pair-blind policy — a random pair-constant assignment beats it. (2) The bar buys
+cost with a hard violation. (3) Skyline cannot clear it (the task would be
+unsolvable against the new bar). (4) It drifts from silence at a realistic prior,
+where no false alarm should be worth a miss. **Before-number:** the R23 topic policy
+at +29.2 vs silence.
+
+**Tests first, red** (`ImportError` — `pair_blind_ics` did not exist), then built.
+Result: bar = **238 on dev, 102 on test** (silence 336 / 144); topic policy exactly
+**0.0** against it; skyline +100.0; silence −41.2; best LLM −18.1. Equal to silence
+at `base_rate=100`, on both splits.
+
+**Mutations.** Choosing the costlier option per pair: 10 failures. Deleting the
+hard-violation guard: **0 failures** — no shipped pair would ever choose one, since
+protected-state false alarms cost ≥ 10 against a maximum miss of 3. The guard was
+untested by the data. Idle under DND costs 1×2 = 2 < 3, so a constructed DND pair
+now exercises it, and the mutation fails 1. A guard the data never reaches is a
+guard nobody has tested.
+
+**Shipped.** `runner.pair_blind_decisions`, `pair_blind_ics`, `normalized`; a
+`vs pair-blind` column in `eval`, `llm`, `results` and both README tables, each
+checked against a re-score and each mutation-tested; `docs/METRICS.md` § *The
+pair-blind bar*; README prose — two bars, the costs-unchanged reasoning, a new
+limitation (the bar reads labels and is only as good as the pairing); roadmap item 1
+removed. 262 → **288** tests. Built-in ICS, dataset, audit unchanged.
+
+**Noted, not built.** `web/server.py` still shows only `vs silence`. The README
+section *"How good does a system have to be?"* reasons about silence only; still
+true, not yet extended to the bar.
+
+**Loop:** R23 and R24 ran in one session on one branch, so R24 had no independent
+§D review of R23 — the scheduled Routines are paused and the owner merges. Both
+rounds go to the owner in one PR. The owner delegating an invariant-touching choice
+is new; it is recorded at the invariant itself so it is not mistaken for a round
+rewording an assertion it failed.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -1588,10 +1645,19 @@ dataset or the policy is wrong, not the assertion.
 - **No exempt families.** Every family probes under 60%. R9 showed an exemption is
   not free: the exempted family was also the highest-cost one, which made it
   exploitable by two keywords.
-- **No keyword policy may beat silence** (`TestNoKeywordExploit`). **Currently
-  violated — R23.** A five-word topic policy beats silence by +29.2; the test is
-  green because it checks four specific keyword sets. Listed as violated, not
-  reworded: the fix is the dataset or costs (queue item A), never this line.
+- **No keyword policy may beat silence** (`TestNoKeywordExploit`). **Violated since
+  R23, and retired in R24 as a comprehension guarantee — by owner delegation, not
+  by a round's own authority.** A five-word topic policy beats silence by +29.2;
+  the data and costs were not changed. What the line was *for* — no surface
+  shortcut may pass for comprehension — is now carried by the stronger-in-meaning
+  invariant below. The four keyword sets `TestNoKeywordExploit` tests are kept and
+  still pass. Read this as a recorded retirement, not a precedent for rewording an
+  invariant that fails.
+- **No policy may clear the pair-blind bar without answering a pair's sides
+  differently** — true by construction; `test_no_pair_blind_policy_beats_the_bar`
+  guards the implementation. The R23 topic policy scores exactly the bar (0.0).
+  The bar never pays with a hard violation and equals silence at `base_rate=100`.
+  Skyline clears it (task stays solvable). R24.
 - **No committed LLM run may contain a failed call**, and every model in
   `results/MANIFEST.json` reports both variants (R23).
 - **The README LLM table equals a fresh re-score of `results/`**, row for row, and
