@@ -13,11 +13,12 @@ findings** below.
 
 ## Current status
 
-- **Round:** 32 complete (`shipped`) — CHANGELOG backfilled for R15–R21. R31 (#27):
+- **Round:** 33 complete (`refuted`) — hidden test labels cannot resist overfitting
+  while the generator is public. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **368 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **374 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -224,6 +225,11 @@ halt the loop.**
    results back into `raters` / `agreement` is not built yet.
 3. **PyPI release** — deliberately held until (1) lands, so the first release ships
    with the finding that makes it worth installing.
+4. **A held-out set that actually resists overfitting (R33).** Hiding `test.jsonl`
+   hides nothing: public code rebuilds it, and a parser of the public templates
+   solves held-out frames from any seed. It needs **private templates or
+   human-written items**, kept off the public repo — the owner's to author or
+   commission, and to hold.
 
 ---
 
@@ -233,6 +239,10 @@ halt the loop.**
 filed — letters for R23 onward, numbers before — because other entries refer to them
 by label. Finished items are collapsed below; nothing was deleted.
 
+H. **Restate priority 3's goal (new, R33).** Paraphrase expansion cannot make
+   overfitting "genuinely impossible" while templates are public (R33). Rescope it to
+   what it can do — defeat generic string matchers, which the audit measures — and
+   decide whether to do it as part of a `v2` dataset (see E's blast radius).
 E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    contain no seed-drawn entity, so the reading is a property of the frames and sits
    above the 60% per-family bound on every seed. Reported, not gated, so nothing
@@ -2061,6 +2071,42 @@ such condition.
 
 **Loop:** a session ended its loop on a reason LOOP.md does not list as a stop
 condition. One instance; noted as a candidate.
+
+---
+
+## Round 33 — hidden test labels cannot be hidden
+
+**Ending state: `refuted`.** CLAUDE.md priority 4: *"Held-out test labels — hidden
+behind a submission script so the leaderboard resists overfitting."* Taken as the
+round's plan; the measurement killed it before anything was built.
+
+**What would have proved the plan viable, stated first:** that the test labels are
+not recoverable from public material — either the file cannot be regenerated, or a
+secret seed would put them out of reach.
+
+**Measured.** (1) With `data/` deleted from a copy of `main`, `tactbench build`
+regenerates `data/v1/test.jsonl` identically: **108 of 108 labels** recovered.
+(2) A secret seed does not help: the labels follow from the decider *templates*,
+which are public, and `SkylinePolicy` — built from those templates, never shown a
+label — scores **ICS 0.0, 0 hard violations** on the held-out frames of splits from
+seeds 1, 42, 777, 123456 and 99999999.
+
+**Consequence.** What the held-out split measures is generalisation to unseen
+*phrasings* for a system that has not read the generator. It does not resist anyone
+who has. Corrected where the claim lived: README roadmap item struck through with
+the reason; a new README limitation; CLAUDE.md priority 4 annotated; NEEDS-MAX item
+4 (private templates or human-written items — the owner's call). Pinned by
+`TestTheHeldOutSplitIsNotSecret` (rebuild equality + five unseen seeds), so if the
+held-out set ever does become private the build says so. 368 → **374** tests.
+
+**Implication for priority 3** (paraphrase expansion, "so string-matching overfitting
+becomes genuinely impossible"): by the same measurement, paraphrases generated from
+public templates are solved by a parser of those templates. Paraphrase expansion
+can defeat *generic* string matchers — the audit's probes — but not one written
+against the generator. Its stated goal needs the same private-template caveat. Not
+edited in CLAUDE.md this round; recorded here and in queue item H.
+
+**Loop:** nothing.
 
 ---
 

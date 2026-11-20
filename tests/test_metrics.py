@@ -2009,3 +2009,27 @@ class TestMetricDiscriminationOnEveryDraw:
         (worst,) = re.findall(r"no step smaller than ([\d.]+)% of the range", readme)
         assert float(worst) == round(100 * min(steps), 1)
         assert re.findall(r"smallest step\s+([\d.]+)% of the range at\s+worst", metrics) == [worst]
+
+
+class TestTheHeldOutSplitIsNotSecret:
+    """Round 33 refuted CLAUDE.md priority 4 as written ("hidden test labels ...
+    resist overfitting"). These pin the two reasons, so the README's limitation is
+    checked rather than asserted: if either ever fails, the held-out split has
+    become genuinely private and the README, CLAUDE.md and LOOP_STATE must change.
+    See ``experiments/hidden_labels_probe.py``."""
+
+    @staticmethod
+    def _held_out(seed):
+        items = generate(n_pairs_per_scenario=20, seed=seed)
+        return [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
+
+    def test_the_test_file_is_rebuilt_exactly_from_public_code(self):
+        committed = load("v1", "test")
+        assert [i.model_dump() for i in committed] == [
+            i.model_dump() for i in self._held_out(20260726)
+        ]
+
+    @pytest.mark.parametrize("seed", [1, 42, 777, 123456, 99999999])
+    def test_a_template_parser_solves_held_out_frames_from_unseen_seeds(self, seed):
+        card = evaluate(SkylinePolicy(), self._held_out(seed))
+        assert card.ics == 0.0 and card.hard_violations == 0

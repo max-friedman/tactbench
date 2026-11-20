@@ -5,6 +5,17 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Refuted (Round 33)
+
+- **"Hidden test labels behind a submission script" cannot resist overfitting while
+  the generator is public.** `tactbench build` regenerates `data/v1/test.jsonl`
+  byte-for-byte (108 of 108 labels), and the skyline — a parser of the public
+  decider templates — scores ICS 0.0 on held-out frames from five seeds it has never
+  seen, so a secret seed would not help either. Recorded as a README limitation and
+  pinned by `TestTheHeldOutSplitIsNotSecret`; `experiments/hidden_labels_probe.py`
+  prints both. A held-out set that resists overfitting needs private templates or
+  human-written items.
+
 ### Added (Round 31)
 
 - **`tactbench label` and `tactbench agreement`** — collect human yes/no judgments

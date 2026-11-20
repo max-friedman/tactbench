@@ -571,6 +571,14 @@ otherwise would defeat the purpose of building a benchmark:
   rather than something a policy could implement. It is only as meaningful as the
   pairing: a pair whose sides differ in anything but the decider lets a policy beat
   it without comprehension.
+- **The held-out split is not secret, and hiding it would not help.** `tactbench
+  build` regenerates `data/v1/test.jsonl` byte-for-byte from public code, and a
+  parser built only from the public decider templates (the skyline) scores ICS 0.0
+  on the held-out frames of splits built from seeds it has never seen. So the
+  held-out split measures whether a system generalises to unseen *phrasings* — for a
+  system that has not read the generator. It does not resist anyone who has.
+  Measured in Round 33 (`experiments/hidden_labels_probe.py`; pinned by
+  `TestTheHeldOutSplitIsNotSecret`).
 - **The LLM results are one sample at temperature 0, on dev.** No variance across
   seeds or prompts is reported, and no model has been run on the held-out split.
 
@@ -587,7 +595,10 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    (Round 31); the labels themselves need people.
 3. More scenario families — six is the real ceiling on dataset diversity now that
    phrasing has stopped being the weak point.
-4. Held-out test split with hidden labels behind a submission script.
+4. ~~Held-out test split with hidden labels behind a submission script.~~ Refuted in
+   Round 33 as written: hiding the label file hides nothing while the generator is
+   public (see limitations). A held-out set that resists overfitting needs private
+   templates or human-written items.
 
 ## Contributing
 
