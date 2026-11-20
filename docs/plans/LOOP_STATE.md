@@ -13,12 +13,12 @@ findings** below.
 
 ## Current status
 
-- **Round:** 33 complete (`blocked`) — hidden test labels need private *frames*;
-  hiding the file or seed does nothing. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
+- **Round:** 34 complete (`shipped`) — the viewer shows the pair-blind bar, and has
+  tests. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **377 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **380 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -190,7 +190,7 @@ whenever costs, the generator, or a policy change.
 | `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
 | `schema.pair_key` | **R10** | the single definition of a pair |
 | `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
-| `web/server.py` | R1 | re-verified against the rebuilt dataset; 5 policy columns |
+| `web/server.py` | **R34** | `vs pair-blind` column and header; first tests (`tests/test_web.py`: board == eval, stored ids, served page); rendered in Chromium, no JS errors |
 | `policies/llm.py` | **R23** | strict parser (unparsed counted, never silently silence); `--provider local`; `--no-system-role`. Executed on 11 open-weight models |
 | `schema.policy_view` | **R26** (new) | every path to `Policy.decide` empties `slices`; `tests/test_policy_view.py` spies on both paths, each mutation-tested |
 | `policies/skyline.py` `PartialSkylinePolicy` | **R27** | `draw` selects which moments are comprehended (draw 0 = bare id, pinned), `seed` the coin flips; 20-draw properties and quoted ranges in `TestMetricDiscriminationOnEveryDraw` |
@@ -2122,6 +2122,23 @@ measures). Queue item H.
 **Loop:** a refutation was written against the obvious design and its stronger
 neighbour was named as a caveat instead of measured. Same family as R27: the round
 checked what it built, not what it dismissed.
+
+---
+
+## Round 34 — the viewer shows both bars
+
+**Ending state: `shipped`.** Noted-not-built since R24: `web/server.py` showed only
+`vs silence`, the last surface without the pair-blind bar — and it had no tests at
+all. **Tests first** (`tests/test_web.py`; two red before the change): the board
+equals `eval` for every built-in, including `vs_pair_blind` = `normalized(ics, bar)`;
+per-moment decisions are keyed by the stored id (so R26's opaque ids are mapped
+back); the served page carries the column and no unreplaced placeholder. Rendered in
+headless Chromium: no script errors; `never` −41.2 and skyline +100.0, matching the
+README; header reads "silence ICS 336.0 · pair-blind ICS 238.0". 377 → **380** tests.
+
+**No subagent review** — a display change covered by three tests and a real render.
+
+**Loop:** nothing.
 
 ---
 

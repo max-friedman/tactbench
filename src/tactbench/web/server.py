@@ -20,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from ..dataset.loader import load
 from ..metrics import Scorecard
 from ..policies.builtin import registry
-from ..runner import evaluate, run_policy, silence_ics
+from ..runner import evaluate, normalized, pair_blind_ics, run_policy, silence_ics
 from ..schema import Item
 
 PAGE = """<!doctype html>
@@ -88,14 +88,18 @@ const DATA = __DATA__;
 
 const board = document.getElementById('board');
 board.innerHTML =
-  '<tr><th>policy</th><th>ICS ↓</th><th>vs silence</th><th>prec@int ↑</th>' +
+  '<tr><th>policy</th><th>ICS ↓</th><th>vs silence</th><th>vs pair-blind</th>' +
+  '<th>prec@int ↑</th>' +
   '<th>recall-hv ↑</th><th>ECE ↓</th><th>hard viol. ↓</th><th>spoke</th></tr>' +
   DATA.board.map(function (r) {
     const cls = r.normalized > 0 ? 'good' : 'bad';
     const sign = r.normalized > 0 ? '+' : '';
+    const bcls = r.vs_pair_blind > 0 ? 'good' : 'bad';
+    const bsign = r.vs_pair_blind > 0 ? '+' : '';
     const v = r.violations ? '<span class="bad">' + r.violations + '</span>' : '0';
     return '<tr><td><b>' + r.policy + '</b></td><td>' + r.ics.toFixed(1) +
       '</td><td class="' + cls + '">' + sign + r.normalized.toFixed(1) +
+      '</td><td class="' + bcls + '">' + bsign + r.vs_pair_blind.toFixed(1) +
       '</td><td>' + fmt(r.precision) + '</td><td>' + fmt(r.recall) +
       '</td><td>' + r.ece.toFixed(3) + '</td><td>' + v +
       '</td><td>' + r.surfaced + '/' + r.n + '</td></tr>';
@@ -105,7 +109,7 @@ function fmt(x) { return x === null ? '—' : x.toFixed(3); }
 
 document.getElementById('meta').textContent =
   DATA.n + ' moments · ' + DATA.split + ' split · silence ICS ' +
-  DATA.silence.toFixed(1);
+  DATA.silence.toFixed(1) + ' · pair-blind ICS ' + DATA.pair_blind.toFixed(1);
 
 const policySel = document.getElementById('policy');
 DATA.board.forEach(function (r) {
@@ -179,6 +183,7 @@ render();
 def build_payload(items: list[Item], split: str) -> dict:
     """Score every policy once and flatten it into what the page needs."""
     silence = silence_ics(items)
+    bar = pair_blind_ics(items)
     cards: list[Scorecard] = []
     per_policy: dict[str, dict[str, dict]] = {}
 
@@ -202,6 +207,7 @@ def build_payload(items: list[Item], split: str) -> dict:
             "policy": c.policy,
             "ics": c.ics,
             "normalized": c.ics_normalized,
+            "vs_pair_blind": normalized(c.ics, bar),
             "precision": c.precision_at_interrupt,
             "recall": c.recall_high_value,
             "ece": c.ece,
@@ -233,6 +239,7 @@ def build_payload(items: list[Item], split: str) -> dict:
         "board": board,
         "moments": moments,
         "silence": silence,
+        "pair_blind": bar,
         "n": len(items),
         "split": split,
     }
