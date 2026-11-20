@@ -13,6 +13,12 @@
     "wall_seconds": {
       "naive": 898.1,
       "rubric": 877.3
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 1666.3,
+        "rubric": 1714.4
+      }
     }
   },
   "gemma-3-4b": {
@@ -152,11 +158,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 809.1,
       "rubric": 785.0
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 1599.9,
+        "rubric": 1606.7
+      }
     }
   },
   "qwen2.5-7b": {
