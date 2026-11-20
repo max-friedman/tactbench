@@ -40,8 +40,23 @@ ROW = re.compile(
 RUNS = load_results()
 
 
-def _readme_rows() -> dict[str, re.Match]:
+MARKERS = {
+    "v1": ("<!-- llm-results:start -->", "<!-- llm-results:end -->"),
+    "v2": ("<!-- llm-results-v2:start -->", "<!-- llm-results-v2:end -->"),
+}
+
+
+def _readme_table(version: str = "v1") -> str:
+    """The README block between a version's markers -- one table per version, so a
+    v2 row can never be read as a v1 row or the reverse (Round 39)."""
+    start, end = MARKERS[version]
     text = README.read_text()
+    assert text.count(start) == 1 and text.count(end) == 1, f"{version} table markers"
+    return text.split(start)[1].split(end)[0]
+
+
+def _readme_rows(version: str = "v1") -> dict[str, re.Match]:
+    text = _readme_table(version)
     rows = {m.group("policy"): m for m in ROW.finditer(text)}
     claimed = [ln for ln in text.splitlines() if ln.startswith("| `llm:")]
     assert len(claimed) == len(rows), (
@@ -240,7 +255,7 @@ class TestReadmeLLMProseFigures:
             assert (float(a.replace("−", "-")), float(b)) == (round(naive, 1), round(rubric, 1))
 
     def test_phi_decides_identically_under_both_prompts(self):
-        self._one(r"Phi-3\.5's 252 decisions are identical under both")
+        self._one(r"Phi-3\.5 makes the same speak-or-stay-quiet decision on all 252 moments")
         naive = {d.moment_id: d.surface for d in RUNS["llm:naive:phi-3.5-mini"]}
         rubric = {d.moment_id: d.surface for d in RUNS["llm:rubric:phi-3.5-mini"]}
         assert naive == rubric

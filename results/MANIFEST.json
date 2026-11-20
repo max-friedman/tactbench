@@ -13,6 +13,12 @@
     "wall_seconds": {
       "naive": 898.1,
       "rubric": 877.3
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 1666.3,
+        "rubric": 1714.4
+      }
     }
   },
   "gemma-3-4b": {
@@ -29,6 +35,12 @@
     "wall_seconds": {
       "naive": 1253.2,
       "rubric": 1109.1
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": null,
+        "rubric": null
+      }
     }
   },
   "llama-3.1-8b": {
@@ -45,6 +57,12 @@
     "wall_seconds": {
       "naive": 1686.9,
       "rubric": 1691.9
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 2995.9,
+        "rubric": 2948.7
+      }
     }
   },
   "llama-3.2-1b": {
@@ -55,11 +73,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "6f85a640a97cf2bf5b8e764087b1e83da0fdb51d7c9fab7d0fece9385611df83",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 277.5,
       "rubric": 481.5
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 542.4,
+        "rubric": 817.4
+      }
     }
   },
   "llama-3.2-3b": {
@@ -70,11 +95,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 743.6,
       "rubric": 760.5
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 1524.1,
+        "rubric": 1531.8
+      }
     }
   },
   "phi-3.5-mini": {
@@ -91,6 +123,12 @@
     "wall_seconds": {
       "naive": null,
       "rubric": null
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": null,
+        "rubric": null
+      }
     }
   },
   "qwen2.5-0.5b": {
@@ -101,11 +139,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 409.9,
       "rubric": 457.2
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 675.9,
+        "rubric": 905.1
+      }
     }
   },
   "qwen2.5-1.5b": {
@@ -116,11 +161,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 424.0,
       "rubric": 452.5
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 835.6,
+        "rubric": 876.4
+      }
     }
   },
   "qwen2.5-3b": {
@@ -131,11 +183,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 809.1,
       "rubric": 785.0
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 1599.9,
+        "rubric": 1606.7
+      }
     }
   },
   "qwen2.5-7b": {
@@ -152,6 +211,12 @@
     "wall_seconds": {
       "naive": 1537.6,
       "rubric": 1544.0
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 2806.9,
+        "rubric": 2807.2
+      }
     }
   },
   "smollm2-1.7b": {
@@ -162,11 +227,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "77665ea4815999596525c636fbeb56ba8b080b46ae85efef4f0d986a139834d7",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 573.7,
       "rubric": 595.8
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 1087.4,
+        "rubric": 1124.4
+      }
     }
   }
 }
