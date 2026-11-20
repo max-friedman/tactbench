@@ -35,6 +35,12 @@
     "wall_seconds": {
       "naive": 1253.2,
       "rubric": 1109.1
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": null,
+        "rubric": null
+      }
     }
   },
   "llama-3.1-8b": {
