@@ -446,6 +446,19 @@ a test fails the build if this table disagrees with that output. To rerun:
 | `llm:naive:qwen2.5-0.5b` | 636.0 | −89.3 | −167.2 | 0.500 | 0.976 | 0.391 | 28 | 246/252 | 0.0% | 2.4% |
 <!-- llm-results:end -->
 
+#### On dataset v2 (in progress)
+
+The same models on `v2` (Round 37: 32 pairs per family, 360 dev moments, clause
+order balanced in every frame). **Partial** — runs are being added model by model;
+until every model above has a row here, compare only rows present in both tables.
+
+<!-- llm-results-v2:start -->
+| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:qwen2.5-0.5b` | 899.0 | −87.3 | −164.4 | 0.501 | 1.000 | 0.456 | 40 | 359/360 | 0.6% | 0.0% |
+| `llm:naive:qwen2.5-0.5b` | 913.0 | −90.2 | −168.5 | 0.499 | 0.967 | 0.391 | 40 | 349/360 | 0.0% | 3.1% |
+<!-- llm-results-v2:end -->
+
 `pairs` is the share of matched pairs answered correctly on **both** sides. The two
 sides share a body and need opposite answers, so a policy that does not read the
 deciding signal scores 0% there however its ICS looks — a constant policy scores

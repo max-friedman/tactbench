@@ -101,11 +101,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 409.9,
       "rubric": 457.2
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 675.9,
+        "rubric": 905.1
+      }
     }
   },
   "qwen2.5-1.5b": {
