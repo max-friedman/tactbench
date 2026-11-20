@@ -8,8 +8,9 @@ OpenAI-compatible server on this machine. No API key, no spend.
 ``--server-python`` is an interpreter with ``llama-cpp-python[server]`` installed
 (kept out of this project's dependencies; it compiles C++). For each model in
 ``MODELS`` whose file is present, this starts a server, runs both prompt variants
-over v1/dev, stops the server by the PID it started, and copies the decisions to
-``results/v1-dev/``. ``results/MANIFEST.json`` records what produced each file:
+over ``<version>/dev`` (``--version``, default v1), stops the server by the PID it
+started, and copies the decisions to ``results/<version>-dev/``.
+``results/MANIFEST.json`` records what produced each file:
 the weights' sha256, the quantization, the runtime version, the context size and
 the wall time -- everything needed to rerun it, because a local result is only as
 reproducible as its recorded weights.
@@ -32,7 +33,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RESULTS = ROOT / "results" / "v1-dev"
+RESULTS_ROOT = ROOT / "results"
 MANIFEST = ROOT / "results" / "MANIFEST.json"
 PORT = 8765
 
@@ -83,8 +84,12 @@ def wait_ready(proc: subprocess.Popen, timeout: float = 300) -> None:
     raise TimeoutError("server never became ready")
 
 
-def run_model(name: str, path: Path, server_python: str, threads: int) -> dict[str, float | None]:
-    log = open(RESULTS.parent / f".server-{name}.log", "w")  # noqa: SIM115
+def run_model(
+    name: str, path: Path, server_python: str, threads: int, version: str = "v1"
+) -> dict[str, float | None]:
+    results = RESULTS_ROOT / f"{version}-dev"
+    results.mkdir(parents=True, exist_ok=True)
+    log = open(RESULTS_ROOT / f".server-{name}.log", "w")  # noqa: SIM115
     proc = subprocess.Popen(
         [server_python, "-m", "llama_cpp.server", "--model", str(path),
          "--model_alias", name, "--host", "127.0.0.1", "--port", str(PORT),
@@ -96,7 +101,8 @@ def run_model(name: str, path: Path, server_python: str, threads: int) -> dict[s
         wait_ready(proc)
         for variant in VARIANTS:
             suffix = "-nosys" if name in NO_SYSTEM_ROLE else ""
-            src = ROOT / "runs" / f"llm_{variant}_{name}{suffix}-dev.jsonl"
+            tag = "" if version == "v1" else f"-{version}"  # matches the CLI's cache name
+            src = ROOT / "runs" / f"llm_{variant}_{name}{suffix}{tag}-dev.jsonl"
             # A run killed part-way resumes from the CLI's per-decision cache. Its
             # wall time would then cover only the remainder, so it is not recorded.
             resumed = src.exists() and src.stat().st_size > 0
@@ -104,11 +110,12 @@ def run_model(name: str, path: Path, server_python: str, threads: int) -> dict[s
             subprocess.run(
                 ["uv", "run", "tactbench", "llm", "--provider", "local", "--model", name,
                  "--variant", variant, "--base-url", f"http://127.0.0.1:{PORT}/v1",
+                 "--version", version,
                  *(["--no-system-role"] if name in NO_SYSTEM_ROLE else [])],
                 cwd=ROOT, check=True,
             )  # fmt: skip
             timings[variant] = None if resumed else round(time.time() - t0, 1)
-            shutil.copy(src, RESULTS / f"llm_{variant}_{name}-dev.jsonl")
+            shutil.copy(src, results / f"llm_{variant}_{name}-dev.jsonl")
     finally:
         proc.terminate()  # by the PID we started, never by name
         try:
@@ -126,9 +133,9 @@ def main() -> None:
     ap.add_argument("--server-python", required=True)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--only", action="append")
+    ap.add_argument("--version", default="v1", help="dataset version (v1, v2)")
     args = ap.parse_args()
 
-    RESULTS.mkdir(parents=True, exist_ok=True)
     manifest = json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {}
     runtime = subprocess.run(
         [args.server_python, "-c", "import llama_cpp; print(llama_cpp.__version__)"],
@@ -142,20 +149,31 @@ def main() -> None:
         if not path.exists():
             print(f"skip {name}: {path} not present", file=sys.stderr)
             continue
-        timings = run_model(name, path, args.server_python, args.threads)
-        manifest[name] = {
-            "hf_repo": repo,
-            "file": fname,
-            "sha256": sha256(path),
-            "bytes": path.stat().st_size,
-            "quantization": "Q4_K_M",
-            "runtime": f"llama-cpp-python {runtime}",
-            "n_ctx": N_CTX,
-            "temperature": 0,
-            "system_role": name not in NO_SYSTEM_ROLE,
-            "threads": args.threads,
-            "wall_seconds": timings,
-        }
+        timings = run_model(name, path, args.server_python, args.threads, args.version)
+        entry = manifest.get(name, {})
+        digest = sha256(path)
+        if entry.get("sha256") not in (None, digest):
+            raise SystemExit(f"{name}: weights differ from the manifest's -- not the same model")
+        entry.update(
+            {
+                "hf_repo": repo,
+                "file": fname,
+                "sha256": digest,
+                "bytes": path.stat().st_size,
+                "quantization": "Q4_K_M",
+                "runtime": f"llama-cpp-python {runtime}",
+                "n_ctx": N_CTX,
+                "temperature": 0,
+                "system_role": name not in NO_SYSTEM_ROLE,
+                "threads": args.threads,
+            }
+        )
+        # v1's timings stay where they were; other versions are recorded beside them.
+        if args.version == "v1":
+            entry["wall_seconds"] = timings
+        else:
+            entry.setdefault("wall_seconds_by_version", {})[args.version] = timings
+        manifest[name] = entry
         MANIFEST.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 

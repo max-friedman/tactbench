@@ -320,3 +320,39 @@ class TestCacheDoesNotKeepServerFailures:
         self._run(fake_server, "--no-system-role")
         assert len(_FakeOpenAI.seen) == 4
         assert (tmp_path / "runs" / "llm_rubric_m-nosys-dev.jsonl").exists()
+
+
+class TestCacheIsPerDatasetVersion:
+    """Round 38. v2 reuses ids like ``travel-pos-0003`` for different text, and the
+    cache was keyed on policy and split only -- a v2 run would have scored cached v1
+    answers against v2 moments without a word."""
+
+    def _run(self, fake_server, version):
+        from typer.testing import CliRunner
+
+        from tactbench.cli import app
+
+        args = ["llm", "--provider", "local", "--model", "m", "--base-url", fake_server]
+        result = CliRunner().invoke(app, [*args, "--limit", "2", "--version", version])
+        assert result.exit_code == 0, result.output
+
+    def test_a_v2_run_does_not_reuse_v1_answers(self, fake_server, tmp_path, monkeypatch):
+        """Seed v1's cache with exactly the ids the v2 run will ask about -- the ids
+        exist in both versions -- so a shared cache would answer all of them."""
+        from tactbench.dataset.loader import load
+
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "runs").mkdir()
+        ids = [i.moment.id for i in load("v2", "dev")[:2]]
+        rows = [json.dumps({"moment_id": m, "surface": True, "rationale": "v1"}) for m in ids]
+        (tmp_path / "runs" / "llm_rubric_m-dev.jsonl").write_text("\n".join(rows) + "\n")
+        self._run(fake_server, "v2")
+        assert len(_FakeOpenAI.seen) == 2  # asked, not read from v1's cache
+
+    def test_v1_keeps_its_cache_name(self, fake_server, tmp_path, monkeypatch):
+        """So the committed v1 results and anyone's existing v1 cache stay valid."""
+        monkeypatch.chdir(tmp_path)
+        self._run(fake_server, "v1")
+        self._run(fake_server, "v2")
+        names = sorted(p.name for p in (tmp_path / "runs").iterdir())
+        assert names == ["llm_rubric_m-dev.jsonl", "llm_rubric_m-v2-dev.jsonl"]
