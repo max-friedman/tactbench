@@ -13,14 +13,14 @@ findings** below.
 
 ## Current status
 
-- **Round:** 38 complete (`shipped`) — the LLM cache and runner are per dataset
-  version; v2 runs started. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
+- **Round:** 39 complete (`shipped`) — all 22 LLM runs on `v2`; every conclusion
+  replicates. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **399 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **457 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -248,7 +248,7 @@ H. **Restate priority 3's goal (new, R33).** Paraphrase expansion cannot make
    not measured (R33). Rescope it to
    what it can do — defeat generic string matchers, which the audit measures — and
    decide whether to do it as part of a `v2` dataset (see E's blast radius).
-I. **Re-run the 22 LLM runs on `v2` (new, R37).** `experiments/run_local_llms.py`
+I. **Re-run the 22 LLM runs on `v2` — DONE in R39.** Original entry: `experiments/run_local_llms.py`
    with `--version v2` support; ~1.4x v1's compute (360 dev moments), free. Then a
    `v2` LLM table and `v2` built-in table in the README, gated like v1's. Background
    jobs cap at 2h: one model per job, Phi-3.5 resumed from cache.
@@ -2318,6 +2318,43 @@ the background (one model per job; queue item I continues).
 **No subagent review** — two tests, each verified to fail on revert.
 
 **Loop:** nothing.
+
+---
+
+## Round 39 — the LLM results replicate on v2
+
+**Ending state: `shipped`.** Queue item I. All 22 open-weight runs (11 models × 2
+prompts) re-run on `v2` — 360 dev moments, clause order balanced in every frame —
+committed in `results/v2-dev/` and published as a second README table between its
+own markers. `tests/test_results_v2.py` applies every v1 run gate to v2 (complete
+over v2/dev, no failed calls, both variants and a manifest entry per model, table and
+runs one-to-one, every figure re-scored); `_readme_rows` now reads one version's
+block only, so the two tables cannot be confused.
+
+**What would have proved the v1 results fragile, stated first:** runs changing order,
+crossing silence, or a model reaching coin level on pairs once the sample grew and
+the clause-order imbalance was removed.
+
+**Result: full replication.** 0 of 231 run pairs ordered differently by ICS; median
+move against silence 0.2 points (largest 5.8, SmolLM2 rubric); no run crosses
+silence; the same six runs beat it, all with zero hard violations; best pairs 8.9%.
+Small differences worth recording: Phi-3.5's two prompts now differ on a few
+decisions (317 vs 320 moments spoken; identical on v1). Each claim is a test
+(`test_the_readme_replication_claims`; a mutated figure fails).
+
+**Operations.** v2 calls took ~1.8× v1's per model, not the 1.4× estimated from item
+counts. Three jobs hit the 2-hour background limit and resumed from the decision
+cache (Gemma-3-4B once, Phi-3.5 twice); resumed runs record no wall time. Twice a
+half-finished model's file sat in `results/` while its other variant ran; it was held
+out of commits until both existed — the both-variants gate flagged it when it was
+not. 399 → **457** tests.
+
+**No subagent review yet** — requested on the PR.
+
+**Loop:** a first draft moved a held file while the job that writes it was starting —
+the R23 Phi race again; caught because the gate flagged the gap and the source cache
+was intact. Moving files a running job writes is the hazard; wait for the job's own
+copy, as the third Phi resume did.
 
 ---
 

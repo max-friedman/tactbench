@@ -123,6 +123,12 @@
     "wall_seconds": {
       "naive": null,
       "rubric": null
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": null,
+        "rubric": null
+      }
     }
   },
   "qwen2.5-0.5b": {

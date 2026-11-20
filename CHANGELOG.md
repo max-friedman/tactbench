@@ -5,6 +5,17 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 39)
+
+- **All 22 open-weight LLM runs re-run on dataset `v2`** (360 dev moments),
+  committed in `results/v2-dev/` and published as a second README table gated
+  exactly as v1's (`tests/test_results_v2.py`). Every conclusion replicates: no pair
+  of runs is ordered differently by ICS, the median run moves 0.2 points against
+  silence (largest 5.8) and none crosses it, the same six runs beat silence with
+  zero hard violations, and the best pairs-both-right is 8.9%.
+- `tactbench llm` caches per dataset version (Round 38), and README tables are read
+  per version between their own markers.
+
 ### Added (Round 37)
 
 - **Dataset `v2`**: the same generator and seed at 32 pairs per family (360 dev /

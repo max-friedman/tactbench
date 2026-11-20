@@ -78,3 +78,46 @@ def test_every_v2_readme_figure_equals_a_fresh_rescore():
             if abs(float(quoted) - float(actual)) > tol:
                 stale.append(f"{card.policy}.{label}: README {quoted}, actual {actual:.3f}")
     assert not stale, "README v2 LLM table is stale; run `tactbench results --version v2`"
+
+
+def test_the_readme_replication_claims():
+    """README: v2 replicates v1 -- each quoted figure recomputed."""
+    import re
+    import statistics
+    from itertools import combinations
+
+    from test_results import README
+
+    v1 = {c.policy: c for c, _, _ in scorecards("v1")}
+    v2 = {c.policy: (c, p) for c, _, p in scorecards("v2")}
+    assert set(v1) == set(v2), "the replication claim needs every v1 run on v2"
+    names = sorted(v1)
+    discordant = sum(
+        (v1[a].ics - v1[b].ics) * (v2[a][0].ics - v2[b][0].ics) < 0
+        for a, b in combinations(names, 2)
+    )
+    moves = [abs(v1[k].ics_normalized - v2[k][0].ics_normalized) for k in names]
+    flips = [k for k in names if (v1[k].ics_normalized > 0) != (v2[k][0].ics_normalized > 0)]
+    above1 = {k for k in names if v1[k].ics_normalized > 0}
+    above2 = {k for k in names if v2[k][0].ics_normalized > 0}
+    best = max(p for _, p in v2.values())
+
+    text = README.read_text()
+    quoted = re.findall(
+        r"Of the (\d+) pairs of runs, \*\*(\d+)\*\* are ordered differently.*?median run moves "
+        r"\*\*([\d.]+)\*\* points.*?largest move\s+\*\*([\d.]+)\*\*.*?best `pairs` score is "
+        r"\*\*([\d.]+)%\*\*",
+        text,
+        re.S,
+    )
+    assert quoted == [
+        (
+            str(len(names) * (len(names) - 1) // 2),
+            str(discordant),
+            f"{statistics.median(moves):.1f}",
+            f"{max(moves):.1f}",
+            f"{100 * best:.1f}",
+        )
+    ]
+    assert not flips and above1 == above2 and len(above2) == 6
+    assert all(v2[k][0].hard_violations == 0 for k in above2)

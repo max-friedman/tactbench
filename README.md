@@ -363,8 +363,8 @@ figure in this README is measured on. `v2` (Round 37) is the same generator at 3
 pairs per family (360 dev / 216 test). At 20 pairs, clause order is unbalanced
 within frames and a position-aware probe exploits it — overall it beats a
 label-shuffled null on 9 of 20 seeds; at 32 it does not on any, and `driving`'s
-fixed 63.3% becomes exactly 50.0%. `v2` has no published results yet — the LLM runs are
-being redone on it. Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator-at-32-pairs-round-37).
+fixed 63.3% becomes exactly 50.0%. Every LLM run has been redone on `v2`, and every conclusion
+replicates (see *On dataset v2* under the LLM results). Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator-at-32-pairs-round-37).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
 
@@ -446,11 +446,16 @@ a test fails the build if this table disagrees with that output. To rerun:
 | `llm:naive:qwen2.5-0.5b` | 636.0 | −89.3 | −167.2 | 0.500 | 0.976 | 0.391 | 28 | 246/252 | 0.0% | 2.4% |
 <!-- llm-results:end -->
 
-#### On dataset v2 (in progress)
+#### On dataset v2 — a replication
 
-The same models on `v2` (Round 37: 32 pairs per family, 360 dev moments, clause
-order balanced in every frame). **Partial** — runs are being added model by model;
-until every model above has a row here, compare only rows present in both tables.
+The same 22 runs on `v2` (Round 37: 32 pairs per family, 360 dev moments, clause
+order balanced in every frame), re-run in Round 39. **Every conclusion above
+replicates.** Of the 231 pairs of runs, **0** are ordered differently by ICS on v2
+than on v1; the median run moves **0.2** points against silence (largest move
+**5.8**, SmolLM2 with the rubric) and none crosses it; the same six runs beat
+silence, all with zero hard violations; and the best `pairs` score is **8.9%** —
+still under a coin's ~25%. So the v1 findings were not an artefact of its sample
+or of the clause-order imbalance Round 36 found.
 
 <!-- llm-results-v2:start -->
 | model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
@@ -468,7 +473,9 @@ until every model above has a row here, compare only rows present in both tables
 | `llm:naive:qwen2.5-3b` | 505.0 | −5.2 | −48.5 | 0.516 | 0.739 | 0.410 | 20 | 258/360 | 6.1% | 4.7% |
 | `llm:naive:gemma-3-4b` | 519.0 | −8.1 | −52.6 | 0.507 | 0.606 | 0.337 | 18 | 215/360 | 3.9% | 0.0% |
 | `llm:naive:llama-3.1-8b` | 546.0 | −13.7 | −60.6 | 0.525 | 0.578 | 0.275 | 20 | 198/360 | 8.9% | 0.0% |
+| `llm:naive:phi-3.5-mini` | 560.0 | −16.7 | −64.7 | 0.502 | 0.883 | 0.427 | 20 | 317/360 | 0.6% | 0.0% |
 | `llm:naive:qwen2.5-7b` | 560.0 | −16.7 | −64.7 | 0.534 | 0.261 | 0.184 | 19 | 88/360 | 3.9% | 0.0% |
+| `llm:rubric:phi-3.5-mini` | 560.0 | −16.7 | −64.7 | 0.500 | 0.889 | 0.451 | 20 | 320/360 | 0.0% | 0.0% |
 | `llm:rubric:smollm2-1.7b` | 838.0 | −74.6 | −146.5 | 0.503 | 0.983 | 0.445 | 36 | 352/360 | 2.8% | 0.0% |
 | `llm:rubric:qwen2.5-0.5b` | 899.0 | −87.3 | −164.4 | 0.501 | 1.000 | 0.456 | 40 | 359/360 | 0.6% | 0.0% |
 | `llm:naive:llama-3.2-1b` | 900.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.171 | 40 | 360/360 | 0.0% | 0.0% |
