@@ -199,6 +199,12 @@
     "wall_seconds": {
       "naive": 1537.6,
       "rubric": 1544.0
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 2806.9,
+        "rubric": 2807.2
+      }
     }
   },
   "smollm2-1.7b": {
