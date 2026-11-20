@@ -13,14 +13,14 @@ findings** below.
 
 ## Current status
 
-- **Round:** 37 complete (`shipped`) — dataset `v2` at 32 pairs; R36 (#32): the
-  positional leak diagnosed as the pair count. R35 (#31, `rejected`): an entity
+- **Round:** 38 complete (`shipped`) — the LLM cache and runner are per dataset
+  version; v2 runs started. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **397 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **399 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2294,6 +2294,30 @@ written; any threshold on a fold mean could have flipped by interpreter.
 chance reference, for the third time in this project's positional work (R22's "6 to
 14", R25's table, here). Candidate method finding: a threshold count needs its null
 before it is a result.
+
+---
+
+## Round 38 — the LLM cache knew nothing about dataset versions
+
+**Ending state: `shipped`.** Prerequisite for queue item I (v2 LLM runs). The `llm`
+command cached decisions by policy and split only, and v2 reuses ids like
+`travel-pos-0003` for different text — a v2 run would have scored cached v1 answers
+against v2 moments, silently. **Tests first:** a v1 cache seeded with exactly the
+ids a v2 run asks about must not answer them; v1 keeps its original cache name, so
+committed v1 results and existing caches stay valid. The first version of the reuse
+test passed even without the fix — v2's first two moments had ids v1's run had not
+cached — so it was rewritten to seed the colliding ids; now both tests fail when the
+fix is reverted.
+
+**Shipped.** Cache file `…{-version}-{split}.jsonl` for non-v1 versions;
+`run_local_llms.py --version` writing to `results/<version>-dev/`, refusing weights
+whose sha256 differs from the manifest's, and recording non-v1 timings under
+`wall_seconds_by_version` (v1's untouched). 397 → **399** tests. v2 runs started in
+the background (one model per job; queue item I continues).
+
+**No subagent review** — two tests, each verified to fail on revert.
+
+**Loop:** nothing.
 
 ---
 

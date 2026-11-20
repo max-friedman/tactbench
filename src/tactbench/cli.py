@@ -227,7 +227,11 @@ def llm_cmd(
     # experiment, so it gets its own cache rather than reusing the other's answers.
     suffix = "" if policy.system_role else "-nosys"
     stem = policy.name.replace(":", "_").replace("/", "_")
-    cache_path = Path("runs") / f"{stem}{suffix}-{split}.jsonl"
+    # Per dataset version: v2 reuses ids like ``travel-pos-0003`` for different
+    # text, so a shared cache would score v1's answers against v2's moments
+    # (Round 38). v1 keeps its original name, so existing caches stay valid.
+    tag = "" if version == "v1" else f"-{version}"
+    cache_path = Path("runs") / f"{stem}{suffix}{tag}-{split}.jsonl"
     cached: dict[str, Decision] = {}
     if cache_path.exists() and not fresh:
         for line in cache_path.read_text().splitlines():
