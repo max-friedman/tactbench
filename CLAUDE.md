@@ -146,10 +146,17 @@ In order. Each is a self-contained increment.
    verbatim in the repo, zero-shot and cost-rubric variants. This is the result the
    project exists to produce: whether frontier models beat a few dozen lines of
    if-statements on interruption cost. Report it honestly whichever way it lands.
+   **Status:** eleven open-weight models (0.5B-8B) measured on v1 and v2 (R23, R39);
+   hosted frontier models not run — that needs a paid key (NEEDS-MAX 1).
 2. **Human-labeled subset** — a labeling CLI, multiple raters, reported κ. Measures
-   how far construction drifts from what people actually want.
-3. **Paraphrase expansion** — vary sentence structure, not just entities, so
-   string-matching overfitting becomes genuinely impossible.
+   how far construction drifts from what people actually want. **Status:** the CLI
+   and κ are built (R31); the labels need people (NEEDS-MAX 2).
+3. **Paraphrase expansion** — vary sentence structure, not just entities. **Restated
+   in R41:** it cannot make overfitting "genuinely impossible" while the templates are
+   public — a parser built from them solves whatever they generate (R33). Generic
+   string matchers already read chance (unigram and bigram 50.0% on v1 and v2). What
+   it can buy is realism, and a measurement: do a model's decisions survive the same
+   moment reworded? Build it as that experiment.
 4. **Held-out test labels** — hidden behind a submission script so the leaderboard
    resists overfitting. **Round 33:** hiding the label file or the seed does nothing —
    `tactbench build` recovers every test label and a parser of the public templates

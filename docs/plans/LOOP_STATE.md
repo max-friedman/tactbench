@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 40 complete (`shipped`) — the audit prints the positional probe's
-  chance level. R39 (#35): all 22 LLM runs on `v2`; the conclusions replicate. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
+- **Round:** 41 complete (`shipped`) — priority 3 restated; CLAUDE.md priorities
+  carry status. R40 (#36): the audit prints the positional probe's chance level. R39 (#35): all 22 LLM runs on `v2`; the conclusions replicate. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
@@ -243,11 +243,16 @@ halt the loop.**
 filed — letters for R23 onward, numbers before — because other entries refer to them
 by label. Finished items are collapsed below; nothing was deleted.
 
-H. **Restate priority 3's goal (new, R33).** Paraphrase expansion cannot make
+H. **Restate priority 3's goal — DONE in R41.** Original entry: Paraphrase expansion cannot make
    overfitting "genuinely impossible" while templates are public — by construction,
    not measured (R33). Rescope it to
    what it can do — defeat generic string matchers, which the audit measures — and
    decide whether to do it as part of a `v2` dataset (see E's blast radius).
+L. **Paraphrase robustness (new, R41; the restated priority 3).** Reword a sample
+   of v2 moments — same facts, same roles, different sentence structure — and
+   measure how often each model's decision changes. Needs new frames written as
+   permutations (CLAUDE.md rule 3), the audit at chance on them, and LLM calls on
+   the reworded sample only (cheap: a few hundred moments per model).
 I. **Re-run the 22 LLM runs on `v2` — DONE in R39.** Original entry: `experiments/run_local_llms.py`
    with `--version v2` support; ~1.4x v1's compute (360 dev moments), free. Then a
    `v2` LLM table and `v2` built-in table in the README, gated like v1's. Background
@@ -2391,6 +2396,26 @@ column; METRICS.md describes it. 457 → **461** tests.
 
 **No subagent review** — a reporting column with four tests; the gated audit
 figures and probes are unchanged.
+
+**Loop:** nothing.
+
+---
+
+## Round 41 — what paraphrase expansion can and cannot buy
+
+**Ending state: `shipped`.** Queue item H. CLAUDE.md priority 3 said paraphrase
+expansion would make "string-matching overfitting … genuinely impossible". R33
+showed it cannot while templates are public — a parser built from them solves
+whatever they generate (by construction, not measured). Measured this round: generic
+string matchers already read chance — unigram and bigram 50.0% overall on v1 and v2,
+and v2's positional probe 50.8% against a null of 52.8%. So priority 3 is restated
+as what it can still buy: realism, and a robustness measurement (do decisions
+survive rewording?), queued as item L.
+
+**Shipped.** CLAUDE.md priorities 1-3 carry status lines (1: open-weight done,
+frontier needs a key; 2: tool built, labels need people; 3: restated). README
+roadmap: the stale "six is the real ceiling" (nine families since R12) corrected,
+and the robustness measurement added. Docs only; 461 tests.
 
 **Loop:** nothing.
 
