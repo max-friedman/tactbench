@@ -55,11 +55,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "6f85a640a97cf2bf5b8e764087b1e83da0fdb51d7c9fab7d0fece9385611df83",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 277.5,
       "rubric": 481.5
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 542.4,
+        "rubric": 817.4
+      }
     }
   },
   "llama-3.2-3b": {
@@ -123,11 +130,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 424.0,
       "rubric": 452.5
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 835.6,
+        "rubric": 876.4
+      }
     }
   },
   "qwen2.5-3b": {
@@ -169,11 +183,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "77665ea4815999596525c636fbeb56ba8b080b46ae85efef4f0d986a139834d7",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 573.7,
       "rubric": 595.8
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 1087.4,
+        "rubric": 1124.4
+      }
     }
   }
 }
