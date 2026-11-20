@@ -5,6 +5,16 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Known defect (Round 36, open, recorded)
+
+- **At 20 pairs per family the positional probe reads above 60% for structural
+  reasons.** Clause order alternates on `idx // 8`, so a (family, frame) cell is
+  balanced only with an even number of pairs; the shipped 20 leaves frames 0-3 at
+  2:1 and dev 9:5 by order in every family. `driving`'s fixed 63.3% is this. At 16
+  or 32 pairs every cell balances and driving reads exactly 50.0% on all 20 seeds.
+  Pinned by a strict xfail; `experiments/order_balance_probe.py` prints the sweep.
+  The positional probe is reported, not gated, so no published figure is wrong.
+
 ### Changed (Round 34)
 
 - **The local viewer shows `vs pair-blind`** beside `vs silence`, and the pair-blind

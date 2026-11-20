@@ -13,8 +13,9 @@ findings** below.
 
 ## Current status
 
-- **Round:** 35 complete (`rejected`) — drawing an entity into `driving`/`finance`
-  does not fix their positional reading; v2 built, measured, not kept. R34 (#30):
+- **Round:** 36 complete (`shipped`) — the positional leak diagnosed: 20 pairs per
+  family leaves 3-pair frames 2:1 by clause order. R35 (#31, `rejected`): an entity
+  draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
@@ -247,6 +248,13 @@ H. **Restate priority 3's goal (new, R33).** Paraphrase expansion cannot make
    not measured (R33). Rescope it to
    what it can do — defeat generic string matchers, which the audit measures — and
    decide whether to do it as part of a `v2` dataset (see E's blast radius).
+E. **Fix the positional leak: rebuild at a multiple of 16 pairs (diagnosed R36).**
+   At 32 pairs per family every (family, frame) cell is order-balanced, driving reads
+   50.0% on all 20 seeds and overall never exceeds 60% (was 9 of 20). No code
+   change: `tactbench build --version v2 --pairs 32`, keeping `v1` and its LLM
+   results. Costs: every published v1 figure needs a v2 counterpart; the 22 LLM runs
+   need re-running on 360 dev moments (~1.4x the v1 compute, free). Then un-mark the
+   R36 strict xfail against v2. Diagnosis history below.
 E. **`driving` and `finance` exceed the 60% per-family bound on the positional
    probe — the cause is the frames, not missing entities (re-scoped R35).** R35
    drew an entity into both families' fillers and measured 20 seeds
@@ -2186,6 +2194,42 @@ cause is where the role words sit in these frames — diagnose before fixing.
 negative result; the figures are printed by the script itself.
 
 **Loop:** nothing.
+
+---
+
+## Round 36 — the positional leak is the pair count
+
+**Ending state: `shipped`** — a diagnosis, with two hypotheses rejected on the way.
+Queue item E, re-scoped by R35 to "diagnose before fixing".
+
+**Rejected first: global order imbalance.** Counting clause order showed dev is
+**9:5** in every family (test 3:3) — order alternates on `idx // 8`, so 20 pairs fill
+frames 0-3 with three each. 9/14 = 64% matched driving's 63.3%. Predicted fix:
+offset the alternation by frame, balancing dev 7:7. Measured: driving still 63.3% on
+all 20 seeds. Raw accuracy had flipped from 63.3% to **36.7%** — the probe now
+systematically wrong, and the audit (deliberately) scores a negated classifier as
+exploitable. Cells of three pairs are 2:1 whatever the rule.
+
+**Found: the size.** A cell is balanced only with an even number of pairs, i.e. pairs
+per family a multiple of 16. Over 20 seeds: at **16 or 32 pairs driving reads exactly
+50.0%** and overall never exceeds 60%; at 20 driving is 63.3% constant and overall
+exceeds 60% on 9 of 20; at 24, 66.7% constant and 15 of 20. Finance improves (17 → 3
+of 20 at 32) with residual noise. R14's `MIN_PAIRS_FOR_BALANCED_ORDER = 16`
+guaranteed both orders in every cell, not equal counts — a minimum, not the
+condition.
+
+**Shipped.** `experiments/order_balance_probe.py` (the size sweep, both rejected
+hypotheses in its docstring); `test_every_shipped_dev_cell_is_order_balanced`, a
+strict xfail failing for the stated reason (36 cells = 9 families × frames 0-3 at
+2:1) and verified to pass on 16- and 32-pair builds (0 of 45 cells unbalanced);
+CHANGELOG known-defect entry. No generator change. 380 tests + 1 xfail.
+
+**No subagent review** — a diagnosis with no shipped behaviour; every figure is
+printed by the experiment, and the xfail's reason was checked directly.
+
+**Loop:** the round's first diagnosis matched the number (9/14 ≈ 63.3%) and was wrong;
+only running the predicted fix exposed it. A coincidence of magnitudes is not a
+mechanism — the R27 lesson again (the numbers reproduced; the explanation did not).
 
 ---
 

@@ -1588,6 +1588,36 @@ class TestOrderBalancePrecondition:
         cells = cls._order_cells(generate(n_pairs_per_scenario=n_pairs))
         return sum(1 for v in cells.values() if len(v) == 1)
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Known defect (Round 36): at the shipped 20 pairs per family, frames "
+        "holding 3 pairs are 2:1 by clause order. A build at a multiple of 16 pairs "
+        "fixes it; when v1 is replaced, this XPASSes and must be un-marked.",
+    )
+    def test_every_shipped_dev_cell_is_order_balanced(self):
+        """Both orders present in every cell (above) is not the same as balanced.
+        Order alternates on ``idx // n_frames``, so a (family, frame) cell is balanced
+        only when it holds an even number of pairs -- 16 or 32 per family, not the
+        shipped 20, whose frames 0-3 hold 3 (2:1). Dev is 9:5 by order in every
+        family; a positional probe learns the majority and reads `driving`'s fixed
+        63.3% (R25). Not a clause-order *rule* problem: offsetting the alternation by
+        frame balances dev 7:7 and driving still reads 63.3% (raw 36.7%, negated).
+        See ``experiments/order_balance_probe.py``."""
+        from collections import Counter
+
+        counts = Counter(
+            (i.moment.family, frame_of(i.moment), self._privileged_first(i))
+            for i in load("v1", "dev")
+            if i.label.should_surface
+        )
+        cells = {(f, fr) for f, fr, _ in counts}
+        lopsided = sorted(
+            (f, fr, counts[(f, fr, True)], counts[(f, fr, False)])
+            for f, fr in cells
+            if counts[(f, fr, True)] != counts[(f, fr, False)]
+        )
+        assert not lopsided, f"{len(lopsided)} unbalanced cells, e.g. {lopsided[:3]}"
+
     def test_order_balances_at_the_documented_minimum(self):
         cells = self._order_cells(generate(n_pairs_per_scenario=MIN_PAIRS_FOR_BALANCED_ORDER))
         # The tag must actually vary here, or "zero single-order cells" would be
