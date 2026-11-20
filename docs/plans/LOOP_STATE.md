@@ -13,14 +13,14 @@ findings** below.
 
 ## Current status
 
-- **Round:** 39 complete (`shipped`) — all 22 LLM runs on `v2`; the ordering,
-  silence and pairs conclusions replicate, with three small exceptions. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
+- **Round:** 40 complete (`shipped`) — the audit prints the positional probe's
+  chance level. R39 (#35): all 22 LLM runs on `v2`; the conclusions replicate. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **457 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **461 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -255,7 +255,7 @@ I. **Re-run the 22 LLM runs on `v2` — DONE in R39.** Original entry: `experime
 J. **`commerce`'s residual positional leak — CLOSED in R37's review: no evidence.**
    11 of 20 seeds above 60% at 32 pairs against a label-swap null of 10 of 20.
    Per-family positional readings at 28-40 items are mostly chance.
-K. **Report per-family positional readings against a null (new, R37).** The audit
+K. **Report per-family positional readings against a null — DONE in R40.** Original entry: The audit
    table and DATASET.md's R25 seed-spread table quote per-family positional figures
    with no chance reference; at this size a label-swap null exceeds 60% in about half
    of family-seed cells. Add the null column to `tactbench audit` (or drop the
@@ -2369,6 +2369,30 @@ not. 399 → **457** tests.
 the R23 Phi race again; caught because the gate flagged the gap and the source cache
 was intact. Moving files a running job writes is the hazard; wait for the job's own
 copy, as the third Phi resume did.
+
+---
+
+## Round 40 — the audit shows chance beside the positional probe
+
+**Ending state: `shipped`.** Queue item K. Round 37 found per-family positional
+readings at 28-40 items are mostly chance — a label-swap null exceeds 60% in about
+half of family-seed cells — while the audit printed them with no reference and
+coloured any ≥ 60% as a leak. **Tests first** (red on import): the null keeps pairs
+whole and opposite, changes some labels but not all, does not mutate its input, is
+deterministic; the audit prints the column.
+
+**Shipped.** `audit.label_swap_null` / `null_readings` / `null_median`; a `pos. null`
+column (median of 20 draws) and highlighting only when observed is ≥ 60% *and* above
+the null. On `v1/dev` it shows what R37 measured: most families' observed reading
+is at or below their null (driving 63.3% vs 66.7%); overall is above it (58.0% vs
+53.2%). Runs in under a second. README's positional paragraph now gives R36's cause
+(pair count, fixed in v2) rather than "deciders do not vary", and points at the
+column; METRICS.md describes it. 457 → **461** tests.
+
+**No subagent review** — a reporting column with four tests; the gated audit
+figures and probes are unchanged.
+
+**Loop:** nothing.
 
 ---
 

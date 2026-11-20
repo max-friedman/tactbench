@@ -409,7 +409,13 @@ def audit(
     by construction, so read the bigram column too. High
     means the benchmark is measuring vocabulary instead of tact.
     """
-    from .audit import PER_FAMILY_THRESHOLD, lexical_leakage, ngram_leakage, positional_leakage
+    from .audit import (
+        PER_FAMILY_THRESHOLD,
+        lexical_leakage,
+        ngram_leakage,
+        null_median,
+        positional_leakage,
+    )
 
     items = load(version, split)
     report = lexical_leakage(items)
@@ -427,6 +433,10 @@ def audit(
     # to it by construction. Reporting it alone read as resistance for ten rounds.
     t.add_column("bigram", justify="right")
     t.add_column("positional", justify="right")
+    # Round 40: the positional probe's chance level at this sample size. With labels
+    # swapped at random within pairs it still exceeds 60% in about half of
+    # family-seed cells (Round 37), so a positional figure means little without it.
+    t.add_column("pos. null", justify="right")
     t.add_column("verdict")
 
     families = sorted({i.moment.family for i in items})
@@ -446,12 +456,19 @@ def audit(
                 else f"{r.exploitable_accuracy:.1%}"
             )
 
+        null = null_median(subset, positional_leakage)
+        pos_cell = (
+            f"[yellow]{pos.exploitable_accuracy:.1%}[/yellow]"
+            if pos.is_leaking(PER_FAMILY_THRESHOLD) and pos.exploitable_accuracy > null
+            else f"{pos.exploitable_accuracy:.1%}"
+        )
         t.add_row(
             family,
             f"{uni.accuracy:.1%}",
             cell(uni),
             cell(big),
-            cell(pos),
+            pos_cell,
+            f"{null:.1%}",
             "[yellow]leaks[/yellow]"
             if worst >= PER_FAMILY_THRESHOLD
             else "[green]at chance[/green]",
@@ -463,6 +480,7 @@ def audit(
         f"[bold]{report.exploitable_accuracy:.1%}[/bold]",
         f"[bold]{ngram_report.exploitable_accuracy:.1%}[/bold]",
         f"[bold]{pos_report.exploitable_accuracy:.1%}[/bold]",
+        f"{null_median(items, positional_leakage):.1%}",
         "",
     )
     console.print(t)

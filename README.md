@@ -256,9 +256,14 @@ ran the right probe. `MIN_PAIRS_FOR_BALANCED_ORDER` states the precondition and
 minimum, and does *not* below it.
 
 Per-family, positional still reads above the 60% bound on some seeds — and for
-`driving` on every seed, at a constant 63.3%, because its deciders do not vary with
-the seed ([DATASET.md](docs/DATASET.md)) — and is reported rather than gated there; a positional policy is held to the
-beats-silence standard instead, which it loses by 16 points.
+`driving` on every seed, at a constant 63.3%, because at 20 pairs per family clause
+order is 2:1 within frames and driving's fixed fillers show it undiluted (Round 36;
+fixed in dataset `v2`, [DATASET.md](docs/DATASET.md)) — and is reported rather than
+gated there. At 28 items a family that figure is mostly chance: `tactbench audit`
+now prints a `pos. null` column, the positional probe's median over 20 draws with
+labels swapped at random within pairs, and most families' observed reading sits at
+or below it. A positional policy is held to the beats-silence standard instead,
+which it loses by 16 points.
 
 `TestOrderSensitiveShortcut` now enforces all of this as ordinary assertions. For
 two rounds it held them as `strict=True` xfails recording an open defect; those

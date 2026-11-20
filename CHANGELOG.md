@@ -5,6 +5,13 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Changed (Round 40)
+
+- **`tactbench audit` prints a chance reference for the positional probe**
+  (`pos. null`: median over 20 draws with each pair's labels swapped at random),
+  and highlights a per-family positional figure only when it is at or above 60%
+  *and* above that null. `audit.label_swap_null`, `null_readings`, `null_median`.
+
 ### Added (Round 39)
 
 - **All 22 open-weight LLM runs re-run on dataset `v2`** (360 dev moments),

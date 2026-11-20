@@ -297,7 +297,11 @@ out that negating a classifier is free.
 alongside the other two (worst 56.1% across ten seeds). Per family it still clears
 60% on some seeds and is reported rather than gated there; a positional *policy* is
 held to the beats-silence standard instead, which it loses by 16 points, via
-`test_a_positional_policy_cannot_beat_silence`.
+`test_a_positional_policy_cannot_beat_silence`. Since Round 40 the audit prints the
+probe's chance level beside it (`pos. null`: median over 20 label-swap draws,
+`audit.null_median`), and colours a per-family positional figure only when it is
+both at or above 60% and above that null — at 28-40 items a family the null alone
+exceeds 60% in about half of family-seed cells (Round 37).
 
 **Measure leakage only at a legal size.** Clause order balances only at
 `n_pairs_per_scenario >= MIN_PAIRS_FOR_BALANCED_ORDER` (16 — two pairs per frame).
