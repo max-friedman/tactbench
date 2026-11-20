@@ -29,7 +29,10 @@ fails the build if the dataset drifts back toward being guessable.
 from __future__ import annotations
 
 import math
+import random
 import re
+import statistics
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 from .schema import Item, frame_of, pair_key
@@ -372,3 +375,34 @@ def verbatim_overlap(train: list[Item], held_out: list[Item]) -> dict[str, float
         "whole_item_published": len(whole_seen) / n,
         "lookup_accuracy": (correct + 0.5 * (len(held_out) - len(unambiguous))) / n,
     }
+
+
+def label_swap_null(items: list[Item], rng: random.Random) -> list[Item]:
+    """The same moments with each pair's labels swapped with probability 1/2.
+
+    Labels then carry no information about the text, so whatever a probe reads here
+    is chance at this sample size. Round 37 found the positional probe exceeds 60% in
+    about half of family-seed cells under this null at 28-40 items a family -- a
+    single high per-family reading is not evidence of a leak. Pairs stay whole and
+    opposite; the input is not modified.
+    """
+    by_pair: dict[str, list[Item]] = defaultdict(list)
+    for item in items:
+        by_pair[pair_key(item.moment.id)].append(item)
+    flip = {key: rng.random() < 0.5 for key in by_pair}
+    out = []
+    for item in items:
+        surface = item.label.should_surface != flip[pair_key(item.moment.id)]
+        label = item.label.model_copy(update={"should_surface": surface})
+        out.append(item.model_copy(update={"label": label}))
+    return out
+
+
+def null_readings(items: list[Item], probe, draws: int = 20, seed: int = 0) -> list[float]:
+    """``probe``'s exploitable accuracy on ``draws`` label-swap nulls. Deterministic."""
+    rng = random.Random(seed)
+    return [probe(label_swap_null(items, rng)).exploitable_accuracy for _ in range(draws)]
+
+
+def null_median(items: list[Item], probe, draws: int = 20, seed: int = 0) -> float:
+    return statistics.median(null_readings(items, probe, draws, seed))
