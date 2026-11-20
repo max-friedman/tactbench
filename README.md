@@ -361,8 +361,9 @@ directions:
 **Two versions.** `v1` (20 pairs per family; 252 dev / 108 test) is what every
 figure in this README is measured on. `v2` (Round 37) is the same generator at 32
 pairs per family (360 dev / 216 test). At 20 pairs, clause order is unbalanced
-within frames and a position-aware probe can exploit it; at 32 it cannot for the
-families that showed it worst. `v2` has no published results yet — the LLM runs are
+within frames and a position-aware probe exploits it — overall it beats a
+label-shuffled null on 9 of 20 seeds; at 32 it does not on any, and `driving`'s
+fixed 63.3% becomes exactly 50.0%. `v2` has no published results yet — the LLM runs are
 being redone on it. Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator-at-32-pairs-round-37).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).

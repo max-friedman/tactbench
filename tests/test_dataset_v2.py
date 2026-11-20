@@ -68,16 +68,15 @@ def test_gated_probes_at_chance(family):
 
 
 def test_the_structural_positional_leak_is_gone():
-    """What v2 fixes, and only that. driving and finance -- the families with no
-    seed-drawn entity, where the order imbalance showed undiluted -- read exactly
-    chance; overall is under the bound. Per-family positional readings for the
-    families with drawn entities remain draws with real spread (``commerce`` above
-    60% on 11 of 20 seeds at 32 pairs), as in v1 -- the positional probe is
-    reported, not gated, and this does not pretend otherwise."""
+    """What v2 fixes, and only that. ``driving`` -- whose deciders hold no drawn
+    entity, so the order imbalance showed as a fixed 63.3% -- reads exactly chance
+    (on every seed, per the experiment); overall is under the bound. Per-family
+    readings for other families are noise-dominated at this size (see the doc gate
+    below), so they are not asserted. ``finance`` was in this test until review: it
+    reads 50.0% on the shipped seed only, 50.0-70.0% across seeds."""
     dev = load("v2", "dev")
-    for family in ("driving", "finance"):
-        sub = [i for i in dev if i.moment.family == family]
-        assert positional_leakage(sub).exploitable_accuracy == pytest.approx(0.5), family
+    driving = [i for i in dev if i.moment.family == "driving"]
+    assert positional_leakage(driving).exploitable_accuracy == pytest.approx(0.5)
     assert positional_leakage(dev).exploitable_accuracy < 0.60
 
 
@@ -130,10 +129,30 @@ def test_the_dataset_doc_quotes_what_the_experiment_prints():
         [sys.executable, str(root / "experiments" / "order_balance_probe.py")],
         capture_output=True, text=True, check=True, cwd=root,
     ).stdout  # fmt: skip
-    (a, b) = re.findall(r"cells above 60%: (\d+)/180 at 20 pairs, (\d+)/180 at 32", out)[0]
-    commerce = re.findall(r"^  commerce .* (\d+)/20\s*$", out, re.M)[0]
+
+    def row(n, name):
+        m = re.search(
+            rf"n={n} {name}\s+observed\s+([\d.]+)%\s+(\d+)/20\s+null\s+([\d.]+)%\s+(\d+)/20", out
+        )
+        return m.groups()
+
+    def cells(n):
+        return re.search(
+            rf"n={n} family cells above 60%: observed (\d+)/180, null (\d+)/180", out
+        ).groups()
+
     doc = (root / "docs" / "DATASET.md").read_text()
-    assert re.findall(r"\*\*(\d+) of 180\*\* at 20 pairs to \*\*(\d+) of 180\*\* at 32", doc) == [
-        (a, b)
+    o20, o32 = row(20, "overall"), row(32, "overall")
+    c32 = row(32, "commerce")
+    expect = [
+        rf"median is \*\*{o20[0]}%\*\* and it exceeds 60% on \*\*{o20[1]} of 20\*\*",
+        rf"against a null of {o20[2]}% and {o20[3]} of 20",
+        rf"At 32 pairs it is \*\*{o32[0]}%\*\*, {o32[1]} of 20",
+        rf"below the null's {o32[2]}%",
+        rf"\*\*{cells(20)[1]} of\s+180\*\* at 20 pairs and \*\*{cells(32)[1]} of 180\*\* at 32; "
+        rf"observed is {cells(20)[0]} and {cells(32)[0]}",
+        rf"\(11 of 20\), matches its own null \({c32[3]} of 20\)",
     ]
-    assert re.findall(r"`commerce` is still above 60% on \*\*(\d+) of 20\*\*", doc) == [commerce]
+    assert c32[1] == "11"
+    for pattern in expect:
+        assert len(re.findall(pattern, doc)) == 1, pattern

@@ -24,24 +24,48 @@ build at a different ``--pairs`` -- which keeps ``v1`` and its LLM results intac
 
 from __future__ import annotations
 
+import random
 import statistics
+from collections import defaultdict
 
 from tactbench.audit import positional_leakage
 from tactbench.dataset.generate import FRAMES, HELD_OUT_FRAMES, generate
-from tactbench.schema import frame_of
+from tactbench.schema import frame_of, pair_key
 
 SEEDS = range(20260726, 20260746)
 
 
-def per_family(n: int) -> dict[str, list[float]]:
-    """Positional exploitable accuracy per family over SEEDS, at ``n`` pairs."""
-    out: dict[str, list[float]] = {f: [] for f in sorted(FRAMES)}
+def label_swap_null(items: list, rng: random.Random) -> list:
+    """Each pair's labels swapped with probability 1/2 -- the same moments, with
+    labels independent of the text. What the probe reads here is pure noise at this
+    sample size. Round 37's review: per-family readings must be read against it."""
+    by_pair: dict[str, list] = defaultdict(list)
+    for item in items:
+        by_pair[pair_key(item.moment.id)].append(item)
+    out = []
+    for sides in by_pair.values():
+        flip = rng.random() < 0.5
+        for item in sides:
+            surface = item.label.should_surface != flip
+            label = item.label.model_copy(update={"should_surface": surface})
+            out.append(item.model_copy(update={"label": label}))
+    return out
+
+
+def sweep(n: int) -> dict:
+    """Overall and per-family positional readings over SEEDS, observed and null."""
+    rng = random.Random(0)
+    res = {"overall": ([], []), **{f: ([], []) for f in sorted(FRAMES)}}
     for seed in SEEDS:
         dev = [i for i in generate(n, seed) if frame_of(i.moment) not in HELD_OUT_FRAMES]
-        for f in out:
-            sub = [i for i in dev if i.moment.family == f]
-            out[f].append(positional_leakage(sub).exploitable_accuracy)
-    return out
+        null = label_swap_null(dev, rng)
+        res["overall"][0].append(positional_leakage(dev).exploitable_accuracy)
+        res["overall"][1].append(positional_leakage(null).exploitable_accuracy)
+        for f in FRAMES:
+            for k, data in ((0, dev), (1, null)):
+                sub = [i for i in data if i.moment.family == f]
+                res[f][k].append(positional_leakage(sub).exploitable_accuracy)
+    return res
 
 
 def main() -> None:
@@ -61,15 +85,17 @@ def main() -> None:
                 f"   {above:>2}/20        {min(raw):6.1%} - {max(raw):6.1%}"
             )
 
-    print("\nevery family, 20 vs 32 pairs (Round 37): median, seeds above 60%")
-    a, b = per_family(20), per_family(32)
-    for f in a:
-        print(
-            f"  {f:<13} {statistics.median(a[f]):6.1%} {sum(x > 0.6 for x in a[f]):>3}/20"
-            f"   {statistics.median(b[f]):6.1%} {sum(x > 0.6 for x in b[f]):>3}/20"
-        )
-    cells = [sum(x > 0.6 for f in d for x in d[f]) for d in (a, b)]
-    print(f"  cells above 60%: {cells[0]}/180 at 20 pairs, {cells[1]}/180 at 32 pairs")
+    print("\nobserved vs label-swap null (Round 37), median and seeds above 60%:")
+    for n in (20, 32):
+        res = sweep(n)
+        for name, (obs, null) in res.items():
+            print(
+                f"  n={n} {name:<13} observed {statistics.median(obs):6.1%} "
+                f"{sum(x > 0.6 for x in obs):>2}/20   null {statistics.median(null):6.1%} "
+                f"{sum(x > 0.6 for x in null):>2}/20"
+            )
+        cells = [sum(x > 0.6 for f in FRAMES for x in res[f][k]) for k in (0, 1)]
+        print(f"  n={n} family cells above 60%: observed {cells[0]}/180, null {cells[1]}/180")
 
 
 if __name__ == "__main__":
