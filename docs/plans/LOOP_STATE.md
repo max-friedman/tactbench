@@ -13,14 +13,14 @@ findings** below.
 
 ## Current status
 
-- **Round:** 36 complete (`shipped`) — the positional leak diagnosed: 20 pairs per
-  family leaves 3-pair frames 2:1 by clause order. R35 (#31, `rejected`): an entity
+- **Round:** 37 complete (`shipped`) — dataset `v2` at 32 pairs; R36 (#32): the
+  positional leak diagnosed as the pair count. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **380 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **397 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -248,7 +248,19 @@ H. **Restate priority 3's goal (new, R33).** Paraphrase expansion cannot make
    not measured (R33). Rescope it to
    what it can do — defeat generic string matchers, which the audit measures — and
    decide whether to do it as part of a `v2` dataset (see E's blast radius).
-E. **Fix the positional leak: rebuild at a multiple of 16 pairs (diagnosed R36).**
+I. **Re-run the 22 LLM runs on `v2` (new, R37).** `experiments/run_local_llms.py`
+   with `--version v2` support; ~1.4x v1's compute (360 dev moments), free. Then a
+   `v2` LLM table and `v2` built-in table in the README, gated like v1's. Background
+   jobs cap at 2h: one model per job, Phi-3.5 resumed from cache.
+J. **`commerce`'s residual positional leak — CLOSED in R37's review: no evidence.**
+   11 of 20 seeds above 60% at 32 pairs against a label-swap null of 10 of 20.
+   Per-family positional readings at 28-40 items are mostly chance.
+K. **Report per-family positional readings against a null (new, R37).** The audit
+   table and DATASET.md's R25 seed-spread table quote per-family positional figures
+   with no chance reference; at this size a label-swap null exceeds 60% in about half
+   of family-seed cells. Add the null column to `tactbench audit` (or drop the
+   per-family positional column), so a high reading is not read as a leak.
+E. **Fix the positional leak — DONE in R37 (`data/v2`), except `commerce` (item J).**
    At 32 pairs per family every (family, frame) cell is order-balanced, driving reads
    50.0% on all 20 seeds and overall never exceeds 60% (was 9 of 20). No code
    change: `tactbench build --version v2 --pairs 32`, keeping `v1` and its LLM
@@ -2233,6 +2245,58 @@ mechanism — the R27 lesson again (the numbers reproduced; the explanation did 
 
 ---
 
+## Round 37 — dataset v2 at 32 pairs
+
+**Ending state: `shipped`.** Queue item E. `data/v2` is `tactbench build --version v2
+--pairs 32` — no code change — so every (family, frame) cell is order-balanced and
+`v1`, with every figure and LLM run published on it, is untouched.
+
+**What v2 changes, against a label-swap null** (same moments, each pair's labels
+swapped at random): overall, the positional probe's median is 59.5% and exceeds 60%
+on 9 of 20 seeds at 20 pairs (null 53.4%, 0 of 20); at 32 pairs it is 51.7%, 0 of 20
+(null 53.5%). `driving` goes from a constant 63.3% to exactly 50.0% on every seed.
+That is the fix: the overall leak at 20 pairs is real, and at 32 it is at chance.
+
+**What it does not show.** Per-family readings at 28-40 items are mostly noise: the
+null exceeds 60% in 101 of 180 family-seed cells at 20 pairs and 77 at 32. The first
+version of this round reported "97 → 45 of 180 cells above 60%" as the improvement
+and named `commerce` (11 of 20 at 32) as a second cause; against its null (10 of 20)
+there is no evidence of one. `finance` was asserted at exactly chance in the first
+v2 test; that holds on the shipped seed only.
+
+**Shipped.** `data/v2` (360 dev / 216 test); `tests/test_dataset_v2.py` — v2
+reproducibility (CI rebuilds only v1), sizes, per-cell order balance, gated probes at
+chance per family, driving at chance and overall under the bound, pairs differing
+only in the decider, skyline ICS 0.0 and clearing the pair-blind bar, the exhaustive
+single-word scan, and DATASET.md's figures against the experiment's observed and
+null columns (a mutated figure fails). `experiments/order_balance_probe.py` prints the
+null. DATASET.md's v2 section, a null caveat on the R25 seed-spread table, README
+"Two versions". 380 → **397** tests (+1 strict xfail on v1, unchanged).
+
+**Review (subagent): request changes.** It verified the data byte-for-byte, ran the
+whole v1 suite against v2 (every invariant holds), and then ran the null the round
+had not: the headline count was mostly chance and the "second cause" was noise. Also
+caught: finance's exact-chance assertion, "cannot exploit" overclaiming in the
+README, and the new DATASET heading swallowing the following narrative.
+
+**CI caught a cross-version defect in the audit itself.** After the review fixes,
+py3.11 failed and py3.12/3.13 passed: the null count at 20 pairs read 104 on 3.11 and
+101 on 3.13. Not hash order (identical under four `PYTHONHASHSEED`s) — Python 3.12
+made `sum()` of floats compensated, so a fold mean that is exactly 0.6 came out
+0.6000000000000001 on 3.11 and flipped a "> 60%" count. `audit.lexical_leakage` now
+averages folds with `math.fsum`; 3.11 and 3.13 agree exactly, and the full suite
+passes on both with every published figure unchanged. Latent since the audit was
+written; any threshold on a fold mean could have flipped by interpreter.
+
+**No LLM results on v2 yet** — queue item I. The README says so.
+
+**Loop:** a count of "readings above a threshold" was reported as an effect with no
+chance reference, for the third time in this project's positional work (R22's "6 to
+14", R25's table, here). Candidate method finding: a threshold count needs its null
+before it is a result.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -2253,6 +2317,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). |
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
+| A threshold count needs its null | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — three instances in one project. Check LOOP.md's measurement guidance first. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |

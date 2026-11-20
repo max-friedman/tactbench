@@ -5,6 +5,17 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 37)
+
+- **Dataset `v2`**: the same generator and seed at 32 pairs per family (360 dev /
+  216 test), so every (family, frame) cell is order-balanced. Against a label-swap
+  null over 20 seeds, the overall positional probe exceeds 60% on 9 of 20 at 20
+  pairs (null: 0) and on 0 of 20 at 32; `driving` reads exactly 50.0% on every
+  seed. Per-family positional readings at this size are mostly noise (the null
+  exceeds 60% in 77-101 of 180 cells), so no family's residual is evidence of a
+  leak. `v1` is unchanged. `tests/test_dataset_v2.py` asserts
+  the standing invariants on `v2` and its reproducibility (CI rebuilds only `v1`).
+
 ### Known defect (Round 36, open, recorded)
 
 - **At 20 pairs per family the positional probe reads above 60% for structural

@@ -169,6 +169,12 @@ does not control. Per family, over the same 20 seeds
 | travel | 50.0% | 65.0% | 3 | yes |
 <!-- seed-spread:end -->
 
+**Read these counts against chance (Round 37).** At 28 items a family the positional
+probe exceeds 60% in about half of family-seed cells even when labels are shuffled
+within pairs, so "seeds above 60%" is mostly noise for a single family; what carries
+information is a reading that does not move (`driving`) and the pooled figure. See
+*Dataset v2* below.
+
 Round 22 published "6 to 14 seeds out of 20" here; the true range is **3 to 20**, and
 the correction changes the reading. For seven families the figure is a draw: read
 it as a range. **For `driving` it is not a draw at all.** Its decider sentences use a
@@ -182,6 +188,39 @@ seed-invariant, but a whole finance moment varies from 15 to 23 tokens, which sh
 still exceeds 60% on 17 of 20. The two families whose deciders never vary are the
 two most often above the bound. No gate fails, because the positional probe is not
 gated.
+
+### Dataset v2 — the same generator at 32 pairs (Round 37)
+
+Round 36 traced `driving`'s fixed 63.3% to the **pair count**: clause order
+alternates on `idx // 8`, so a (family, frame) cell is order-balanced only with an
+even number of pairs. At the shipped 20, frames 0-3 hold three pairs (2:1) and dev
+is 9:5 by order in every family; a positional probe learns the majority. `data/v2`
+is `tactbench build --version v2 --pairs 32` — no code change — and every cell is
+balanced (360 dev / 216 test items). `v1` is unchanged, so every published v1
+figure, including the LLM results, still describes `v1`.
+
+What it changes, measured over 20 seeds against a **label-swap null** — the same
+moments with each pair's labels swapped at random, so labels carry no information:
+
+- **Overall**, the positional leak at 20 pairs is real and at 32 it is gone. At 20
+  pairs the probe's median is **59.5%** and it exceeds 60% on **9 of 20** seeds,
+  against a null of 53.4% and 0 of 20. At 32 pairs it is **51.7%**, 0 of 20 —
+  below the null's 53.5%.
+- **`driving`** read a constant 63.3% at 20 pairs and reads exactly **50.0%** on
+  every seed at 32 — a deterministic change, not a draw.
+- **Per-family readings are mostly noise at this size**, with 28-40 items a family.
+  With labels independent of the text, family-seed cells exceed 60% in **101 of
+  180** at 20 pairs and **77 of 180** at 32; observed is 97 and 45. So a single
+  family reading above 60% is not evidence of a leak. `commerce`, the family still
+  most often above 60% at 32 pairs (11 of 20), matches its own null (10 of 20) —
+  there is no evidence of a second cause.
+
+`experiments/order_balance_probe.py` prints all of it; a test compares these
+figures with it. (The first version of this section reported "97 → 45 of 180" as the
+improvement and called commerce a second cause; review ran the null and showed both
+counts are mostly chance.)
+
+### Token permutations and the bigram probe
 
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
