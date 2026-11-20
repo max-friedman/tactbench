@@ -13,8 +13,9 @@ findings** below.
 
 ## Current status
 
-- **Round:** 34 complete (`shipped`) — the viewer shows the pair-blind bar, and has
-  tests. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
+- **Round:** 35 complete (`rejected`) — drawing an entity into `driving`/`finance`
+  does not fix their positional reading; v2 built, measured, not kept. R34 (#30):
+  the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
@@ -246,6 +247,15 @@ H. **Restate priority 3's goal (new, R33).** Paraphrase expansion cannot make
    not measured (R33). Rescope it to
    what it can do — defeat generic string matchers, which the audit measures — and
    decide whether to do it as part of a `v2` dataset (see E's blast radius).
+E. **`driving` and `finance` exceed the 60% per-family bound on the positional
+   probe — the cause is the frames, not missing entities (re-scoped R35).** R35
+   drew an entity into both families' fillers and measured 20 seeds
+   (`experiments/entity_draw_probe.py`): driving stops being constant but is still
+   above 60% on 9 of 20 seeds, with a worse worst seed; finance is unchanged (19 of
+   20). Next step is diagnostic, not a fix: which positional features carry it —
+   the role words' clause position within these two families' frames is the
+   suspect. The positional probe is reported, not gated, so nothing fails. Original
+   entry below.
 E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    contain no seed-drawn entity, so the reading is a property of the frames and sits
    above the 60% per-family bound on every seed. Reported, not gated, so nothing
@@ -2137,6 +2147,43 @@ headless Chromium: no script errors; `never` −41.2 and skyline +100.0, matchin
 README; header reads "silence ICS 336.0 · pair-blind ICS 238.0". 377 → **380** tests.
 
 **No subagent review** — a display change covered by three tests and a real render.
+
+**Loop:** nothing.
+
+---
+
+## Round 35 — an entity draw does not fix the positional leak
+
+**Ending state: `rejected`.** Queue item E: R25 found `driving` reads a constant
+63.3% on the positional probe (above the 60% per-family bound) because its deciders
+contain no seed-drawn entity; `finance` is seed-invariant too. Plan: a `v2` dataset
+drawing an entity into both families' fillers, leaving every other family and all
+of `v1` byte-identical so the 22 committed LLM runs stay valid.
+
+**What would prove the plan wrong, stated first:** driving or finance still above
+60% on most seeds after the draw.
+
+**Built in full**: `generate(version=)`, `fillers_v2` for the two families on a
+private random stream (the first attempt shared the stream and shifted every later
+family; the second skipped non-overriding families' draws and shifted them too —
+both caught by a test that only these two families differ from v1), `data/v2`, and
+seventeen tests including v1 byte-identity, v2 reproducibility, gated probes at 50.0%
+per family, pair diff, and skyline ICS 0.0.
+
+**Measured, 20 seeds:** driving 50.0–81.7%, above 60% on **10 of 20** (was 20 of 20,
+constant); finance above 60% on **19 of 20** (was 17). The constancy is gone; the
+leak is not, and driving's worst seed is worse than its old constant. `v2` improves
+no gated figure. Rejected and reverted — keeping it would version the dataset for
+nothing, and invalidate nothing only because it changed so little.
+
+**Kept:** `experiments/entity_draw_probe.py`, self-contained (patches the two
+`fillers`, no generator change), reproducing the picture: driving 53.3–76.7%, 9 of
+20 above; finance 19 of 20. Its numbers differ slightly from the v2 build because
+patching shifts the shared stream; both are recorded. Queue item E re-scoped: the
+cause is where the role words sit in these frames — diagnose before fixing.
+
+**No subagent review** — nothing shipped but an experiment that reproduces a
+negative result; the figures are printed by the script itself.
 
 **Loop:** nothing.
 
