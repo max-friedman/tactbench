@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 39 complete (`shipped`) — all 22 LLM runs on `v2`; every conclusion
-  replicates. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
+- **Round:** 39 complete (`shipped`) — all 22 LLM runs on `v2`; the ordering,
+  silence and pairs conclusions replicate, with three small exceptions. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
@@ -2335,12 +2335,26 @@ block only, so the two tables cannot be confused.
 crossing silence, or a model reaching coin level on pairs once the sample grew and
 the clause-order imbalance was removed.
 
-**Result: full replication.** 0 of 231 run pairs ordered differently by ICS; median
-move against silence 0.2 points (largest 5.8, SmolLM2 rubric); no run crosses
-silence; the same six runs beat it, all with zero hard violations; best pairs 8.9%.
-Small differences worth recording: Phi-3.5's two prompts now differ on a few
-decisions (317 vs 320 moments spoken; identical on v1). Each claim is a test
-(`test_the_readme_replication_claims`; a mutated figure fails).
+**Result: the ordering, silence and pairs conclusions replicate.** 0 of 231 run
+pairs reversed by ICS (5 tied on one version only); median move against silence 0.2
+points (largest 5.8, SmolLM2 rubric); no run crosses silence; the same six runs beat
+it, all with zero hard violations; best pairs 8.9%. **Three v1 details do not carry
+over exactly:** 7 constant runs, not 8 (Qwen2.5-0.5B rubric speaks on 359 of 360);
+Phi-3.5's prompts differ on 3 surface decisions (identical on v1); losing runs have
+18–40 hard violations, not 11–28.
+
+**Review (subagent): request changes.** Verified the runs are genuine v2 (224 of 252
+shared ids carry different text; decisions on shared ids differ from v1 in 2–141
+places; every result file byte-identical to its v2 cache), the manifest's v1 figures
+untouched, and every figure. It then checked each v1 bullet on v2, which the round
+had not: "every conclusion replicates" was false for two (constant runs; Phi). Also:
+"0 ordered differently" hid 5 one-sided ties; the v1 "11–28" range is v1-only; the
+v1 Phi claim was overstated even on v1 (surface decisions match 252/252, decisions
+with confidence and intent 50/252) — now "the same speak-or-stay-quiet decision";
+and the test left "six" and "under a coin" unchecked (both mutations now fail, as
+does a mutated exception count). The manifest rewrite also added `system_role: true`
+to six models' v1 entries — accurate (they never used `--no-system-role`), and noted
+here because the PR did not say so.
 
 **Operations.** v2 calls took ~1.8× v1's per model, not the 1.4× estimated from item
 counts. Three jobs hit the 2-hour background limit and resumed from the decision

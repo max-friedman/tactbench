@@ -255,7 +255,7 @@ class TestReadmeLLMProseFigures:
             assert (float(a.replace("−", "-")), float(b)) == (round(naive, 1), round(rubric, 1))
 
     def test_phi_decides_identically_under_both_prompts(self):
-        self._one(r"Phi-3\.5's 252 decisions are identical under both")
+        self._one(r"Phi-3\.5 makes the same speak-or-stay-quiet decision on all 252 moments")
         naive = {d.moment_id: d.surface for d in RUNS["llm:naive:phi-3.5-mini"]}
         rubric = {d.moment_id: d.surface for d in RUNS["llm:rubric:phi-3.5-mini"]}
         assert naive == rubric

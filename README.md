@@ -363,8 +363,9 @@ figure in this README is measured on. `v2` (Round 37) is the same generator at 3
 pairs per family (360 dev / 216 test). At 20 pairs, clause order is unbalanced
 within frames and a position-aware probe exploits it — overall it beats a
 label-shuffled null on 9 of 20 seeds; at 32 it does not on any, and `driving`'s
-fixed 63.3% becomes exactly 50.0%. Every LLM run has been redone on `v2`, and every conclusion
-replicates (see *On dataset v2* under the LLM results). Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator-at-32-pairs-round-37).
+fixed 63.3% becomes exactly 50.0%. Every LLM run has been redone on `v2`; the ordering, silence
+and pairs conclusions replicate, with three small exceptions listed under *On dataset
+v2*. Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator-at-32-pairs-round-37).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
 
@@ -449,13 +450,19 @@ a test fails the build if this table disagrees with that output. To rerun:
 #### On dataset v2 — a replication
 
 The same 22 runs on `v2` (Round 37: 32 pairs per family, 360 dev moments, clause
-order balanced in every frame), re-run in Round 39. **Every conclusion above
-replicates.** Of the 231 pairs of runs, **0** are ordered differently by ICS on v2
-than on v1; the median run moves **0.2** points against silence (largest move
-**5.8**, SmolLM2 with the rubric) and none crosses it; the same six runs beat
-silence, all with zero hard violations; and the best `pairs` score is **8.9%** —
-still under a coin's ~25%. So the v1 findings were not an artefact of its sample
-or of the clause-order imbalance Round 36 found.
+order balanced in every frame), re-run in Round 39. **The ordering, silence and
+pairs conclusions replicate.** Of the 231 pairs of runs, **0** are reversed by ICS
+on v2 (**5** are tied on one version and ordered on the other); the median run moves
+**0.2** points against silence (largest move **5.8**, SmolLM2 with the rubric) and
+none crosses it; the same **six** runs beat silence, all with zero hard violations;
+and the best `pairs` score is **8.9%** — still under a coin's ~25%. So those
+findings were not an artefact of v1's sample or of the clause-order imbalance Round
+36 found.
+
+Three v1 details do **not** carry over exactly: **7** runs are constant on v2, not 8
+(Qwen2.5-0.5B with the rubric speaks on 359 of 360); Phi-3.5's two prompts differ on
+**3** surface decisions; and runs that lose to silence collect **18–40** hard
+violations, not 11–28 — still none in between.
 
 <!-- llm-results-v2:start -->
 | model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
@@ -506,7 +513,7 @@ What it shows:
   talks a lot, disclosing the costs cuts how often they speak and turns a loss into
   a gain or a smaller loss — Gemma-3-4B from −6.5 to +16.4, Qwen2.5-7B from −19.9 to
   +11.0. It does not make them discriminate: no run gets above 10.3% pairs under either
-  prompt, and Phi-3.5's 252 decisions are identical under both. Llama-3.2-3B goes the other way,
+  prompt, and Phi-3.5 makes the same speak-or-stay-quiet decision on all 252 moments under both. Llama-3.2-3B goes the other way,
   silent under the rubric.
 - **No run that beats silence has a hard violation; every run that loses has
   11–28.** There is nothing in between — no model trades a few hard violations for

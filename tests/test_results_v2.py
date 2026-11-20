@@ -81,7 +81,10 @@ def test_every_v2_readme_figure_equals_a_fresh_rescore():
 
 
 def test_the_readme_replication_claims():
-    """README: v2 replicates v1 -- each quoted figure recomputed."""
+    """README: what replicates on v2 and what does not -- every figure and word
+    recomputed. Review of R39 found the first version read five figures and left
+    "six", "under a coin" and the per-bullet v1 claims unchecked, which is how "every
+    conclusion replicates" shipped false."""
     import re
     import statistics
     from itertools import combinations
@@ -92,32 +95,49 @@ def test_the_readme_replication_claims():
     v2 = {c.policy: (c, p) for c, _, p in scorecards("v2")}
     assert set(v1) == set(v2), "the replication claim needs every v1 run on v2"
     names = sorted(v1)
-    discordant = sum(
-        (v1[a].ics - v1[b].ics) * (v2[a][0].ics - v2[b][0].ics) < 0
-        for a, b in combinations(names, 2)
-    )
+    pairs = list(combinations(names, 2))
+    reversed_ = sum((v1[a].ics - v1[b].ics) * (v2[a][0].ics - v2[b][0].ics) < 0 for a, b in pairs)
+    one_tie = sum((v1[a].ics == v1[b].ics) != (v2[a][0].ics == v2[b][0].ics) for a, b in pairs)
     moves = [abs(v1[k].ics_normalized - v2[k][0].ics_normalized) for k in names]
     flips = [k for k in names if (v1[k].ics_normalized > 0) != (v2[k][0].ics_normalized > 0)]
     above1 = {k for k in names if v1[k].ics_normalized > 0}
     above2 = {k for k in names if v2[k][0].ics_normalized > 0}
     best = max(p for _, p in v2.values())
+    constant = sum(c.surfaced in (0, c.n) for c, _ in v2.values())
+    runs = load_results("v2")
+    naive = {d.moment_id: d.surface for d in runs["llm:naive:phi-3.5-mini"]}
+    rubric = {d.moment_id: d.surface for d in runs["llm:rubric:phi-3.5-mini"]}
+    phi_differ = sum(naive[m] != rubric[m] for m in naive)
+    losing = [c.hard_violations for c, _ in v2.values() if c.ics_normalized < 0]
+    words = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
 
     text = README.read_text()
     quoted = re.findall(
-        r"Of the (\d+) pairs of runs, \*\*(\d+)\*\* are ordered differently.*?median run moves "
-        r"\*\*([\d.]+)\*\* points.*?largest move\s+\*\*([\d.]+)\*\*.*?best `pairs` score is "
-        r"\*\*([\d.]+)%\*\*",
+        r"Of the (\d+) pairs of runs, \*\*(\d+)\*\* are reversed by ICS\s+on v2 \(\*\*(\d+)\*\* "
+        r"are tied.*?median run moves\s+\*\*([\d.]+)\*\* points.*?largest move \*\*([\d.]+)\*\*.*?"
+        r"the same \*\*(\w+)\*\* runs beat silence.*?best `pairs` score is \*\*([\d.]+)%\*\* — "
+        r"still (under) a coin",
         text,
         re.S,
     )
     assert quoted == [
         (
-            str(len(names) * (len(names) - 1) // 2),
-            str(discordant),
+            str(len(pairs)),
+            str(reversed_),
+            str(one_tie),
             f"{statistics.median(moves):.1f}",
             f"{max(moves):.1f}",
+            words[len(above2)],
             f"{100 * best:.1f}",
+            "under" if best < 0.25 else "over",
         )
     ]
-    assert not flips and above1 == above2 and len(above2) == 6
+    assert not flips and above1 == above2
     assert all(v2[k][0].hard_violations == 0 for k in above2)
+    exceptions = re.findall(
+        r"\*\*(\d+)\*\* runs are constant on v2.*?differ on\s+\*\*(\d+)\*\* surface decisions.*?"
+        r"collect\s+\*\*(\d+)–(\d+)\*\* hard\s+violations",
+        text,
+        re.S,
+    )
+    assert exceptions == [(str(constant), str(phi_differ), str(min(losing)), str(max(losing)))]
