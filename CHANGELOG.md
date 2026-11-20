@@ -5,6 +5,15 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 37)
+
+- **Dataset `v2`**: the same generator and seed at 32 pairs per family (360 dev /
+  216 test), so every (family, frame) cell is order-balanced. Family-seed cells
+  above 60% on the positional probe fall from 97 to 45 of 180; `driving` reads
+  exactly 50.0% on every seed. `commerce` still exceeds 60% on 11 of 20 seeds, so
+  it is not a complete fix. `v1` is unchanged. `tests/test_dataset_v2.py` asserts
+  the standing invariants on `v2` and its reproducibility (CI rebuilds only `v1`).
+
 ### Known defect (Round 36, open, recorded)
 
 - **At 20 pairs per family the positional probe reads above 60% for structural

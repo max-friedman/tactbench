@@ -13,14 +13,14 @@ findings** below.
 
 ## Current status
 
-- **Round:** 36 complete (`shipped`) — the positional leak diagnosed: 20 pairs per
-  family leaves 3-pair frames 2:1 by clause order. R35 (#31, `rejected`): an entity
+- **Round:** 37 complete (`shipped`) — dataset `v2` at 32 pairs; R36 (#32): the
+  positional leak diagnosed as the pair count. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **380 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **397 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -248,7 +248,14 @@ H. **Restate priority 3's goal (new, R33).** Paraphrase expansion cannot make
    not measured (R33). Rescope it to
    what it can do — defeat generic string matchers, which the audit measures — and
    decide whether to do it as part of a `v2` dataset (see E's blast radius).
-E. **Fix the positional leak: rebuild at a multiple of 16 pairs (diagnosed R36).**
+I. **Re-run the 22 LLM runs on `v2` (new, R37).** `experiments/run_local_llms.py`
+   with `--version v2` support; ~1.4x v1's compute (360 dev moments), free. Then a
+   `v2` LLM table and `v2` built-in table in the README, gated like v1's. Background
+   jobs cap at 2h: one model per job, Phi-3.5 resumed from cache.
+J. **`commerce`'s residual positional leak (new, R37).** Above 60% on 11 of 20 seeds
+   even at 32 pairs. Diagnose as R36 did — counts of label-asymmetric positional
+   features — before changing anything.
+E. **Fix the positional leak — DONE in R37 (`data/v2`), except `commerce` (item J).**
    At 32 pairs per family every (family, frame) cell is order-balanced, driving reads
    50.0% on all 20 seeds and overall never exceeds 60% (was 9 of 20). No code
    change: `tactbench build --version v2 --pairs 32`, keeping `v1` and its LLM
@@ -2230,6 +2237,41 @@ printed by the experiment, and the xfail's reason was checked directly.
 **Loop:** the round's first diagnosis matched the number (9/14 ≈ 63.3%) and was wrong;
 only running the predicted fix exposed it. A coincidence of magnitudes is not a
 mechanism — the R27 lesson again (the numbers reproduced; the explanation did not).
+
+---
+
+## Round 37 — dataset v2 at 32 pairs
+
+**Ending state: `shipped`.** Queue item E. `data/v2` is `tactbench build --version v2
+--pairs 32` — no code change — so every (family, frame) cell is order-balanced and
+`v1`, with every figure and LLM run published on it, is untouched.
+
+**Predicted (R36), then checked on the shipped v2 build:** driving and finance at
+exactly 50.0% positional; overall 50.8% (v1 58.0%). **Not predicted, found when the
+tests ran:** on the shipped seed four *other* families read high per family —
+childcare 77.5%, deadline 75.0%, meeting_prep 70.0%, commerce 60.0%. The first
+draft of the v2 test asserted every family under 60%, which no invariant claims and
+the data does not support. Before changing the test, measured every family over 20
+seeds at 20 and 32 pairs: cells above 60% fall **97 → 45 of 180**, median 63.3% →
+55.0%, every family improves or holds, driving 20 → 0 — but **commerce stays above
+60% on 11 of 20**. So v2 removes the structural component; per-family readings for
+families with drawn entities remain draws, and commerce has a second cause (item J).
+The test now asserts what was measured.
+
+**Shipped.** `data/v2` (360 dev / 216 test); `tests/test_dataset_v2.py` — v2
+reproducibility (CI rebuilds only v1), sizes, per-cell order balance, gated probes at
+chance per family, driving/finance at chance and overall under the bound, pairs
+differing only in the decider, skyline ICS 0.0 and clearing the pair-blind bar, the
+exhaustive single-word scan, and DATASET.md's figures against the experiment (a
+mutated figure fails). README "Two versions" paragraph; DATASET.md v2 section;
+`experiments/order_balance_probe.py` prints the all-family table. 380 → **397**
+tests (+1 strict xfail on v1, unchanged).
+
+**No LLM results on v2 yet** — queue item I. The README says so.
+
+**Loop:** the first v2 test encoded a prediction as an invariant; running it on real
+data is what showed the prediction was only half right. Same lesson as R36 — check
+the claim against every family before generalising from the two that motivated it.
 
 ---
 

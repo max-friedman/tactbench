@@ -24,11 +24,24 @@ build at a different ``--pairs`` -- which keeps ``v1`` and its LLM results intac
 
 from __future__ import annotations
 
+import statistics
+
 from tactbench.audit import positional_leakage
-from tactbench.dataset.generate import HELD_OUT_FRAMES, generate
+from tactbench.dataset.generate import FRAMES, HELD_OUT_FRAMES, generate
 from tactbench.schema import frame_of
 
 SEEDS = range(20260726, 20260746)
+
+
+def per_family(n: int) -> dict[str, list[float]]:
+    """Positional exploitable accuracy per family over SEEDS, at ``n`` pairs."""
+    out: dict[str, list[float]] = {f: [] for f in sorted(FRAMES)}
+    for seed in SEEDS:
+        dev = [i for i in generate(n, seed) if frame_of(i.moment) not in HELD_OUT_FRAMES]
+        for f in out:
+            sub = [i for i in dev if i.moment.family == f]
+            out[f].append(positional_leakage(sub).exploitable_accuracy)
+    return out
 
 
 def main() -> None:
@@ -47,6 +60,16 @@ def main() -> None:
                 f"{n:>5}  {family or 'overall':<8}  {min(ex):6.1%} - {max(ex):6.1%}"
                 f"   {above:>2}/20        {min(raw):6.1%} - {max(raw):6.1%}"
             )
+
+    print("\nevery family, 20 vs 32 pairs (Round 37): median, seeds above 60%")
+    a, b = per_family(20), per_family(32)
+    for f in a:
+        print(
+            f"  {f:<13} {statistics.median(a[f]):6.1%} {sum(x > 0.6 for x in a[f]):>3}/20"
+            f"   {statistics.median(b[f]):6.1%} {sum(x > 0.6 for x in b[f]):>3}/20"
+        )
+    cells = [sum(x > 0.6 for f in d for x in d[f]) for d in (a, b)]
+    print(f"  cells above 60%: {cells[0]}/180 at 20 pairs, {cells[1]}/180 at 32 pairs")
 
 
 if __name__ == "__main__":

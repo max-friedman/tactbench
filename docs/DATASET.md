@@ -183,6 +183,23 @@ still exceeds 60% on 17 of 20. The two families whose deciders never vary are th
 two most often above the bound. No gate fails, because the positional probe is not
 gated.
 
+### Dataset v2 — the same generator at 32 pairs (Round 37)
+
+Round 36 traced `driving`'s fixed 63.3% to the **pair count**: clause order
+alternates on `idx // 8`, so a (family, frame) cell is order-balanced only with an
+even number of pairs. At the shipped 20, frames 0-3 hold three pairs (2:1) and dev
+is 9:5 by order in every family; a positional probe learns the majority. `data/v2`
+is `tactbench build --version v2 --pairs 32` — no code change — and every cell is
+balanced (360 dev / 216 test items). `v1` is unchanged, so every published v1
+figure, including the LLM results, still describes `v1`.
+
+Across 20 seeds × 9 families, family-seed cells above 60% on the positional probe
+fall from **97 of 180** at 20 pairs to **45 of 180** at 32; `driving` goes from 20
+of 20 to 0 and reads exactly 50.0% on every seed. It is not a complete fix: at 32
+pairs `commerce` is still above 60% on **11 of 20** seeds, so a second cause remains.
+`experiments/order_balance_probe.py` prints the full table; a test compares these
+figures with it.
+
 All nine are token permutations: both sides contain the same words, arranged
 differently. Every family probes at the 50% chance floor **for the bag-of-words
 audit** — which is exactly what a token permutation guarantees, since that probe
