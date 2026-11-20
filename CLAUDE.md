@@ -151,7 +151,12 @@ In order. Each is a self-contained increment.
 3. **Paraphrase expansion** — vary sentence structure, not just entities, so
    string-matching overfitting becomes genuinely impossible.
 4. **Held-out test labels** — hidden behind a submission script so the leaderboard
-   resists overfitting.
+   resists overfitting. **Round 33:** hiding the label file or the seed does nothing —
+   `tactbench build` recovers every test label and a parser of the public templates
+   solves held-out frames from any seed. Keeping the held-out *frames* private does
+   work (the same parser then scores exactly silence). Blocked on custody: someone
+   must write fresh held-out frames, keep them off the repo, and host scoring
+   (NEEDS-MAX 4).
 5. **Fatigue modeling** — session-level items where interruption cost rises with
    recent interruption frequency.
 

@@ -13,11 +13,12 @@ findings** below.
 
 ## Current status
 
-- **Round:** 32 complete (`shipped`) — CHANGELOG backfilled for R15–R21. R31 (#27):
+- **Round:** 33 complete (`blocked`) — hidden test labels need private *frames*;
+  hiding the file or seed does nothing. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **368 passed**, `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **377 passed**, `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -224,6 +225,13 @@ halt the loop.**
    results back into `raters` / `agreement` is not built yet.
 3. **PyPI release** — deliberately held until (1) lands, so the first release ships
    with the finding that makes it worth installing.
+4. **A held-out set that actually resists overfitting (R33).** Hiding `test.jsonl`
+   or the seed hides nothing: public code rebuilds it, and a parser of the public
+   templates solves held-out frames from any seed. **Private held-out frames work**
+   — given only frames 0-4, the same parser scores exactly silence (144.0) on frames
+   5-7. Needs: fresh held-out frames (5-7 are in git history; an agent can write
+   them), kept off the public repo, and scoring hosted by whoever holds them. A
+   custody decision, not code.
 
 ---
 
@@ -233,6 +241,11 @@ halt the loop.**
 filed — letters for R23 onward, numbers before — because other entries refer to them
 by label. Finished items are collapsed below; nothing was deleted.
 
+H. **Restate priority 3's goal (new, R33).** Paraphrase expansion cannot make
+   overfitting "genuinely impossible" while templates are public — by construction,
+   not measured (R33). Rescope it to
+   what it can do — defeat generic string matchers, which the audit measures — and
+   decide whether to do it as part of a `v2` dataset (see E's blast radius).
 E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    contain no seed-drawn entity, so the reading is a property of the frames and sits
    above the 60% per-family bound on every seed. Reported, not gated, so nothing
@@ -2061,6 +2074,54 @@ such condition.
 
 **Loop:** a session ended its loop on a reason LOOP.md does not list as a stop
 condition. One instance; noted as a candidate.
+
+---
+
+## Round 33 — hiding test labels needs private frames
+
+**Ending state: `blocked`** — on custody, not code. CLAUDE.md priority 4: *"Held-out
+test labels — hidden behind a submission script so the leaderboard resists
+overfitting."* (First written up as `refuted`; review showed that overstated it —
+see below.)
+
+**What would decide it, stated first:** whether the test labels are recoverable from
+public material, and if so whether any hideable thing would put them out of reach.
+
+**Measured.** (1) With `data/` deleted from a copy of `main`, `tactbench build`
+regenerates `data/v1/test.jsonl` identically — **108 of 108 labels**; the reviewer
+confirmed it with the real `build` command and `cmp`. (2) A secret seed does not
+help: `SkylinePolicy` — a parser of the public decider templates that reads only
+what a submitted policy may (`family` included, by design) — scores **ICS 0.0, 0
+hard violations** on held-out frames from five unseen seeds. (3) **Private held-out
+frames do work:** given only frames 0-4, the same parser scores **144.0 — exactly
+silence** — on frames 5-7, on seeds 20260726, 1 and 42. So priority 4 is achievable
+with fresh held-out frames (5-7 are in git history; an agent can write them) kept off
+the public repo, and scoring hosted by whoever holds them. That custody is the
+owner's — NEEDS-MAX 4.
+
+**Shipped.** `experiments/hidden_labels_probe.py` (all three);
+`TestTheHeldOutSplitIsNotSecret` pins all three, asserts the held-out set is
+non-empty (an empty one scored 0.0 and passed vacuously), and no longer claims the
+seed tests guard privacy — they import the generator's frames, so they pass whatever
+the templates say. README limitation and roadmap, CLAUDE.md priority 4, CHANGELOG
+say what was measured. 368 → **377** tests.
+
+**Review (subagent): request changes, and it measured the design the round had
+dismissed.** The round wrote "needs private templates or human-written items" and
+ended `refuted` without measuring either. The reviewer simulated private frames and
+got 144.0; the round reproduced it, changed the ending state to `blocked`, and
+dropped "human-written". It also caught: the seed tests were described as a privacy
+guard they cannot be, and an empty held-out set would have passed them.
+
+**Priority 3 — reasoning, not measured.** Paraphrase expansion's stated goal ("so
+string-matching overfitting becomes genuinely impossible") cannot hold against a
+parser of the templates that generated the paraphrases — true by construction, not
+measured here. It can still defeat generic string matchers (what the audit
+measures). Queue item H.
+
+**Loop:** a refutation was written against the obvious design and its stronger
+neighbour was named as a caveat instead of measured. Same family as R27: the round
+checked what it built, not what it dismissed.
 
 ---
 

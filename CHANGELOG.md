@@ -5,6 +5,17 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Measured (Round 33)
+
+- **Hiding test labels needs private frames, not a hidden file or seed.**
+  `tactbench build` regenerates `data/v1/test.jsonl` byte-for-byte (108 of 108
+  labels), and the skyline — a parser of the public decider templates — scores ICS
+  0.0 on held-out frames from five unseen seeds, so neither hiding the file nor a
+  secret seed helps. Given only the public frames, the same parser scores exactly
+  silence (144.0) on the held-out frames: private held-out frames would work. That
+  needs someone to hold them and host scoring. `experiments/hidden_labels_probe.py`
+  prints all three; `TestTheHeldOutSplitIsNotSecret` pins them.
+
 ### Added (Round 31)
 
 - **`tactbench label` and `tactbench agreement`** — collect human yes/no judgments
