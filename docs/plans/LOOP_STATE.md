@@ -13,8 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 31 complete (`shipped`) — `tactbench label` / `agreement`: the
-  human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
+- **Round:** 32 complete (`shipped`) — CHANGELOG backfilled for R15–R21. R31 (#27):
+  `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
 - **Gate:** green — **368 passed**, `ruff check` **and** `ruff format --check` both
@@ -256,17 +256,17 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 9. **Type checking** — no mypy/pyright configured; worth adding to CI once the
    schema surface settles.
 
-10. **`CHANGELOG.md` has no entries for R15–R18**, still asserts *"Bigrams reach
+11. **Human label validation — tool DONE in R31; labels need people (NEEDS-MAX 2).** A labelling CLI is buildable now
+   even if the raters are not.
+
+<details><summary>Done or resolved — kept for history (A–D, F, G, 1–5, 7, 10)</summary>
+
+10. **`CHANGELOG.md` has no entries for R15–R18 — DONE in R32 (R15–R21).**, still asserts *"Bigrams reach
    97.2%"* against a current 50.0%, and its R13 block still lists the
    `Label: value` uniformity as a live limitation that R16 removed. The tone rule
    requires retiring a limitation when the capability ships; that was done in
    README and not here. The 97.2% figure was already wrong on `main`, so it is not
    R16's doing — but R16 moved bigram overall 51.1% → 50.0% and did not look.
-
-11. **Human label validation — tool DONE in R31; labels need people (NEEDS-MAX 2).** A labelling CLI is buildable now
-   even if the raters are not.
-
-<details><summary>Done or resolved — kept for history (A–D, F, G, 1–5, 7)</summary>
 
 4. **Cover the README figures the prose check still misses — DONE in R30.** The **Status R29:** the sweep
    table is gated (R26/R27); `−87.5 normalized`, `294 more ICS` and `0.500 precision`
@@ -2037,6 +2037,33 @@ DATASET.md and CHANGELOG say so. Writing human results back into `GoldLabel.rate
 
 ---
 
+## Round 32 — the CHANGELOG's missing seven rounds
+
+**Ending state: `shipped`.** Queue item 10. The CHANGELOG had no entries for R15–R18
+— and, measured rather than assumed, none for R19–R21 either; item 10 undercounted.
+It also said *"Bigrams reach 97.2%"* in the present tense (the audit reads 50.0%
+today, re-run this round), and its R13 block still listed the `Label: value`
+uniformity as a live cost that R16 removed.
+
+**Shipped.** Entries for R15–R16 (prose deciders, rejected then restored), R17–R18
+(README results and prose gates), R19–R20 (the hollow order-balance invariant, 6 of 9
+families enforced, R19's "5 of 9" corrected), R21 (the signal join kept,
+`TestSignalJoinIsFree`), each taken from its round entry here, placed under 0.1.0 in
+reverse order because all predate the tag. The 97.2% line now reads as history with
+today's 50.0%; the R13 cost is marked resolved. No code changed; 368 tests.
+
+**Why the session nearly stopped before this round.** R31's report said every
+remaining item needed the owner or a large compute run. That was wrong: this item,
+held-out test labels (CLAUDE.md priority 4) and versioning a `v2` dataset were all
+delegated or free. The owner asked why the loop had stopped. Recorded because
+"the remaining work is bigger" was treated as a stop condition, and LOOP.md lists no
+such condition.
+
+**Loop:** a session ended its loop on a reason LOOP.md does not list as a stop
+condition. One instance; noted as a candidate.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -2055,6 +2082,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). |
+| A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |

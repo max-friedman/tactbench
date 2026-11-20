@@ -104,8 +104,47 @@ the history that led here.
   is worse.** A bag of words cannot see word order, and the matched-pair design
   makes both sides carry the same token multiset — so the unigram probe was
   *structurally incapable* of separating a pair and reported 50.0% for ten rounds.
-  Bigrams reach **97.2%**. `audit.verbatim_overlap` additionally measures how much
-  held-out text is published verbatim in `dev`.
+  Bigrams **reached 97.2% in Round 11**; every family has read 50.0% on both columns
+  since Round 13 held decider phrasings out of the training split, and Round 16's
+  prose deciders kept it there. (This entry said "reach 97.2%" in the present tense
+  until Round 32.) `audit.verbatim_overlap` additionally measures how much held-out
+  text is published verbatim in `dev`.
+
+### Changed (Round 21)
+
+- **The shortcut probe's signal join is kept, and its cost is pinned at zero.**
+  `audit.item_tokens` joins every signal before tokenizing, so bigrams cross the
+  body/decider junction. Kept deliberately: a submitter chooses their own
+  serialization, so the probe takes the upper bound. `TestSignalJoinIsFree` asserts
+  joined and per-signal bigram accuracy are exactly equal, with no tolerance.
+
+### Fixed (Rounds 19 and 20)
+
+- **An order-balance invariant had been hollow since Round 16.**
+  `TestOrderBalancePrecondition` tagged clause order by the text before a colon;
+  Round 16's prose deciders have no colon, so the tag became the whole sentence and
+  the test silently measured entity variety instead. Collapsing one family's clause
+  order passed the suite for 3 of 9 families. The tag now reads clause order
+  directly. Round 19 first reported "5 of 9" from three measurements; Round 20
+  measured all nine and corrected it to 6 of 9 enforced.
+
+### Added (Rounds 17 and 18)
+
+- **`TestReadmeResultsAreCurrent`** fails the build when the README's results table
+  disagrees with a fresh `eval` (Round 17, after the table went stale twice), and
+  `test_prose_figures_match_a_fresh_eval` extends it to figures quoted in prose
+  (Round 18, after the first version covered only the table rows while the README
+  sentence beside it claimed more).
+
+### Changed (Rounds 15 and 16)
+
+- **Deciders are prose again.** Round 13's `Label: value` frames closed the surface
+  exploit but read like status lines. Round 15 rebuilt them as prose, found the
+  leak returned, and rejected the attempt with a rule (the filler may not be
+  clause-initial). Round 16 found that rule necessary but not sufficient and
+  restored prose under three structural properties, asserted in
+  `TestProseFrameStructure`; all nine families read 50.0% on the unigram and bigram
+  probes.
 
 ### Fixed (Round 14)
 
@@ -146,9 +185,9 @@ the history that led here.
   `"the desk"` and `_meeting_prep` matched `"contract review"` — they resolved
   nothing and worked only because those nouns never varied. Still zero
   disagreements across all nine families.
-- **Known cost:** deciders are now uniform `Label: value.` lines, which reads like
-  a status line rather than a real message. Restoring prose while keeping the
-  guarantee is the top queue item.
+- **Known cost (resolved in Round 16):** deciders are now uniform `Label: value.`
+  lines, which reads like a status line rather than a real message. Restoring prose
+  while keeping the guarantee is the top queue item. *Round 16 did; see above.*
 
 ### Changed (Round 12)
 
