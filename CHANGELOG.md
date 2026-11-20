@@ -5,6 +5,13 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Changed (Round 34)
+
+- **The local viewer shows `vs pair-blind`** beside `vs silence`, and the pair-blind
+  ICS beside silence's in its header — the last surface still showing only the
+  shipping bar since Round 24. The viewer had no tests; `tests/test_web.py` checks
+  its board against `eval`, its decisions against stored ids, and the served page.
+
 ### Measured (Round 33)
 
 - **Hiding test labels needs private frames, not a hidden file or seed.**
