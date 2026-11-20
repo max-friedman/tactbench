@@ -576,9 +576,10 @@ otherwise would defeat the purpose of building a benchmark:
   parser built only from the public decider templates (the skyline) scores ICS 0.0
   on the held-out frames of splits built from seeds it has never seen. So the
   held-out split measures whether a system generalises to unseen *phrasings* — for a
-  system that has not read the generator. It does not resist anyone who has.
-  Measured in Round 33 (`experiments/hidden_labels_probe.py`; pinned by
-  `TestTheHeldOutSplitIsNotSecret`).
+  system that has not read the generator. It does not resist anyone who has. What
+  would: **private held-out frames** — given only the public frames, the same
+  parser scores exactly what silence scores on the held-out ones. Measured in Round
+  33 (`experiments/hidden_labels_probe.py`; pinned by `TestTheHeldOutSplitIsNotSecret`).
 - **The LLM results are one sample at temperature 0, on dev.** No variance across
   seeds or prompts is reported, and no model has been run on the held-out split.
 
@@ -595,10 +596,10 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    (Round 31); the labels themselves need people.
 3. More scenario families — six is the real ceiling on dataset diversity now that
    phrasing has stopped being the weak point.
-4. ~~Held-out test split with hidden labels behind a submission script.~~ Refuted in
-   Round 33 as written: hiding the label file hides nothing while the generator is
-   public (see limitations). A held-out set that resists overfitting needs private
-   templates or human-written items.
+4. Held-out test split behind a submission script — **blocked on custody**, not
+   code (Round 33). Hiding the label file or the seed hides nothing; keeping the
+   held-out *frames* private does (see limitations). It needs someone to write fresh
+   held-out frames, keep them off the public repo, and host scoring.
 
 ## Contributing
 

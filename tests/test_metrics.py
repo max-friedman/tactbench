@@ -2012,16 +2012,23 @@ class TestMetricDiscriminationOnEveryDraw:
 
 
 class TestTheHeldOutSplitIsNotSecret:
-    """Round 33 refuted CLAUDE.md priority 4 as written ("hidden test labels ...
-    resist overfitting"). These pin the two reasons, so the README's limitation is
-    checked rather than asserted: if either ever fails, the held-out split has
-    become genuinely private and the README, CLAUDE.md and LOOP_STATE must change.
-    See ``experiments/hidden_labels_probe.py``."""
+    """Round 33: what hiding the held-out labels would and would not do. See
+    ``experiments/hidden_labels_probe.py``.
+
+    The first test pins that the committed file is public in substance (public code
+    rebuilds it). The second pins that a parser of the *public* templates solves
+    held-out frames from unseen seeds -- it imports the generator's frames, so it
+    is a statement about the published templates, **not** a privacy guard; review
+    caught an earlier docstring claiming otherwise. The third pins the design that
+    works: with the held-out frames withheld from the parser, it scores exactly
+    silence."""
 
     @staticmethod
     def _held_out(seed):
         items = generate(n_pairs_per_scenario=20, seed=seed)
-        return [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
+        held = [i for i in items if frame_of(i.moment) in HELD_OUT_FRAMES]
+        assert held, "no held-out items -- an empty set would score 0.0 and pass vacuously"
+        return held
 
     def test_the_test_file_is_rebuilt_exactly_from_public_code(self):
         committed = load("v1", "test")
@@ -2030,6 +2037,17 @@ class TestTheHeldOutSplitIsNotSecret:
         ]
 
     @pytest.mark.parametrize("seed", [1, 42, 777, 123456, 99999999])
-    def test_a_template_parser_solves_held_out_frames_from_unseen_seeds(self, seed):
+    def test_a_parser_of_the_public_templates_solves_unseen_seeds(self, seed):
         card = evaluate(SkylinePolicy(), self._held_out(seed))
         assert card.ics == 0.0 and card.hard_violations == 0
+
+    @pytest.mark.parametrize("seed", [20260726, 1, 42])
+    def test_private_held_out_frames_would_defeat_the_parser(self, seed, monkeypatch):
+        import tactbench.policies.skyline as skyline
+
+        public = {
+            f: [t for k, t in enumerate(fr) if k not in HELD_OUT_FRAMES] for f, fr in FRAMES.items()
+        }
+        monkeypatch.setattr(skyline, "FRAMES", public)
+        items = self._held_out(seed)
+        assert evaluate(SkylinePolicy(), items).ics == evaluate(NeverPolicy(), items).ics
