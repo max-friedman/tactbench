@@ -83,11 +83,18 @@
     "quantization": "Q4_K_M",
     "runtime": "llama-cpp-python 0.3.37",
     "sha256": "6c1a2b41161032677be168d354123594c0e6e67d2b9227c84f296ad037c728ff",
+    "system_role": true,
     "temperature": 0,
     "threads": 4,
     "wall_seconds": {
       "naive": 743.6,
       "rubric": 760.5
+    },
+    "wall_seconds_by_version": {
+      "v2": {
+        "naive": 1524.1,
+        "rubric": 1531.8
+      }
     }
   },
   "phi-3.5-mini": {
