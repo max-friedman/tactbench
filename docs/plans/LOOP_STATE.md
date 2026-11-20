@@ -2279,6 +2279,15 @@ had not: the headline count was mostly chance and the "second cause" was noise. 
 caught: finance's exact-chance assertion, "cannot exploit" overclaiming in the
 README, and the new DATASET heading swallowing the following narrative.
 
+**CI caught a cross-version defect in the audit itself.** After the review fixes,
+py3.11 failed and py3.12/3.13 passed: the null count at 20 pairs read 104 on 3.11 and
+101 on 3.13. Not hash order (identical under four `PYTHONHASHSEED`s) — Python 3.12
+made `sum()` of floats compensated, so a fold mean that is exactly 0.6 came out
+0.6000000000000001 on 3.11 and flipped a "> 60%" count. `audit.lexical_leakage` now
+averages folds with `math.fsum`; 3.11 and 3.13 agree exactly, and the full suite
+passes on both with every published figure unchanged. Latent since the audit was
+written; any threshold on a fold mean could have flipped by interpreter.
+
 **No LLM results on v2 yet** — queue item I. The README says so.
 
 **Loop:** a count of "readings above a threshold" was reported as an effect with no

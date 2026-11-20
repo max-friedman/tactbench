@@ -306,7 +306,10 @@ def lexical_leakage(
     odds = sorted(full.log_odds().items(), key=lambda kv: kv[1])
 
     return LeakageReport(
-        accuracy=sum(accuracies) / len(accuracies) if accuracies else 0.5,
+        # math.fsum, not sum: Python 3.12 made sum() of floats compensated, so a fold
+        # mean that is exactly 0.6 came out 0.6000000000000001 on 3.11 and flipped a
+        # "> 60%" count between interpreters (Round 37, caught by CI on py3.11).
+        accuracy=math.fsum(accuracies) / len(accuracies) if accuracies else 0.5,
         folds=accuracies,
         n=len(items),
         top_speak=[(t, v) for t, v in reversed(odds[-12:])],
