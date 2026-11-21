@@ -22,6 +22,10 @@
       "v2para": {
         "naive": null,
         "rubric": null
+      },
+      "v3": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -46,6 +50,10 @@
         "rubric": null
       },
       "v2para": {
+        "naive": null,
+        "rubric": null
+      },
+      "v3": {
         "naive": null,
         "rubric": null
       }
@@ -74,6 +82,10 @@
       "v2para": {
         "naive": null,
         "rubric": null
+      },
+      "v3": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -98,6 +110,10 @@
         "rubric": 817.4
       },
       "v2para": {
+        "naive": null,
+        "rubric": null
+      },
+      "v3": {
         "naive": null,
         "rubric": null
       }
@@ -126,6 +142,10 @@
       "v2para": {
         "naive": null,
         "rubric": null
+      },
+      "v3": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -150,6 +170,10 @@
         "rubric": null
       },
       "v2para": {
+        "naive": null,
+        "rubric": null
+      },
+      "v3": {
         "naive": null,
         "rubric": null
       }
@@ -178,6 +202,10 @@
       "v2para": {
         "naive": null,
         "rubric": null
+      },
+      "v3": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -202,6 +230,10 @@
         "rubric": 876.4
       },
       "v2para": {
+        "naive": null,
+        "rubric": null
+      },
+      "v3": {
         "naive": null,
         "rubric": null
       }
@@ -230,6 +262,10 @@
       "v2para": {
         "naive": null,
         "rubric": null
+      },
+      "v3": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -256,6 +292,10 @@
       "v2para": {
         "naive": null,
         "rubric": null
+      },
+      "v3": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -280,6 +320,10 @@
         "rubric": 1124.4
       },
       "v2para": {
+        "naive": null,
+        "rubric": null
+      },
+      "v3": {
         "naive": null,
         "rubric": null
       }

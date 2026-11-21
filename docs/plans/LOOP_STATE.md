@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 45 complete (`shipped`) — dataset `v3`: v2 plus a tenth family,
+- **Round:** 46 complete (`shipped`) — all 22 LLM runs on `v3`; on `pet_care` 18 of
+  22 are constant and the best reads 3 of 20 pairs. R45: dataset `v3`: v2 plus a tenth family,
   `pet_care`. R44: mypy over `src/tactbench`, clean, gated from
   pytest. R43: the two badly-worded paraphrase frames repaired
   and re-run. R42: paraphrase robustness measured on a reworded
@@ -24,7 +25,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **596 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **681 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -310,10 +311,8 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    author's idea of a working life. Remaining candidates: home security. (Commute
    disruption was dropped in R45: `driving` already asks which route is blocked.)
 
-N. **LLM runs on `v3` (new, R45).** v3's nine old families are byte-identical to v2's,
-   so v2's cached decisions stand for them once that is checked moment by moment;
-   only `pet_care`'s 40 dev moments need calls (22 runs, free, local). Then a v3 table
-   gated like v2's.
+N. **LLM runs on `v3` — DONE in R46.** 22 runs, old-family decisions checked equal
+   to v2's one by one, table and claims gated (`tests/test_results_v3.py`).
 
 9. **Type checking — DONE in R44.** mypy, `check_untyped_defs`, gated from pytest
    (`tests/test_types.py`) because workflows are owner-only.
@@ -2579,6 +2578,35 @@ candidate: it duplicates `driving`.
 
 ---
 
+## Round 46 — the 22 runs on v3
+
+**Ending state: `shipped`.** Queue item N. Before-number: no LLM decisions on `v3`.
+
+**Check first.** `tests/test_results_v3.py`, drafted before any run finished and
+parked out of the tree until they had (a partial run fails it): every run complete
+and free of failed calls; both variants for every model; every v2 run repeated; every
+old-family v3 decision byte-equal to that run's v2 decision; README rows one-to-one
+with runs, every figure equal to a fresh re-score.
+
+**Shipped.** The 22 v2 caches were seeded into v3 caches after checking that all 360
+old-family policy views are identical between versions; only the 40 `pet_care`
+moments were queried. README: a v3 table and a gated claims block. On `pet_care`, 18
+of 22 runs are constant; the best (Llama-3.1-8B naive) gets 3 of 20 pairs both right,
+against a coin's ~5. Against v2, 0 of 231 run pairs reverse and 2 change a tie; the
+same six runs beat silence with zero hard violations. **One verdict changes:**
+Qwen2.5-3B naive goes from 4.7% to 6.2% unparsed and is inconclusive on v3 — stated,
+not hidden. Wall times in `MANIFEST.json` are `null` for v3: every run resumed from a
+seeded cache, so no whole-run timing exists.
+
+**A tolerance edge.** The v3 re-score test failed on an ECE of 0.1545 (prints 0.154,
+differs by 0.0005 + float error). Fixed with a 1e-9 epsilon, not a wider tolerance.
+The v1/v2 tests have the same comparison and pass by luck of their values; not
+changed this round.
+
+**Loop:** nothing.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -2708,6 +2736,8 @@ dataset or the policy is wrong, not the assertion.
   `results/MANIFEST.json` reports both variants (R23).
 - **The README LLM table equals a fresh re-score of `results/`**, row for row, and
   each conclusion the README draws from it is a test (R23).
+- **Every v2 run is repeated on v3, each old-family decision equals v2's, and the v3
+  table and claims equal a fresh re-score** (`tests/test_results_v3.py`, R46).
 - **Every v2 run is repeated on the reworded set, and the README's paraphrase claims
   equal a fresh recomputation** (`tests/test_results_v2para.py`, R42).
 - ICS stays monotone, anchored, and responsive in comprehension — the metric must
