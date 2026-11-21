@@ -13,7 +13,10 @@ findings** below.
 
 ## Current status
 
-- **Round:** 55 complete — marker-aware order checks for all five random-marker
+- **Loop audit due:** R57 (fifth round after R52's audit). A round at or past it runs
+  the audit or writes `deferred: <reason>` on its Loop line (proposed upstream, #60).
+- **Round:** 56 complete — two method findings sent upstream: the audit-cadence
+  resubmission (#60) and R55's instance on #56. No code changed. R55: marker-aware order checks for all five random-marker
   families (queue Q); v2-v5 already read exactly 50%, v1 dev is R36's known imbalance. R54: all 28 LLM runs on `v5`; on `water_notice` 18 of 28 are
   constant, the best reads 5 of 20 pairs (a coin's expectation; not measurably better), and no verdict changes.
   R53: the system-turn preflight is structural (padded vs short
@@ -3087,6 +3090,31 @@ not a hand-typed one — the first draft's list was typed from the queue item's 
 
 ---
 
+## Round 56 — two method findings sent upstream
+
+**Ending state: `shipped`.** A §C filing round; not a queue item. **Before:** the
+method-findings table held the audit-cadence finding as a *candidate* since R52, and
+R55's review had produced a new instance of #56 recorded only here. **After:** #60
+filed and #56 commented on. The cadence finding was checked against `LOOP.md` and the
+issue list first. §C states the cadence but nothing on the round's path fires it. #21,
+from another project, had proposed the same thing and was rejected for a missing
+blast-radius section only. So #60 is a resubmission that answers #21's four questions
+rather than a second thin proposal. Redacted per §C: no repository names, paths or code.
+
+The other candidates were left as they are. "A threshold count needs its null" has four
+instances but was not checked against §2/§A's wording this round. The rest have one or
+two instances.
+
+**Local:** `**Loop audit due:** R57` added to Current status, the bookkeeping #21's
+project used. It records when the existing rule fires and changes no rule.
+
+**Review:** none needed for the issue text beyond the §C checklist. This entry and the
+status lines are docs only.
+
+**Loop:** cadence finding filed (#60); #56 gains an instance.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -3104,9 +3132,9 @@ already covered or out of scope, and filing them would have wasted triage.
 | A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **folded into [#39](https://github.com/max-friedman/agentic-coding-loop/issues/39)** as the counter-argument section, since a naive fix to the first finding licenses exactly this error. Not filed separately. |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
-| A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). R45 adds one: "equal skeletons" held clause *token* count equal and left *character* length free — a pet_care length rule read 90%. R47 adds another: the R45 length gate tested characters and missed an *-er* suffix rule at 90%. |
+| A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). R45 adds one: "equal skeletons" held clause *token* count equal and left *character* length free — a pet_care length rule read 90%. R47 adds another: the R45 length gate tested characters and missed an *-er* suffix rule at 90%. R55 adds one (commented on #56): a check over "every random-marker family" listed three by hand where the code's own table had five. |
 | A check that asks the subject to perform tests its ability too | R51's preflight asked a model to repeat a word to prove a system turn arrived; a 1B model that receives the turn failed 4 of 7 (R53). The first fix compared against no system turn and was confounded by a template default. A property check should measure the property (here, prompt length) rather than a behaviour that depends on it. | **candidate** — one instance, two steps. |
-| The audit cadence is never prompted | R28 ran the only loop audit until R52; §C's every-fifth-round and two-non-`nothing` triggers fired at R32-R33, R33, R36-R37, R38, R43 and R48 and no round noticed. Nothing in the round steps checks the cadence. | **candidate** — one instance, 23 rounds long. Check §C and the round steps first. |
+| The audit cadence is never prompted | R28 ran the only loop audit until R52; §C's every-fifth-round and two-non-`nothing` triggers fired at R32-R33, R33, R36-R37, R38, R43 and R48 and no round noticed. Nothing in the round steps checks the cadence. | **filed — [issue #60](https://github.com/max-friedman/agentic-coding-loop/issues/60)** (R56), as a resubmission of the rejected #21 (another project, same cause) with the blast-radius section #21 lacked: a due marker plus an explicit defer. Locally, `**Loop audit due:**` in Current status, as #21's project did. |
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
 | A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — four instances in one project (R52: with a null, a 20-seed window failed — 50% against 25% — while 60 seeds read 30% against 31%; the count needs its sample size too). Check LOOP.md's measurement guidance first. |
