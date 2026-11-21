@@ -13,11 +13,12 @@ findings** below.
 
 ## Current status
 
-- **Loop audit due:** R67 (fifth round after R62's audit) — **or sooner**: a stop
+- **Loop audit due:** R72 (fifth round after R67's audit) — **or sooner**: a stop
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
-  update this line when either happens (R62: R57-R58 did and nobody pulled it). A round
+  update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 66 complete — the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
+- **Round:** 67 complete — item S closed (two present-tense claims pinned); loop audit
+  on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
   R62: invariants checked on every committed split; the skyline
@@ -50,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1194 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1196 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -349,7 +350,8 @@ S. **The 75 README figures still unpinned** (new, R65; `experiments/readme_figur
    - **Current data — DONE in R66:** driving 63.3% → 50.0%, "359 of 360", Phi-3.5's
      "all 252 moments", the skyline's ICS 0.0 on unseen seeds; each mutation-tested.
      "+10.1 to +38.7" already reads as R26 history, and its current +38.7 is pinned in
-     the sweep table. **Left: the history labels.**
+     the sweep table. **History — DONE in R67:** already framed as history (dated
+     narrative, R11/R12/R13 table); two present-tense claims in it pinned instead.
 
 Q. **Marker-aware order checks for `pet_care` and `home_security` — DONE in R55**,
    extended by its review to `travel` and `commerce`: `tests/test_marker_order.py`, all
@@ -3479,6 +3481,38 @@ exactly its pin red (4 of 4).
 **Review:** none beyond the gate. Each pin is mutation-checked.
 
 **Loop:** nothing new.
+
+---
+
+## Round 67 — item S closed; loop audit
+
+**Ending state: `shipped`.** Queue item S, its history half. **Before:** the README's R9-R13
+figures were thought to need "recorded, not current" labels. Read in place, they
+already are: a dated narrative ("Round 11 measured…") and an R11/R12/R13 table. Two
+present-tense claims sat inside that history, unpinned:
+- "All nine families sit at the chance floor for the bag-of-words probe. Overall:
+  50.0%." That was true of `v1`, but `v5` has twelve families. Measured: every family
+  reads exactly 50.0% on both, and overall is 50.0% on both.
+- The limitations line "It now scores **+0.0** two-sided". Measured by fitting the
+  bag-of-bigrams on each committed dev and scoring it on test: the better polarity is
+  exactly +0.0 on all five versions.
+
+**After:** the first claim is reworded to "all nine in `v1`, all twelve in `v5`", and
+both are pinned in `tests/test_readme_prose.py`.
+
+**Loop audit (§C), R62–R66.**
+- *Did a trigger fail to fire?* No. There were no two non-`nothing` Loop lines in a
+  row and no stop condition, so R67 is on time.
+- *Effort out of proportion?* No. The README sweep was long (about 40 minutes a run)
+  and it produced the round's findings.
+- *Unread section?* The method-findings notes were read. R60's #56 instance, "noted for
+  the next filing", was filed this round: mutation tests that only revert the fix
+  prove the check sees its own fix.
+- *Ending states, ambiguity:* all `shipped`. Review independence as before (#29).
+
+**Review:** none beyond the gate.
+
+**Loop:** audit on time; #56 gains an instance (filed).
 
 ---
 

@@ -125,3 +125,39 @@ def test_the_public_parser_solves_held_out_frames_of_an_unseen_seed():
     assert (
         "(the skyline) scores ICS 0.0 on the held-out frames of splits built from seeds" in README
     )
+
+
+def test_every_family_at_the_unigram_chance_floor():
+    from tactbench.audit import lexical_leakage
+
+    for version, n in (("v1", 9), ("v5", 12)):
+        items = load(version, "dev")
+        families = sorted({i.moment.family for i in items})
+        assert len(families) == n
+        assert f"{lexical_leakage(items).accuracy * 100:.1f}%" == "50.0%"
+        for f in families:
+            acc = lexical_leakage([i for i in items if i.moment.family == f]).accuracy
+            assert 0.5 + abs(acc - 0.5) == 0.5, (version, f)
+    assert "all nine in `v1`, all twelve in `v5`. Overall: 50.0% on both." in README
+
+
+def test_the_bag_of_bigrams_ties_silence_on_every_version():
+    """Limitations: it "now scores **+0.0** two-sided -- it ties saying nothing and
+    never beats it". Fit on each committed dev, scored on its test, both polarities."""
+    import sys
+
+    sys.path.insert(0, str(ROOT / "tests"))
+    from test_metrics import TestOrderSensitiveShortcut
+
+    ngram = TestOrderSensitiveShortcut._NgramPolicy
+    for version in ("v1", "v2", "v3", "v4", "v5"):
+        dev, test = load(version, "dev"), load(version, "test")
+        reference = silence_ics(test)
+        best = max(
+            evaluate(ngram(dev, invert=inv), test, reference=reference).ics_normalized
+            for inv in (False, True)
+        )
+        assert f"{best:+.1f}" == "+0.0", version
+    assert "It now scores **+0.0** two-sided" in " ".join(
+        README.split("## Honest limitations")[1].split()
+    )
