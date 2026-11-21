@@ -15,7 +15,8 @@ findings** below.
 
 - **Loop audit due:** R62 (fifth round after R57's audit). A round at or past it runs
   the audit or writes `deferred: <reason>` on its Loop line (proposed upstream, #60).
-- **Round:** 58 complete — coverage map refreshed (stale since R34); viewer gap queued (R).
+- **Round:** 59 complete — the viewer is tested on every version and names the one
+  it shows. R58: coverage map refreshed (stale since R34); viewer gap queued (R).
   R57: loop audit (due); the null finding filed upstream (#61).
   R56: two method findings sent upstream: the audit-cadence
   resubmission (#60) and R55's instance on #56. No code changed. R55: marker-aware order checks for all five random-marker
@@ -41,7 +42,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1048 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1112 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -223,7 +224,7 @@ last round whose commit changed the file.
 | `results/` + `results.py` | R42 | committed decisions + MANIFEST per version; old-family decisions checked equal across versions |
 | `experiments/run_local_llms.py` | R53 | reproduces every LLM row from weights; caches seed from the previous version |
 | `labeling.py` | R31 | CLI and Fleiss' κ, tested on synthetic raters; **no real labels** (NEEDS-MAX 2) |
-| `web/server.py` | R34 | pair-blind column; `tests/test_web.py` runs on **v1 dev only** — v2-v5 unprobed in the viewer (queue R) |
+| `web/server.py` | R59 | pair-blind column; header names the dataset version, built in the payload and asserted exactly in the served page; `tests/test_web.py` on every dataset on disk (board == `eval`); v5 rendered in Chromium, no JS errors. `innerHTML` unescaped for ids and policy names |
 | `.github/workflows/` | owner-only | CI on py3.11-3.13 + reproducibility + audit; not editable by a round |
 
 ---
@@ -328,10 +329,8 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
 
-R. **The viewer on v2-v5** (new, R58). `tests/test_web.py` builds its payload from
-   `v1/dev` only; nothing checks that `tactbench serve --version v5` loads, that its
-   board equals `eval` on v5, or that the twelve families render. Parametrize over
-   versions; fix whatever breaks.
+R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
+   now names its dataset version.
 
 Q. **Marker-aware order checks for `pet_care` and `home_security` — DONE in R55**,
    extended by its review to `travel` and `commerce`: `tests/test_marker_order.py`, all
@@ -3185,6 +3184,43 @@ DATASET.md.
 **Loop:** R57's audit asked "which section is never read?" and answered "none" without
 opening the sections. An audit question answered from memory is not asked. That is
 local: the question is fine, and the slip was mine.
+
+---
+
+## Round 59 — the viewer never said which dataset it showed
+
+**Ending state: `shipped`.** Queue item R (R58). **Before:** `tests/test_web.py` built its
+payload from `v1/dev` only. The page's header read "252 moments · dev split · …" with no
+version, so nothing on the page told v1 from v2 apart. **After:** the payload carries
+`version`, each moment's `family`, and the header line itself, built in Python. The
+page's script sets it from that field. `build_payload` requires the version. The header
+reads "dataset v5 · 480 moments · dev split · silence ICS 640.0 · pair-blind ICS 480.0".
+Every web test runs on every dataset on disk: v1-v5 × dev/test plus `v2para/dev`, 11
+cases. `test_every_dataset_on_disk_is_covered` compares the list with `data/`'s
+`*.jsonl` files.
+
+**Checks first.** The parametrized tests were red (60 errors) before `build_payload`
+took a version. Nothing broke on v2-v5 except the missing field: the board equalled
+`eval` everywhere once it built. Inspected in Chromium on v5: the board has a header row and 5 policy rows,
+there are no page errors, and the silence figure matches the README's v5 table.
+
+**Review:** subagent, not §D-independent (owner instruction). Fixed from it:
+- The header test could pass with the header broken. It checked that `DATA.version`
+  appeared anywhere in the template. The header is now built in `build_payload`, and the
+  test asserts the exact string, recomputed from `silence_ics` and `pair_blind_ics`, in
+  the served page. It also asserts that the script's only `meta` assignment is
+  `= DATA.header`.
+- "Every family shown" overclaimed. No element renders `family`. The test was renamed to
+  what it checks: the payload carries every family.
+- `v2para` was silently skipped by a digits-only filter. It is now covered.
+- This entry's first draft said "6 board rows" (that count included the header row) and
+  "360 moments" for v1 dev (it is 252).
+
+Not fixed, and older than this round: ids, states and policy names go into `innerHTML`
+unescaped. That is harmless while the data is constructed, but it matters once human
+labels or outside policy names reach the viewer.
+
+**Loop:** nothing new.
 
 ---
 

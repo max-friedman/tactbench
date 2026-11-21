@@ -5,6 +5,12 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Fixed (Round 59)
+
+- **The viewer names its dataset version** (`dataset v5 · 480 moments · …`); it never
+  did, so a v2 page looked like v1's. `tests/test_web.py` now runs on every dataset on
+  disk (v1-v5 and `v2para`) and asserts the exact header in the served page.
+
 ### Added (Round 55)
 
 - **`tests/test_marker_order.py`**: the marker-aware clause-order check now covers
