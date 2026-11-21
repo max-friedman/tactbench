@@ -349,22 +349,24 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
     ],
     "water_notice": [
         # Privileged: where the user lives now; the other clause is a former address.
-        # Chosen by search (R52) over 29 candidates that meet the structural rules
+        # Chosen by search (R52) over 33 candidates that meet the structural rules
         # (equal skeletons, a shared token before the slot, no stopword opening,
         # vocabulary disjoint across frames) and read clearly as home-now vs former
         # home, so that for every clause feature the probes gate (chars, -er, -s,
         # -ing, -ed, longest word) and for vowel and consonant counts, the privileged
         # clause wins as often as it loses on dev frames (0-4) and on held-out frames
-        # (5-7) separately. The first set balanced the gated six only, and "speak iff
-        # the notice district's clause has more vowels" read 80% dev / 83% test.
+        # (5-7) separately. A first set balanced the gated six only, and "speak iff
+        # the notice district's clause has more vowels" read 80% dev / 83% test. The
+        # R52 review dropped three ambiguous frames ("Unpacked boxes", "Boiler
+        # drained", "Sofa collected").
         ("Currently renting in {who}", "Previously renting in {who}"),
-        ("Sofa delivered last week in {who}", "Sofa collected last week in {who}"),
+        ("Presently housed in {who}", "Formerly housed in {who}"),
         ("Home address lists {who}", "Old address lists {who}"),
-        ("Nameplate fixed on a door in {who}", "Nameplate unscrewed from a door in {who}"),
-        ("Boiler serviced in {who}", "Boiler drained in {who}"),
+        ("Electricity meter read in {who}", "Electricity meter removed in {who}"),
+        ("Council registration confirmed in {who}", "Council registration withdrawn in {who}"),
         ("Broadband installed in {who}", "Broadband cancelled in {who}"),
-        ("Unpacked boxes in {who}", "Packed boxes in {who}"),
         ("Doorbell camera mounted in {who}", "Doorbell camera unmounted in {who}"),
+        ("Moving van unloaded in {who}", "Moving van loaded in {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's

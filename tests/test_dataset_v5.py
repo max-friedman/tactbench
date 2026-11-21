@@ -48,11 +48,15 @@ from clause_length_probe import FEATURES, feature_exploit, lean  # noqa: E402
 SEED, PAIRS, FAMILIES = 20260726, 32, 12
 NEW = ["water_notice"]
 SEEDS = range(SEED, SEED + 20)
-#: R52: the new family's positional comparison runs over 60 seeds. On the first 20,
-#: 45% of seeds read above 60% against 29% under the label-swap null -- one seed past
-#: the +15-point slack -- while over 60 the family reads 28% against 34%, and its
-#: median equals the null's (57.5%). Same thresholds, three times the sample; chosen
-#: after the 20-seed reading failed, and recorded as such in LOOP_STATE.
+#: R52: the new family's token-positional comparison runs over 60 seeds. On the first
+#: 20 seeds 9 read above 60% against 29% of null draws -- one seed past the
+#: +15-point slack; over 200 seeds the rate is 34% against 36% with equal medians
+#: (57.5%), and 20-seed blocks range from 2 to 12 above. Same thresholds, three times
+#: the sample; chosen after the 20-seed reading failed, and recorded as such in
+#: LOOP_STATE. **This probe cannot see clause order for this family** (its marker is a
+#: random district, not a fixed token) -- the R52 review forced the privileged clause
+#: first and it still passed. Order is guarded by
+#: ``test_the_notice_district_is_first_in_half_of_each_label`` below.
 WIDE_SEEDS = range(SEED, SEED + 60)
 
 
@@ -135,9 +139,10 @@ def test_v5_overall_positional_is_under_its_null():
     """The single-seed bound and the 20-seed comparison with the null.
 
     v4 also asserted the shipped seed reads at or under its null median; R47 recorded
-    that comparison as noise (a 0.1-point gap). On v5 the shipped seed reads 52.9%
-    against 51.9% while the 20-seed medians read 51.7% against 51.9%, so v5 keeps the
-    seed-robust form only. Positional is reported, not gated (Standing invariants)."""
+    that comparison as noise (a 0.1-point gap). On v5 the shipped seed reads above its
+    null median while the 20-seed medians do not (figures in docs/DATASET.md, which a
+    test there pins), so v5 keeps the seed-robust form only. Positional is reported,
+    not gated (Standing invariants)."""
     dev = load("v5", "dev")
     assert positional_leakage(dev).exploitable_accuracy < 0.60
     obs, null = [], []
@@ -260,3 +265,82 @@ def test_no_single_word_policy_reaches_the_pair_blind_bar():
                     for i, t in zip(items, tokens, strict=True)
                 ]
                 assert score(items, ds, word).ics >= bar, (split, word, absent)
+
+
+def _notice_first(item) -> bool:
+    """Is the notice district (read from the body, as the skyline reads it) named in
+    the decider's first clause?"""
+    notice = _BOIL_DISTRICT.search(item.moment.signals[0].content).group(1)
+    first = item.moment.signals[-1].content.split(". ")[0]
+    return first.rstrip(".").split()[-1] == notice
+
+
+def _order_rule(items) -> float:
+    """ "Speak iff the notice district is in the first decider clause"."""
+    chosen = [i for i in items if i.moment.family == "water_notice"]
+    return sum(_notice_first(i) == i.label.should_surface for i in chosen) / len(chosen)
+
+
+@pytest.mark.parametrize("split", ["dev", "test"])
+def test_the_notice_district_is_first_in_half_of_each_label(split):
+    """R52 review: the token-positional probe never sees where a random marker sits, so
+    it passed with the privileged clause forced first while this rule read 100%. A
+    marker-aware check: within each label, the notice district leads the decider
+    exactly half the time, so the rule reads exactly 50%."""
+    items = [i for i in load("v5", split) if i.moment.family == "water_notice"]
+    for label in (True, False):
+        side = [i for i in items if i.label.should_surface == label]
+        assert sum(map(_notice_first, side)) * 2 == len(side), (split, label)
+    assert _order_rule(items) == 0.5
+
+
+def test_the_order_check_would_catch_a_fixed_order(monkeypatch):
+    """Force the privileged clause first and the marker-aware rule must read 100%."""
+    from tactbench.dataset.generate import Scenario
+
+    original = Scenario.render_frame
+
+    def privileged_first(self, frame, rng, idx=0):
+        if self.family != "water_notice":
+            return original(self, frame, rng, idx)
+        return original(self, frame, rng, idx - idx % (2 * len(self.frames)))
+
+    monkeypatch.setattr(Scenario, "render_frame", privileged_first)
+    assert _order_rule(generate(PAIRS, SEED, families=FAMILIES)) == 1.0
+
+
+@pytest.mark.parametrize("feature", ["vowels", "consonants"])
+def test_vowel_and_consonant_counts_read_chance(feature, monkeypatch):
+    """The R52 leak: on the first frame set, "speak iff the notice district's clause has
+    more vowels" read 80% dev / 83% test. Now balanced by frame; gated here."""
+    import clause_length_probe as probe
+
+    count = {
+        "vowels": lambda c: sum(ch in "aeiou" for ch in c.lower()),
+        "consonants": lambda c: sum(ch.isalpha() and ch not in "aeiou" for ch in c.lower()),
+    }
+    monkeypatch.setitem(probe.FEATURES, feature, count[feature])
+    for split in ("dev", "test"):
+        assert feature_exploit(load("v5", split), "water_notice", feature) == 0.5, split
+
+
+def test_the_positional_figures_stated_in_the_docs():
+    """Pins the shipped-seed and 20-seed overall readings DATASET.md quotes."""
+    from tactbench.audit import null_median
+
+    dev = load("v5", "dev")
+    shipped = positional_leakage(dev).exploitable_accuracy
+    family = [i for i in dev if i.moment.family == "water_notice"]
+    obs, null = [], []
+    for seed in SEEDS:
+        split = _split(generate(PAIRS, seed, families=FAMILIES), held=False)
+        obs.append(positional_leakage(split).exploitable_accuracy)
+        null += null_readings(split, positional_leakage, draws=3, seed=seed)
+    figures = (
+        f"{shipped:.1%} against {null_median(dev, positional_leakage):.1%}",
+        f"{statistics.median(obs):.1%} against {statistics.median(null):.1%}",
+        f"{positional_leakage(family).exploitable_accuracy:.1%} positional",
+    )
+    doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
+    for figure in figures:
+        assert figure in doc, figure
