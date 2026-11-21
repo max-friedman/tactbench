@@ -316,34 +316,42 @@ class LLMPolicy(Policy):
         """Does the local server deliver a system turn at all?
 
         Round 50: llama-cpp-python's ``mistral-instruct`` format discards it without
-        an error, so the model answers -- parseably -- a prompt it never saw. A
-        secret word is put only in the system turn and asked for in the user turn; a
-        template that drops the system turn cannot answer.
+        an error, so the model answers -- parseably -- a prompt it never saw.
+
+        Round 53: the check is structural. The same user turn is sent with and without
+        a system turn; a system turn that reaches the model adds prompt tokens, and a
+        dropped one cannot. Asking the model to repeat a word from the system turn,
+        R51's only check, also tests whether a small model can do that: Llama-3.2-1B
+        received the turn (59 prompt tokens against 41) and still answered "P" and
+        "LED". That test remains only for servers that report no token usage.
         """
         if self.provider != "local":
             raise ValueError("the system-turn preflight is for --provider local")
         secret = random.SystemRandom().choice(self.PREFLIGHT_WORDS)
-        body = {
-            "model": self.model,
-            "temperature": 0,
-            "max_tokens": 12,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": f"The secret word is {secret}. "
-                    "When asked, reply with only the secret word.",
-                },
-                {"role": "user", "content": "What is the secret word?"},
-            ],
+        question = {"role": "user", "content": "What is the secret word?"}
+        system = {
+            "role": "system",
+            "content": f"The secret word is {secret}. When asked, reply with only the secret word.",
         }
+        with_system = self._preflight_call([system, question])
+        without = self._preflight_call([question])
+        tokens = [r.get("usage", {}).get("prompt_tokens") for r in (with_system, without)]
+        if all(isinstance(n, int) for n in tokens):
+            return tokens[0] > tokens[1]
+        reply = with_system["choices"][0]["message"]["content"] or ""
+        return secret.lower() in reply.lower()
+
+    def _preflight_call(self, messages: list[dict[str, str]]) -> dict:
+        body = {"model": self.model, "temperature": 0, "max_tokens": 12, "messages": messages}
         req = urllib.request.Request(
             f"{self.base_url}/chat/completions",
             data=json.dumps(body).encode(),
             headers={"Content-Type": "application/json"},
         )
         with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
-            reply = json.loads(resp.read())["choices"][0]["message"]["content"] or ""
-        return secret.lower() in reply.lower()
+            reply: dict = json.loads(resp.read())
+        reply["choices"][0]["message"]  # a malformed reply fails here, as it did before
+        return reply
 
     def _complete(self, prompt: str) -> str:
         self._require_key()

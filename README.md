@@ -436,13 +436,15 @@ unchanged, at the top of the user turn instead. Others drop it *silently*: under
 llama-cpp-python's `mistral-instruct` format, Mistral 7B received the same token
 count with and without a system turn, so it would have answered without the
 instructions and still produced a well-formed result (Round 50). `tactbench llm
---provider local` now puts a secret word in the system turn before it asks about any
-moment, and exits if the model cannot repeat it (Round 51; `--no-system-role` runs
-skip the check, and a fully cached run asks nothing). Checked by hand against
-the real servers, with no committed log: it refuses Mistral 7B and passes Qwen2.5-0.5B. The ten earlier
-models that use a system turn were re-checked by hand — the secret word, or the
-prompt token count rising with a system turn — and all received it; that check left
-no committed log. A run whose calls fail is not a
+--provider local` now checks, before it asks about any moment, that a system turn adds
+prompt tokens to the same user turn — a dropped one cannot — and exits if it does not
+(Round 51, made structural in Round 53; `--no-system-role` runs skip the check, and a
+fully cached run asks nothing). Round 51 asked the model to repeat a word sent only in
+the system turn; that also tests whether a small model can, and Llama-3.2-1B, which
+does receive the turn, failed it and stopped a run. The word test remains only for
+servers that report no token usage. Every local model's result is committed in
+[`results/SYSTEM_TURN.md`](results/SYSTEM_TURN.md), written by
+`experiments/system_turn_check.py`. A run whose calls fail is not a
 result: the server's error is scored as silence, so the CLI marks any run above 5%
 unparsed *inconclusive*, and a test refuses to publish one containing a failed call.
 
@@ -661,16 +663,6 @@ rubric (**25**). On `home_security` the best gets **1** of 20 pairs right on bot
 sides and **6** of those are backwards. Mistral-7B ran with `--no-system-role`, because
 its chat format drops a system turn without an error (see *Running an LLM*).
 <!-- v4-added-claims:end -->
-
-#### On dataset v5 — a twelfth family
-
-All 28 runs on `v5` (Round 52: v4 plus `water_notice`, 480 dev moments), Round 53. The
-eleven old families are byte-identical to v4's, so those 440 decisions were reused
-from the v4 runs (a test checks every one is unchanged) and only the 40
-`water_notice` moments were sent to a model.
-
-<!-- llm-results-v5:start -->
-<!-- llm-results-v5:end -->
 
 `pairs` is the share of matched pairs answered correctly on **both** sides. The two
 sides share a body and need opposite answers, so a policy that does not read the

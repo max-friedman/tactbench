@@ -209,6 +209,10 @@ class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
     preflight: list[dict] = []
     #: Simulate a chat template that silently discards the system turn.
     drops_system = False
+    #: Round 53: a model that receives the system turn but cannot repeat the word
+    #: (Llama-3.2-1B answered "P" and "LED"), and a server that reports no usage.
+    weak = False
+    reports_usage = True
 
     def do_POST(self):  # noqa: N802 - stdlib name
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
@@ -221,11 +225,15 @@ class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
         secret = re.search(r"secret word is (\w+)", " ".join(m["content"] for m in visible))
         if any("secret word" in m["content"] for m in messages):
             _FakeOpenAI.preflight.append(call)
-            content = secret.group(1) if secret else "I don't know."
+            content = secret.group(1) if secret and not _FakeOpenAI.weak else "I don't know."
         else:
             _FakeOpenAI.seen.append(call)
             content = '{"surface": "false", "confidence": 0.8}'
-        reply = {"choices": [{"message": {"content": content}}]}
+        reply: dict = {"choices": [{"message": {"content": content}}]}
+        if _FakeOpenAI.reports_usage:
+            # What a template that drops a turn would report: only what it kept.
+            tokens = sum(len(m["content"].split()) + 3 for m in visible)
+            reply["usage"] = {"prompt_tokens": tokens}
         data = json.dumps(reply).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -242,6 +250,8 @@ def fake_server():
     _FakeOpenAI.seen = []
     _FakeOpenAI.preflight = []
     _FakeOpenAI.drops_system = False
+    _FakeOpenAI.weak = False
+    _FakeOpenAI.reports_usage = True
     srv = http.server.HTTPServer(("127.0.0.1", 0), _FakeOpenAI)
     t = threading.Thread(target=srv.serve_forever, daemon=True)
     t.start()
@@ -397,11 +407,12 @@ class TestSystemTurnPreflight:
         assert policy.system_turn_reaches_the_model() is True
         _FakeOpenAI.drops_system = True
         assert policy.system_turn_reaches_the_model() is False
-        # the secret travels only in the system turn, never in the user turn
+        # the secret travels only in the system turn, never in the user turn; the
+        # comparison call sends the same user turn alone (R53)
         for call in _FakeOpenAI.preflight:
-            system, user = call["body"]["messages"]
-            assert system["role"] == "system" and "secret word is" in system["content"]
-            assert user["role"] == "user" and "secret word is" not in user["content"]
+            *system, user = call["body"]["messages"]
+            assert user == {"role": "user", "content": "What is the secret word?"}
+            assert all(m["role"] == "system" and "secret word is" in m["content"] for m in system)
 
     def test_the_cli_refuses_a_server_that_drops_it(self, fake_server, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
@@ -416,7 +427,8 @@ class TestSystemTurnPreflight:
         monkeypatch.chdir(tmp_path)
         result = self._invoke(fake_server)
         assert result.exit_code == 0, result.output
-        assert len(_FakeOpenAI.preflight) == 1 and len(_FakeOpenAI.seen) == 2
+        # two preflight calls (with and without the system turn, R53), one run
+        assert len(_FakeOpenAI.preflight) == 2 and len(_FakeOpenAI.seen) == 2
 
     def test_without_a_system_role_there_is_nothing_to_check(
         self, fake_server, tmp_path, monkeypatch
@@ -488,8 +500,32 @@ class TestSystemTurnPreflight:
         words = {
             re.search(r"secret word is (\w+)", c["body"]["messages"][0]["content"]).group(1)
             for c in _FakeOpenAI.preflight
+            if len(c["body"]["messages"]) == 2
         }
         assert len(words) > 1 and words <= set(LLMPolicy.PREFLIGHT_WORDS)
+
+    def test_a_weak_model_that_receives_the_system_turn_passes(self, fake_server):
+        """R53: Llama-3.2-1B received the system turn (59 prompt tokens against 41
+        without) but repeated the word in 4 of 7 tries, so the run stopped on a false
+        diagnosis. The check is structural now: the system turn must add tokens."""
+        _FakeOpenAI.weak = True
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is True
+
+    def test_a_dropped_system_turn_fails_by_token_count(self, fake_server):
+        _FakeOpenAI.drops_system = True
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is False
+
+    def test_without_usage_it_falls_back_to_the_secret_word(self, fake_server):
+        _FakeOpenAI.reports_usage = False
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is True
+        _FakeOpenAI.drops_system = True
+        assert policy.system_turn_reaches_the_model() is False
+        # the known limit of the fallback: a weak model is refused
+        _FakeOpenAI.drops_system, _FakeOpenAI.weak = False, True
+        assert policy.system_turn_reaches_the_model() is False
 
     def test_hosted_providers_are_not_checked(self):
         policy = LLMPolicy(provider="anthropic", model="x")
