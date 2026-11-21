@@ -5,6 +5,14 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Fixed (Round 62)
+
+- **The skyline solves the reworded slice.** It resolved deciders only against the
+  generator's frames, so on `v2para` it never spoke (ICS 96.0, equal to silence) and the
+  slice was never shown solvable. It now also reads the paraphrase frames: ICS 0.0.
+  `tests/test_invariants_committed.py` checks pair structure, balance and the skyline on
+  every committed split; before, most were checked only on a fresh build.
+
 ### Fixed (Round 60)
 
 - **The viewer escapes every text field.** Policy names, moment ids, states, slices and
