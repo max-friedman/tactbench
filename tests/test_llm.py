@@ -209,6 +209,13 @@ class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
     preflight: list[dict] = []
     #: Simulate a chat template that silently discards the system turn.
     drops_system = False
+    #: Round 53: a model that receives the system turn but cannot repeat the word
+    #: (Llama-3.2-1B answered "P" and "LED"), and a server that reports no usage.
+    weak = False
+    reports_usage = True
+    #: A template that inserts its own long system prompt when none is sent
+    #: (Granite 3.3: 64 prompt tokens with no system turn, 37 with ours).
+    default_system = False
 
     def do_POST(self):  # noqa: N802 - stdlib name
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
@@ -218,14 +225,20 @@ class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
             visible = messages
         else:
             visible = [m for m in messages if m["role"] != "system"]
+        if _FakeOpenAI.default_system and not any(m["role"] == "system" for m in visible):
+            visible = [{"role": "system", "content": "default " * 40}, *visible]
         secret = re.search(r"secret word is (\w+)", " ".join(m["content"] for m in visible))
         if any("secret word" in m["content"] for m in messages):
             _FakeOpenAI.preflight.append(call)
-            content = secret.group(1) if secret else "I don't know."
+            content = secret.group(1) if secret and not _FakeOpenAI.weak else "I don't know."
         else:
             _FakeOpenAI.seen.append(call)
             content = '{"surface": "false", "confidence": 0.8}'
-        reply = {"choices": [{"message": {"content": content}}]}
+        reply: dict = {"choices": [{"message": {"content": content}}]}
+        if _FakeOpenAI.reports_usage:
+            # What a template that drops a turn would report: only what it kept.
+            tokens = sum(len(m["content"].split()) + 3 for m in visible)
+            reply["usage"] = {"prompt_tokens": tokens}
         data = json.dumps(reply).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -242,6 +255,9 @@ def fake_server():
     _FakeOpenAI.seen = []
     _FakeOpenAI.preflight = []
     _FakeOpenAI.drops_system = False
+    _FakeOpenAI.weak = False
+    _FakeOpenAI.reports_usage = True
+    _FakeOpenAI.default_system = False
     srv = http.server.HTTPServer(("127.0.0.1", 0), _FakeOpenAI)
     t = threading.Thread(target=srv.serve_forever, daemon=True)
     t.start()
@@ -397,11 +413,12 @@ class TestSystemTurnPreflight:
         assert policy.system_turn_reaches_the_model() is True
         _FakeOpenAI.drops_system = True
         assert policy.system_turn_reaches_the_model() is False
-        # the secret travels only in the system turn, never in the user turn
+        # the secret travels only in the system turn, never in the user turn; the
+        # comparison call pads that system turn and keeps the user turn (R53)
         for call in _FakeOpenAI.preflight:
             system, user = call["body"]["messages"]
+            assert user == {"role": "user", "content": "What is the secret word?"}
             assert system["role"] == "system" and "secret word is" in system["content"]
-            assert user["role"] == "user" and "secret word is" not in user["content"]
 
     def test_the_cli_refuses_a_server_that_drops_it(self, fake_server, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
@@ -416,7 +433,8 @@ class TestSystemTurnPreflight:
         monkeypatch.chdir(tmp_path)
         result = self._invoke(fake_server)
         assert result.exit_code == 0, result.output
-        assert len(_FakeOpenAI.preflight) == 1 and len(_FakeOpenAI.seen) == 2
+        # two preflight calls (short and padded system turn, R53), one run
+        assert len(_FakeOpenAI.preflight) == 2 and len(_FakeOpenAI.seen) == 2
 
     def test_without_a_system_role_there_is_nothing_to_check(
         self, fake_server, tmp_path, monkeypatch
@@ -491,6 +509,67 @@ class TestSystemTurnPreflight:
         }
         assert len(words) > 1 and words <= set(LLMPolicy.PREFLIGHT_WORDS)
 
+    def test_a_weak_model_that_receives_the_system_turn_passes(self, fake_server):
+        """R53: Llama-3.2-1B received the system turn but repeated the word in 3 of 7
+        tries, so the v5 run stopped on a false diagnosis. The check is structural
+        now: lengthening the system turn must lengthen the prompt."""
+        _FakeOpenAI.weak = True
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is True
+
+    def test_a_template_with_a_default_system_prompt_passes(self, fake_server):
+        """R53: comparing against no system turn at all refused Granite, whose template
+        inserts a longer default when none is sent. Both calls now carry a system
+        turn; only its length differs."""
+        _FakeOpenAI.default_system = True
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is True
+
+    def test_a_dropped_system_turn_fails_by_token_count(self, fake_server):
+        _FakeOpenAI.drops_system = True
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is False
+
+    @pytest.mark.parametrize("usage", [None, {}, {"prompt_tokens": 0}, {"prompt_tokens": "9"}, []])
+    def test_unusable_usage_falls_back_to_the_secret_word(self, usage, fake_server, monkeypatch):
+        """R53 review: ``usage: null`` raised an uncaught AttributeError, and placeholder
+        zeros refused every model without reaching the fallback."""
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        real = policy._preflight_call
+
+        def with_usage(messages):
+            reply = real(messages)
+            reply["usage"] = usage
+            return reply
+
+        monkeypatch.setattr(policy, "_preflight_call", with_usage)
+        assert policy.system_turn_reaches_the_model() is True
+        _FakeOpenAI.drops_system = True
+        assert policy.system_turn_reaches_the_model() is False
+
+    def test_a_one_token_wobble_is_not_growth(self, fake_server, monkeypatch):
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        counts = iter([40, 41])
+
+        def fixed(messages):
+            return {
+                "choices": [{"message": {"content": ""}}],
+                "usage": {"prompt_tokens": next(counts)},
+            }
+
+        monkeypatch.setattr(policy, "_preflight_call", fixed)
+        assert policy.system_turn_reaches_the_model() is False
+
+    def test_without_usage_it_falls_back_to_the_secret_word(self, fake_server):
+        _FakeOpenAI.reports_usage = False
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is True
+        _FakeOpenAI.drops_system = True
+        assert policy.system_turn_reaches_the_model() is False
+        # the known limit of the fallback: a weak model is refused
+        _FakeOpenAI.drops_system, _FakeOpenAI.weak = False, True
+        assert policy.system_turn_reaches_the_model() is False
+
     def test_hosted_providers_are_not_checked(self):
         policy = LLMPolicy(provider="anthropic", model="x")
         with pytest.raises(ValueError):
@@ -502,3 +581,50 @@ class TestSystemTurnPreflight:
         text = script.read_text()
         assert ".system_turn_reaches_the_model()" in text
         assert "def system_turn_reaches_the_model" not in text
+
+
+class TestTheSystemTurnTable:
+    """``results/SYSTEM_TURN.md`` (Round 53), written by
+    ``experiments/system_turn_check.py`` against the real servers: every local model is
+    in it, every model whose runs use a system turn passes the preflight, and the ones
+    that do not are on ``--no-system-role``."""
+
+    @staticmethod
+    def _rows() -> dict[str, list[str]]:
+        text = (Path(__file__).parents[1] / "results" / "SYSTEM_TURN.md").read_text()
+        rows = {}
+        for line in text.splitlines():
+            if line.startswith("| `"):
+                cells = [c.strip() for c in line.strip("|").split("|")]
+                rows[cells[0].strip("`")] = cells[1:]
+        return rows
+
+    @staticmethod
+    def _runner():
+        import importlib.util
+
+        path = Path(__file__).parents[1] / "experiments" / "run_local_llms.py"
+        spec = importlib.util.spec_from_file_location("run_local_llms", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_every_local_model_is_recorded(self):
+        assert set(self._rows()) == set(self._runner().MODELS)
+
+    def test_every_system_turn_model_passes_and_the_rest_use_the_user_turn(self):
+        runner = self._runner()
+        for name, (short, padded, _none, passes, _rep, used) in self._rows().items():
+            if name in runner.NO_SYSTEM_ROLE:
+                assert used.startswith("user turn"), name
+                assert passes != "yes", name  # why it is on --no-system-role
+            else:
+                assert used == "system turn" and passes == "yes", name
+            if short != "—":  # every measured row: the column agrees with the counts
+                growth = len(LLMPolicy.PREFLIGHT_PADDING.split()) // 4
+                assert (passes == "yes") == (int(padded) - int(short) >= growth), name
+
+    def test_mistral_drops_it_silently(self):
+        short, padded, _none, passes, _rep, _used = self._rows()["mistral-7b"]
+        assert short == padded and passes == "**no**"

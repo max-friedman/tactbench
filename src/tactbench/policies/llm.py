@@ -312,38 +312,68 @@ class LLMPolicy(Policy):
     #: Drawn so a model cannot pass by guessing a constant from public source.
     PREFLIGHT_WORDS = ("ZEBRA", "TULIP", "COPPER", "GLACIER", "VIOLIN", "LANTERN", "SAFFRON")
 
+    #: Appended to the preflight's system turn in its second call (Round 53).
+    PREFLIGHT_PADDING = (
+        "This instruction is deliberately longer than it needs to be, so that the "
+        "prompt grows when it is delivered and stays the same length when it is not."
+    )
+
     def system_turn_reaches_the_model(self) -> bool:
         """Does the local server deliver a system turn at all?
 
         Round 50: llama-cpp-python's ``mistral-instruct`` format discards it without
-        an error, so the model answers -- parseably -- a prompt it never saw. A
-        secret word is put only in the system turn and asked for in the user turn; a
-        template that drops the system turn cannot answer.
+        an error, so the model answers -- parseably -- a prompt it never saw.
+
+        Round 53: the check is structural. The same user turn is sent twice, under a
+        short system turn and under the same turn with padding appended. If the
+        system turn reaches the model the prompt grows; if the template drops it, both
+        prompts are the same length. Both calls carry a system turn because some
+        templates insert their own default when none is sent (Granite 3.3: 64 prompt
+        tokens with no system turn, 37 with ours), so "with against without" refused
+        a model that receives it. R51's test -- repeat a word sent only in the system
+        turn -- also tests whether a small model can: Llama-3.2-1B receives the turn
+        and repeated the word 3 times in 7. It remains only for servers that report
+        no token usage.
         """
         if self.provider != "local":
             raise ValueError("the system-turn preflight is for --provider local")
         secret = random.SystemRandom().choice(self.PREFLIGHT_WORDS)
-        body = {
-            "model": self.model,
-            "temperature": 0,
-            "max_tokens": 12,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": f"The secret word is {secret}. "
-                    "When asked, reply with only the secret word.",
-                },
-                {"role": "user", "content": "What is the secret word?"},
-            ],
-        }
+        question = {"role": "user", "content": "What is the secret word?"}
+        text = f"The secret word is {secret}. When asked, reply with only the secret word."
+        short = self._preflight_call([{"role": "system", "content": text}, question])
+        padded = self._preflight_call(
+            [{"role": "system", "content": f"{text} {self.PREFLIGHT_PADDING}"}, question]
+        )
+        before, after = self._prompt_tokens(short), self._prompt_tokens(padded)
+        if before is not None and after is not None:
+            # The padding is ~25 words; any tokenizer gives it well over a quarter of
+            # that. A one-token wobble (a cache, a rounding estimate) is not growth.
+            return after - before >= len(self.PREFLIGHT_PADDING.split()) // 4
+        reply = short["choices"][0]["message"].get("content") or ""
+        return secret.lower() in str(reply).lower()
+
+    @staticmethod
+    def _prompt_tokens(reply: dict) -> int | None:
+        """A usable ``usage.prompt_tokens``, or None (missing, null, placeholder 0)."""
+        usage = reply.get("usage")
+        n = usage.get("prompt_tokens") if isinstance(usage, dict) else None
+        return n if isinstance(n, int) and not isinstance(n, bool) and n > 0 else None
+
+    def _preflight_call(self, messages: list[dict[str, str]]) -> dict:
+        body = {"model": self.model, "temperature": 0, "max_tokens": 12, "messages": messages}
         req = urllib.request.Request(
             f"{self.base_url}/chat/completions",
             data=json.dumps(body).encode(),
             headers={"Content-Type": "application/json"},
         )
         with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
-            reply = json.loads(resp.read())["choices"][0]["message"]["content"] or ""
-        return secret.lower() in reply.lower()
+            reply = json.loads(resp.read())
+        choices = reply.get("choices") if isinstance(reply, dict) else None
+        if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
+            raise ValueError(f"not a chat completion: {str(reply)[:200]}")
+        if not isinstance(choices[0].get("message"), dict):
+            raise ValueError(f"not a chat completion: {str(reply)[:200]}")
+        return reply
 
     def _complete(self, prompt: str) -> str:
         self._require_key()

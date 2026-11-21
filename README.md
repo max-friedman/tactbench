@@ -436,13 +436,16 @@ unchanged, at the top of the user turn instead. Others drop it *silently*: under
 llama-cpp-python's `mistral-instruct` format, Mistral 7B received the same token
 count with and without a system turn, so it would have answered without the
 instructions and still produced a well-formed result (Round 50). `tactbench llm
---provider local` now puts a secret word in the system turn before it asks about any
-moment, and exits if the model cannot repeat it (Round 51; `--no-system-role` runs
-skip the check, and a fully cached run asks nothing). Checked by hand against
-the real servers, with no committed log: it refuses Mistral 7B and passes Qwen2.5-0.5B. The ten earlier
-models that use a system turn were re-checked by hand — the secret word, or the
-prompt token count rising with a system turn — and all received it; that check left
-no committed log. A run whose calls fail is not a
+--provider local` now checks, before it asks about any moment, that lengthening the
+system turn lengthens the prompt — a dropped turn leaves it unchanged — and exits if it
+does not (Round 51, made structural in Round 53; `--no-system-role` runs skip the
+check, and a fully cached run asks nothing). Round 51 asked the model to repeat a word
+sent only in the system turn; that also tests whether a small model can, and
+Llama-3.2-1B, which does receive the turn, failed it and stopped a run. Comparing
+against no system turn at all fails too: Granite's template inserts a longer default. The word test remains only for
+servers that report no token usage. Every local model's result is committed in
+[`results/SYSTEM_TURN.md`](results/SYSTEM_TURN.md), written by
+`experiments/system_turn_check.py`. A run whose calls fail is not a
 result: the server's error is scored as silence, so the CLI marks any run above 5%
 unparsed *inconclusive*, and a test refuses to publish one containing a failed call.
 

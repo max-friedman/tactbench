@@ -5,6 +5,14 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Fixed (Round 53)
+
+- **The system-turn preflight measures the prompt, not the model.** It compares a short
+  and a padded system turn's prompt token counts; asking the model to repeat a word
+  (Llama-3.2-1B receives the turn but failed that) is now only the fallback for servers
+  that report no usage. `results/SYSTEM_TURN.md`,
+  written by `experiments/system_turn_check.py`, records every local model.
+
 ### Added (Round 52)
 
 - **Dataset `v5`**: v4 plus a twelfth family, `water_notice` (480 dev / 288 test).
