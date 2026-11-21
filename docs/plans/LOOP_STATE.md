@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 42 complete (`shipped`) — paraphrase robustness measured on a reworded
+- **Round:** 43 complete (`shipped`) — the two badly-worded paraphrase frames repaired
+  and re-run. R42: paraphrase robustness measured on a reworded
   v2 slice: decisions are stable, but because no model reads the decider. R41: priority 3 restated; CLAUDE.md priorities
   carry status. R40 (#36): the audit prints the positional probe's chance level. R39 (#35): all 22 LLM runs on `v2`; the conclusions replicate. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
@@ -254,7 +255,7 @@ L. **Paraphrase robustness — DONE in R42.** Original entry: Reword a sample
    measure how often each model's decision changes. Needs new frames written as
    permutations (CLAUDE.md rule 3), the audit at chance on them, and LLM calls on
    the reworded sample only (cheap: a few hundred moments per model).
-M. **Two paraphrase frames read badly (R42 review).** travel's counterpart "Printed on
+M. **Two paraphrase frames read badly — DONE in R43.** Original entry: travel's counterpart "Printed on
    paper by {who}" makes the gate the printer; quiet_hours' "Hours of driving from is
    {who}" is ungrammatical. Fix the frames (keeping the prose-frame properties), rebuild
    `v2para`, re-run the 22 runs on those 16 moments (cache resumes the rest), re-gate.
@@ -2469,6 +2470,33 @@ its stability column.
 
 **Loop:** nothing new — a variant of the "a threshold count needs its null" candidate
 (a stability figure needs a discrimination figure); noted there, not filed.
+
+---
+
+## Round 43 — two paraphrase frames repaired
+
+**Ending state: `shipped`.** Queue item M. Before-number: 78 flips against 264
+expected under independence, with 16 of the 72 reworded moments (travel, quiet_hours)
+carrying a frame R42's review found garbled.
+
+**Shipped.** travel: ("Sitting in person by", "Printed on paper by") → ("Seated in
+person at", "Boarding on paper at"); quiet_hours' counterpart "Hours of driving from
+is" → "Hours of driving away is". `v2para` rebuilt; the 16 changed moments' cached
+decisions dropped from `runs/` and `results/v2para-dev/`, and all 22 runs resumed on
+them (checked: no decision outside those 16 moments changed). After: 79 flips against
+262; every other gated figure unchanged. README's garbled-frame caveat removed. The
+v2para wall times in `MANIFEST.json` are now `null` — the runner records none for a
+resumed run, which is accurate. 568 tests.
+
+**Check first — not met.** The frame-property tests pass on both the old and new
+frames; nothing automated detects a frame that is grammatical nonsense. The check
+here was reading it. A grammar check over frames is not worth its cost for 18
+clauses, so none was added; say so rather than imply the gate covers it.
+
+**Review:** none run — a two-frame data repair whose only published effect is one
+gated figure; the tests recompute it.
+
+**Loop:** nothing.
 
 ---
 

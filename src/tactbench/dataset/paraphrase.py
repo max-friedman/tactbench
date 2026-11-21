@@ -28,8 +28,8 @@ PARAPHRASE_FRAMES: dict[str, tuple[str, str]] = {
     "finance": ("Lacking funds for the bill is {who}", "Holding funds for the bill is {who}"),
     "health": ("Ready at the pharmacy is {who}", "Picked up last week is {who}"),
     "meeting_prep": ("Scheduled to start soon is {who}", "Underway for some minutes is {who}"),
-    "quiet_hours": ("Close enough to drive is {who}", "Hours of driving from is {who}"),
-    "travel": ("Sitting in person by {who}", "Printed on paper by {who}"),
+    "quiet_hours": ("Close enough to drive is {who}", "Hours of driving away is {who}"),
+    "travel": ("Seated in person at {who}", "Boarding on paper at {who}"),
 }
 
 #: The frame of v2's dev split that is reworded: every pair in it, 36 pairs.
