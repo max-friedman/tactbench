@@ -293,12 +293,12 @@ have been flipped.
 **ICS (Interruption Cost Score)** — total cost incurred, lower is better. Cost is
 charged asymmetrically:
 
-- **Speaking when you shouldn't** costs by what the user was doing: 1.0 idle,
-  2.0 social or exercising, 5.0 in a meeting or deep work, 10.0 asleep or
+- **Speaking when you shouldn't** costs by what the user was doing: 1.0 idle or
+  commuting, 2.0 social or exercising, 5.0 in a meeting or deep work, 10.0 asleep or
   driving. Explicit DND doubles it, because ignoring a stated preference is a
   different failure from misjudging an inferred state.
 - **Staying quiet when you shouldn't have** costs by what was missed: 0.5 for a
-  minor cue, 3.0 for one the user is materially worse off without.
+  minor cue, 2.0 for a clearly useful one, 3.0 for one the user is materially worse off without.
 - **Being right costs nothing**, in either direction.
 
 Reported alongside, never averaged in:
