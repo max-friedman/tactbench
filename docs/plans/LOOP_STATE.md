@@ -33,7 +33,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **896 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **902 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -3006,7 +3006,13 @@ template with a default system prompt; each new test was red before its fix.
 **Set aside for R54:** the v5 results test file and README section (in the scratchpad),
 and the two completed v5 runs, which re-run from cache.
 
-**Review:** subagent, not §D-independent (owner instruction).
+**Review:** subagent, not §D-independent (owner instruction). Fixed from it: `usage:
+null` raised an uncaught AttributeError and placeholder zeros refused every model, so
+an unusable `usage` now falls back to the word test; growth must be at least a quarter
+of the padding's word count, not one token; `_preflight_call` validates the reply and
+raises `ValueError`; both refusal messages named the old cause. Not fixed: the check
+trusts the server's `prompt_tokens` (a proxy that counts raw messages would pass a
+dropped turn); the table test cannot tell a hand-edited table from a generated one.
 
 **Loop:** a check that asks the subject to perform a task tests the subject's ability
 as well as the property — candidate method finding below.
