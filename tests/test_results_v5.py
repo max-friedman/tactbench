@@ -16,9 +16,11 @@ from test_results import _readme_rows
 
 from tactbench.cli import MAX_UNPARSED
 from tactbench.dataset.loader import load
+from tactbench.metrics import score
+from tactbench.policies.builtin import AlwaysPolicy, NeverPolicy
 from tactbench.policies.llm import unparsed_rate
 from tactbench.results import load_results, pairs_both_right, scorecards
-from tactbench.runner import normalized, pair_blind_ics
+from tactbench.runner import normalized, pair_blind_ics, run_policy
 from tactbench.schema import pair_key
 
 RUNS = load_results("v5")
@@ -126,6 +128,12 @@ class TestTheReadmeV5Claims:
         n_pairs = len(items) // 2
         scores = {n: round(pairs_both_right(items, ds) * n_pairs) for n, ds in runs.items()}
         top = max(scores.values())
+        label = {i.moment.id: i.label.should_surface for i in items}
+        sides: dict[str, list[str]] = {}
+        for i in items:
+            sides.setdefault(pair_key(i.moment.id), []).append(i.moment.id)
+        # A coin gets a pair right a quarter of the time only if its sides need opposite answers.
+        assert all(len(p) == 2 and label[p[0]] != label[p[1]] for p in sides.values())
         assert n_pairs == 20 and top == 5 == round(n_pairs * 0.25)
         assert [n for n, v in scores.items() if v == top] == ["llm:naive:mistral-7b"]
         block = self._block()
@@ -137,16 +145,55 @@ class TestTheReadmeV5Claims:
         sides: dict[str, list[str]] = {}
         for i in items:
             sides.setdefault(pair_key(i.moment.id), []).append(i.moment.id)
+        assert all(len(p) == 2 and label[p[0]] != label[p[1]] for p in sides.values())
         split = wrong = 0
-        for decisions in runs.values():
+        per_run = {}
+        for name, decisions in runs.items():
+            ds = {d.moment_id: d for d in decisions}
+            moved = [p for p in sides.values() if ds[p[0]].surface != ds[p[1]].surface]
+            per_run[name] = len(moved)
+            split += len(moved)
+            wrong += sum(ds[p[0]].surface != label[p[0]] for p in moved)
+        assert (split, wrong, split - wrong) == (27, 13, 14)
+        top = sorted(per_run.items(), key=lambda kv: -kv[1])[:2]
+        assert top == [("llm:naive:llama-3.1-8b", 8), ("llm:naive:mistral-7b", 7)]
+        block = self._block()
+        assert "**27** pairs get different answers" in block
+        assert "**14** right on both sides and **13** backwards" in block
+        assert "Llama-3.1-8B (**8**) and Mistral-7B (**7**)" in block
+
+    def test_home_security_over_the_same_runs(self):
+        items = [i for i in load("v5", "dev") if i.moment.family == "home_security"]
+        label = {i.moment.id: i.label.should_surface for i in items}
+        sides: dict[str, list[str]] = {}
+        for i in items:
+            sides.setdefault(pair_key(i.moment.id), []).append(i.moment.id)
+        split = wrong = 0
+        for decisions in RUNS.values():
             ds = {d.moment_id: d for d in decisions}
             moved = [p for p in sides.values() if ds[p[0]].surface != ds[p[1]].surface]
             split += len(moved)
             wrong += sum(ds[p[0]].surface != label[p[0]] for p in moved)
-        assert (split, wrong) == (27, 13)
+        assert len(RUNS) == 28 and (split, wrong) == (22, 19)
+        assert "(**19** of **22**)" in self._block()
+
+    def test_speaking_beats_silence_on_the_new_family(self):
+        items, runs = self._new_family()
+        never = score(items, run_policy(NeverPolicy(), items), "never").ics
+        always = score(items, run_policy(AlwaysPolicy(), items), "always").ics
+        assert (always, never) == (40.0, 60.0)
+        c4, c5 = self._cards("v4"), self._cards("v5")
+        name = "llm:naive:llama-3.2-3b"
+        assert sum(d.surface for d in runs[name]) == 35
+        moves = {p: c5[p][0].ics_normalized - c4[p][0].ics_normalized for p in c5}
+        above = [p for p in c5 if c5[p][0].ics_normalized > 0]
+        assert max(above, key=lambda p: moves[p]) == name
         block = self._block()
-        assert "**27** pairs get different answers" in block
-        assert "**14** right on both sides and **13** backwards" in block
+        assert "(**40** against **60**)" in block and "speaks on **35** of the 40" in block
+        assert (
+            f"**{c4[name][0].ics_normalized:+.1f}** to **{c5[name][0].ics_normalized:+.1f}**"
+            in block
+        )
 
     def test_no_verdict_changes(self):
         c4, c5 = self._cards("v4"), self._cards("v5")
@@ -166,6 +213,9 @@ class TestTheReadmeV5Claims:
         _, runs = self._new_family()
         ds = runs["llm:naive:qwen2.5-0.5b"]
         assert len(ds) == 40 and round(unparsed_rate(ds) * 40) == 7
+        silent = [d for d in ds if not d.surface]
+        assert len(silent) == 7 and all(unparsed_rate([d]) == 1.0 for d in silent)
+        assert "its one split pair there comes from that fallback" in self._block()
         assert "**7** of its 40 `water_notice` answers are unreadable" in self._block()
 
     def test_ordering_against_v4(self):

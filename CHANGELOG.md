@@ -9,7 +9,7 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 - **LLM results on `v5`**: all 28 runs (14 open-weight models, naive and rubric), README
   table and claims gated in `tests/test_results_v5.py`. On `water_notice` no run reads
-  the decider better than a coin; no verdict changes from v4.
+  the decider measurably better than a coin; no verdict changes from v4.
 
 ### Fixed (Round 53)
 

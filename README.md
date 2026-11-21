@@ -673,20 +673,27 @@ from the v4 runs (a test checks every one is unchanged) and only the 40
 `water_notice` moments were sent to a model.
 
 <!-- v5-claims:start -->
-**No run reads the new family's decider better than a coin.** On `water_notice`,
-**18** of the 28 runs give all 40 moments the same answer (**10** never speak, **8**
-always do). The best gets **5** of its 20 pairs right on both sides (Mistral-7B, naive
-prompt), which is what a coin gets on average. Across the 28 runs, **27** pairs get
-different answers on their two sides: **14** right on both sides and **13** backwards,
-an even split. On `home_security` the same split was mostly backwards; here it is what a
-run ignoring the decider would produce. Twenty pairs per run can tell only strong
-effects from chance. Adding the family changes no verdict: the same **7** runs beat
-silence on v4 and v5, and the same two are inconclusive. Qwen2.5-0.5B with the naive
-prompt goes from **5.7%** to **6.7%** unparsed, because **7** of its 40 `water_notice`
-answers are unreadable. Qwen2.5-3B naive goes from **6.4%** to **5.8%**. Of the 378
-pairs of runs, **3** are reversed by ICS and **1** is tied on one version and ordered on
-the other. Every one involves Qwen2.5-0.5B naive, which is inconclusive and loses to
-silence on both versions.
+**No run reads the new family's decider measurably better than a coin.** On
+`water_notice`, **18** of the 28 runs give all 40 moments the same answer (**10** never
+speak, **8** always do). The best gets **5** of its 20 pairs right on both sides
+(Mistral-7B, naive prompt), which is a coin's expectation: every pair needs opposite
+answers, so a coin gets each one right a quarter of the time. Across the 28 runs, **27**
+pairs get different answers on their two sides: **14** right on both sides and **13**
+backwards, close to the even split that answers unrelated to the decider would give.
+Most come from two runs with the naive prompt, Llama-3.1-8B (**8**) and Mistral-7B
+(**7**). Over the same 28 runs, `home_security`'s split pairs were mostly backwards
+(**19** of **22**). Twenty pairs per run can tell only strong effects from chance.
+
+Adding the family changes no verdict: the same **7** runs beat silence on v4 and v5, and
+the same two are inconclusive. On this family speaking every time costs less than
+silence (**40** against **60**), so runs that mostly speak here gain on silence without
+reading the decider — Llama-3.2-3B naive speaks on **35** of the 40 and goes from
+**+4.0** to **+6.7**. Qwen2.5-0.5B with the naive prompt goes from **5.7%** to **6.7%**
+unparsed, because **7** of its 40 `water_notice` answers are unreadable; its one split
+pair there comes from that fallback. Qwen2.5-3B naive goes from **6.4%** to **5.8%**. Of
+the 378 pairs of runs, **3** are reversed by ICS and **1** is tied on one version and
+ordered on the other. Every one involves Qwen2.5-0.5B naive, which is inconclusive and
+loses to silence on both versions.
 <!-- v5-claims:end -->
 
 <!-- llm-results-v5:start -->
