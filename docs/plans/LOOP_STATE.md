@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 54 complete — all 28 LLM runs on `v5`; on `water_notice` 18 of 28 are
+- **Round:** 55 complete — marker-aware order checks for all five random-marker
+  families (queue Q); v2-v5 already read exactly 50%, v1 dev is R36's known imbalance. R54: all 28 LLM runs on `v5`; on `water_notice` 18 of 28 are
   constant, the best reads 5 of 20 pairs (a coin's expectation; not measurably better), and no verdict changes.
   R53: the system-turn preflight is structural (padded vs short
   system turn), with a committed 14-model table. R52: dataset `v5`, a twelfth family (`water_notice`); a
@@ -35,7 +36,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1012 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1048 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -317,11 +318,9 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
 
-Q. **Marker-aware order checks for `pet_care` and `home_security`** (new, R52 review).
-   The token-positional probe cannot see where a random marker sits; v5's
-   `test_the_notice_district_is_first_in_half_of_each_label` is the check that can.
-   Add the same for the two earlier random-marker families (cell balance covers them
-   today, indirectly).
+Q. **Marker-aware order checks for `pet_care` and `home_security` — DONE in R55**,
+   extended by its review to `travel` and `commerce`: `tests/test_marker_order.py`, all
+   five body-read-marker families, every version (v1 dev a strict xfail, as R36).
 
 P. **LLM runs on `v5` — DONE in R54.** 28 runs, old-family decisions checked equal
    to v4's one by one, table and claims gated (`tests/test_results_v5.py`).
@@ -3056,6 +3055,35 @@ pairing the coin figure rests on was not asserted. All now pinned.
 **Loop:** nothing new. The cadence held: the round's run was long (≈3 h of local
 inference) and the in-progress state was committed with a labelled red commit rather
 than left in the working tree.
+
+---
+
+## Round 55 — the marker-aware order check, for every random-marker family (all five)
+
+**Ending state: `shipped`.** Queue item Q (R52 review). **Before:** the rule "speak iff
+the marker is named in the first decider clause" was gated only for `water_notice`.
+For `pet_care` and `home_security` it was guarded indirectly, by cell balance. Measured
+before writing the test: exactly 50.0% on dev and test for both families on every version
+that carries them (v3-v5 and v4-v5): 10 of 20 per label on dev, 6 of 12 on test.
+**After:** `tests/test_marker_order.py` gates it for all three families, on every
+version, and checks that each family first appears in the version it claims.
+
+**Checks first, and they can fail.** A mutation test per family forces the privileged
+clause first (the R52 monkeypatch) and requires the rule to read 100%; it does for all
+three. Nothing in the dataset changed. This is a check that passed on arrival, so its
+value is in the mutation tests, not in a before/after number.
+
+**Review:** subagent, not §D-independent (owner instruction). It found the first draft's
+"every random-marker family" false: `travel` and `commerce` also read their marker from
+the body (`_MARKERS[...] is None`) and were not covered. Both added (exactly 50% on v2-v5;
+v1 dev fails as R36 predicts, strict xfail), and the coverage test now asserts the
+covered set equals the skyline's body-read set. Also from it: the check is cell balance's
+order property read through the marker, made exact, not a new kind of check; and its
+50% depends on the committed builds' 32 pairs. Not fixed: `test_dataset_v5.py` still
+carries R52's `water_notice` copy of the check (harmless duplication).
+
+**Loop:** a coverage claim ("every X") should be tested against the code's own list of X,
+not a hand-typed one — the first draft's list was typed from the queue item's wording.
 
 ---
 
