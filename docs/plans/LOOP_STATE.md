@@ -15,7 +15,8 @@ findings** below.
 
 - **Loop audit due:** R62 (fifth round after R57's audit). A round at or past it runs
   the audit or writes `deferred: <reason>` on its Loop line (proposed upstream, #60).
-- **Round:** 57 complete — loop audit (due); the null finding filed upstream (#61).
+- **Round:** 58 complete — coverage map refreshed (stale since R34); viewer gap queued (R).
+  R57: loop audit (due); the null finding filed upstream (#61).
   R56: two method findings sent upstream: the audit-cadence
   resubmission (#60) and R55's instance on #56. No code changed. R55: marker-aware order checks for all five random-marker
   families (queue Q); v2-v5 already read exactly 50%, v1 dev is R36's known imbalance. R54: all 28 LLM runs on `v5`; on `water_notice` 18 of 28 are
@@ -201,24 +202,29 @@ whenever costs, the generator, or a policy change.
 
 ## Coverage map
 
+Refreshed in R58 from `git log` per file and the current test files; the previous map
+had not been updated since R34 and still described nine families. "Last touched" is the
+last round whose commit changed the file.
+
 | area | last touched | probe / status |
 |---|---|---|
-| `dataset/generate.py` | **R16** | prose frames; 9/9 families at chance floor on unigram + bigram |
-| `metrics.py` | R4 | base-rate weighting; ICS constants still unvalidated by humans |
-| `policies/builtin.py` | R1 | heuristic now near chance, as intended |
-| `policies/skyline.py` | **R16** | resolver built from the frame templates; ICS 0 |
-| `audit.py` | **R22** | unigram + bigram probes; `verbatim_overlap`; worst-probe verdict. R21 ruled the signal **join** deliberate and asserted its cost is exactly zero (`TestSignalJoinIsFree` — redundant against frame-shape defects, load-bearing only for the **trailing** junction). R22: gated probes are **seed-stable to 0.0%** (`TestGatedProbesAreSeedStable`); the reported **positional** probe is not, spanning 52.8–63.9% overall and up to 40 points per family |
-| `README.md` results | **R17** | `TestReadmeResultsAreCurrent` fails the build when it disagrees with `eval` |
-| `cli.py` split | **R10** | buckets on `pair_key`; `TestSplitIntegrity` guards it |
-| `schema.pair_key` | **R10** | the single definition of a pair |
-| `.github/workflows/` | R5 | CI on py3.11-3.13 + reproducibility + audit |
-| `web/server.py` | **R34** | `vs pair-blind` column and header; first tests (`tests/test_web.py`: board == eval, stored ids, served page); rendered in Chromium, no JS errors |
-| `policies/llm.py` | **R23** | strict parser (unparsed counted, never silently silence); `--provider local`; `--no-system-role`. Executed on 11 open-weight models |
-| `schema.policy_view` | **R26** (new) | every path to `Policy.decide` empties `slices`; `tests/test_policy_view.py` spies on both paths, each mutation-tested |
-| `policies/skyline.py` `PartialSkylinePolicy` | **R27** | `draw` selects which moments are comprehended (draw 0 = bare id, pinned), `seed` the coin flips; 20-draw properties and quoted ranges in `TestMetricDiscriminationOnEveryDraw` |
-| `runner.pair_blind_ics` | **R24** (new) | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested. Not yet in `web/server.py` |
-| `results/` + `results.py` | **R23** (new) | committed decisions + MANIFEST (sha256, runtime); README LLM table, and five conclusions drawn from it, gated against a re-score in `test_results.py` |
-| `experiments/run_local_llms.py` | **R23** (new) | reproduces every LLM row from weights; one model per invocation fits the 2h background cap |
+| `dataset/generate.py` | R52 | 12 families (`v5`); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v5 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
+| `metrics.py` | R8 | ICS, base-rate weighting, hard violations raw; ICS constants still unvalidated by humans (NEEDS-MAX 2) |
+| `policies/builtin.py` | R1 | heuristic near chance and does not solve any version (`test_heuristic_does_not_solve_the_dataset`, per version) |
+| `policies/skyline.py` | R52 | resolver built from the frame templates; markers read from the body for five families (`_MARKERS[...] is None`); solves v1-v5 |
+| `audit.py` | R40 | unigram + bigram gated, positional reported with a label-swap null column (R40). Gated probes seed-stable to 0.0% (R22); positional is not |
+| char n-gram audit | R49 | `experiments/char_ngram_audit.py`, gated on v4 (`test_the_char_ngram_audit_holds`); holds on v5 but not gated there |
+| clause order, random markers | R55 | `tests/test_marker_order.py`: all five body-read-marker families, every version; v1 dev strict xfail (R36) |
+| `README.md` results | R54 | built-in table vs `eval` (R17); one LLM table per version v1-v5 plus `v2para`, each row and each claims block gated against a fresh re-score (`tests/test_results*.py`) |
+| `cli.py` split | R10 | buckets on `pair_key`; `TestSplitIntegrity` |
+| `schema.pair_key` / `policy_view` | R26 | one pair definition; no policy sees `slices` or a label-bearing id (`tests/test_policy_view.py`) |
+| `runner.pair_blind_ics` | R26 | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested |
+| `policies/llm.py` | R53 | strict parser (unparsed counted); `--provider local`; `--no-system-role`; structural system-turn preflight (`results/SYSTEM_TURN.md`). 14 open-weight models; no hosted model (NEEDS-MAX 1) |
+| `results/` + `results.py` | R42 | committed decisions + MANIFEST per version; old-family decisions checked equal across versions |
+| `experiments/run_local_llms.py` | R53 | reproduces every LLM row from weights; caches seed from the previous version |
+| `labeling.py` | R31 | CLI and Fleiss' κ, tested on synthetic raters; **no real labels** (NEEDS-MAX 2) |
+| `web/server.py` | R34 | pair-blind column; `tests/test_web.py` runs on **v1 dev only** — v2-v5 unprobed in the viewer (queue R) |
+| `.github/workflows/` | owner-only | CI on py3.11-3.13 + reproducibility + audit; not editable by a round |
 
 ---
 
@@ -321,6 +327,11 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    state difference *is* the judgment under test? The invariant currently
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
+
+R. **The viewer on v2-v5** (new, R58). `tests/test_web.py` builds its payload from
+   `v1/dev` only; nothing checks that `tactbench serve --version v5` loads, that its
+   board equals `eval` on v5, or that the twelve families render. Parametrize over
+   versions; fix whatever breaks.
 
 Q. **Marker-aware order checks for `pet_care` and `home_security` — DONE in R55**,
    extended by its review to `travel` and `commerce`: `tests/test_marker_order.py`, all
@@ -3150,6 +3161,29 @@ the clause.
 
 **Loop:** audit run on time (due marker read); null finding filed (#61); a local push
 slip, fixed locally.
+
+---
+
+## Round 58 — the coverage map had stopped being read
+
+**Ending state: `shipped`.** Not a queue item: a §C question 3 answer that R57's audit
+missed. **Before:** the coverage map's newest row was R34, it described "9/9 families"
+on a twelve-family dataset, and it named no part of R36-R57's work. Twenty-four rounds
+wrote the state file without touching the one section meant to say what is probed.
+**After:** every row checked against `git log` for its file and against the current test
+files. New rows: char n-gram audit, marker order, labelling. One new gap: the viewer's
+tests run on `v1` only, queued as R.
+
+**Checks first.** Each row's "last touched" is the last commit to that file, not
+recalled. `tactbench audit --version v5` was re-run: every family reads 50.0% on unigram
+and bigram, positional 53.1% overall.
+
+**Review:** docs only; no figure is new except the re-run audit, which matches
+DATASET.md.
+
+**Loop:** R57's audit asked "which section is never read?" and answered "none" without
+opening the sections. An audit question answered from memory is not asked. That is
+local: the question is fine, and the slip was mine.
 
 ---
 
