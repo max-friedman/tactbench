@@ -32,6 +32,7 @@ import hashlib
 import re
 
 from ..dataset.generate import FRAMES, LATER_FRAMES, WHO
+from ..dataset.paraphrase import PARAPHRASE_FRAMES
 from ..schema import Decision, Moment
 from .base import Policy
 
@@ -118,9 +119,14 @@ class SkylinePolicy(Policy):
         return match.group(1).strip().lower() if match else None
 
     def _resolve(self, moment: Moment, text: str, low: str) -> bool:
-        frames = FRAMES.get(moment.family) or LATER_FRAMES.get(moment.family)
+        frames = list(FRAMES.get(moment.family) or LATER_FRAMES.get(moment.family) or [])
         if not frames:
             return False
+        # The reworded slice (`v2para`, R42) states the same relation in one new frame
+        # per family; the ceiling must read it too, or the slice is unshown to be
+        # solvable. Before R62 the skyline never spoke there (ICS = silence).
+        if moment.family in PARAPHRASE_FRAMES:
+            frames.append(PARAPHRASE_FRAMES[moment.family])
         marker = _MARKERS.get(moment.family)
         if marker is None:
             # The marker is not a constant -- read it out of the body, which is

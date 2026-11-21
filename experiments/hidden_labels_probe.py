@@ -61,6 +61,10 @@ def main() -> None:
         hv = card.hard_violations
         print(f"unseen seed {seed:>9}: template parser ICS {card.ics:.1f}, hard viol. {hv}")
     skyline.FRAMES = public_frames_only()
+    # Since R62 the skyline also reads the paraphrase frames; "public frames only"
+    # must remove those too, or the parser knows more than the experiment states.
+    paraphrase = skyline.PARAPHRASE_FRAMES
+    skyline.PARAPHRASE_FRAMES = {}
     try:
         for seed in (SHIPPED_SEED, *UNSEEN_SEEDS[:2]):
             items = held_out(seed)
@@ -71,6 +75,7 @@ def main() -> None:
             )
     finally:
         skyline.FRAMES = FRAMES
+        skyline.PARAPHRASE_FRAMES = paraphrase
 
 
 if __name__ == "__main__":
