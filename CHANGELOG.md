@@ -5,6 +5,15 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 50)
+
+- **Three more models on `v4`**: Granite-3.3-2B, Phi-4-mini and Mistral-7B, 6 runs
+  (28 in all), with a claims block gated by `TestTheReadmeV4AddedClaims`. None beats
+  silence by more than +0.7; two rubric runs speak on 1-2 of 440 moments.
+- **System-turn preflight** in `experiments/run_local_llms.py`: llama-cpp-python's
+  `mistral-instruct` format drops a system turn silently, so each run first checks
+  the model can repeat a secret word sent there. Mistral-7B uses `--no-system-role`.
+
 ### Added (Round 49)
 
 - **§A audit: character n-grams.** `experiments/char_ngram_audit.py` (imports nothing
