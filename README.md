@@ -151,8 +151,8 @@ sealed, the two meetings trade which is ahead and which has passed. Both sides t
 carry nearly the same token multiset, so *vocabulary* cannot separate them.
 (Word **order** still can — see the blind spot below.)
 
-**All nine families sit at the chance floor for the bag-of-words probe. Overall:
-50.0%.** That number is real and it is also much weaker than it looks — see
+**Every family sits at the chance floor for the bag-of-words probe — all nine in `v1`,
+all twelve in `v5`. Overall: 50.0% on both.** That number is real and it is also much weaker than it looks — see
 [the blind spot](#the-blind-spot-in-that-number) immediately below.
 
 That was not always true, and the exception is worth the telling. `quiet_hours`
