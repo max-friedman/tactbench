@@ -296,14 +296,19 @@ FRAMES: dict[str, list[tuple[str, str]]] = {
 #: The structural frame tests run over :data:`ALL_FRAMES`.
 LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
     "pet_care": [
-        ("Taking daily tablets is {who}", "Needing zero tablets is {who}"),
-        ("Recovering after surgery is {who}", "Healthy as ever is {who}"),
+        # Character length balanced, not only token count (R45 review): the
+        # privileged clause is longer, shorter or equal in equal numbers across dev
+        # frames (0-4) and across held-out frames (5-7). The first draft had it longer
+        # in 6 of 8 frames and none shorter, and "speak if the clause naming the pet
+        # that skipped is the longer one" read 90% on dev and 83% on test.
+        ("Taking daily tablets is {who}", "Needing no tablets is {who}"),
+        ("Mending after an operation is {who}", "Thriving in excellent health is {who}"),
         ("Diagnosed with diabetes is {who}", "Cleared by vets is {who}"),
-        ("Prescribed a renal diet is {who}", "Fine on ordinary food is {who}"),
-        ("Elderly and frail is {who}", "Young and sturdy is {who}"),
-        ("Underweight this month is {who}", "Overweight this month is {who}"),
-        ("Flagged at last checkup is {who}", "Passed its last checkup is {who}"),
-        ("Monitored for kidney trouble is {who}", "Free of kidney trouble is {who}"),
+        ("Prescribed a renal diet is {who}", "Content on ordinary food is {who}"),
+        ("Elderly and frail is {who}", "Young and healthy is {who}"),
+        ("Wearing a surgical cone is {who}", "Wearing a plain collar is {who}"),
+        ("Flagged at last checkup is {who}", "Passed every recent checkup is {who}"),
+        ("Watched for kidney trouble is {who}", "Spared from kidney trouble is {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
@@ -1006,11 +1011,14 @@ class PetCareScenario(Scenario):
     def body(self, rng):
         self._skipped, self._ate = rng.sample(PETS, 2)
         a, b = self._skipped, self._ate
+        # The skipped pet is named first in two phrasings and second in two, so
+        # "the first name in the body" does not locate the marker (R45 review).
         phrasing = rng.choice(
             [
                 f"Smart feeder: {a} left breakfast untouched; {b} finished as usual.",
-                f"Feeder report — {a}'s bowl is still full, {b}'s is empty.",
+                f"Feeder report — {b} finished breakfast, but {a}'s bowl is still full.",
                 f"Bowl sensor: no meal eaten by {a} since 7am. {b} ate normally.",
+                f"Bowl sensor: {b} ate normally; nothing eaten by {a} since 7am.",
             ]
         )
         return [
@@ -1026,7 +1034,7 @@ class PetCareScenario(Scenario):
     def why(self):
         return (
             "The pet that skipped its meal is the medically fragile one; a missed meal "
-            "there is worth a call to the vet today.",
+            "there is worth knowing about while the vet can still be called.",
             "The pet that skipped its meal is the healthy one, and the fragile one ate. "
             "One missed meal in a healthy animal is not worth breaking focus for.",
         )

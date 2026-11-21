@@ -12,13 +12,20 @@ the skyline solving it and the heuristic not.
 from __future__ import annotations
 
 import re
+import statistics
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
 import pytest
 
-from tactbench.audit import lexical_leakage, ngram_leakage, null_median, positional_leakage
+from tactbench.audit import (
+    lexical_leakage,
+    ngram_leakage,
+    null_median,
+    null_readings,
+    positional_leakage,
+)
 from tactbench.dataset.generate import (
     ALL_FRAMES,
     ALL_SCENARIOS,
@@ -94,8 +101,35 @@ def test_the_new_family_reads_chance(family):
     assert len(dev) == 40
     assert lexical_leakage(dev).exploitable_accuracy == pytest.approx(0.5)
     assert ngram_leakage(dev).exploitable_accuracy == pytest.approx(0.5)
-    pos = positional_leakage(dev).exploitable_accuracy
-    assert pos < 0.60 and pos <= null_median(dev, positional_leakage)
+
+
+SEEDS = range(SEED, SEED + 20)
+
+
+def _family_dev(seed: int, family: str) -> list:
+    return [
+        i
+        for i in _split(generate(PAIRS, seed, families=FAMILIES), held=False)
+        if i.moment.family == family
+    ]
+
+
+@pytest.mark.parametrize("family", NEW)
+def test_the_new_familys_positional_reading_matches_its_null_across_seeds(family):
+    """Per-family positional readings at 40 items are noise-dominated (R37: under a
+    label-swap null they exceed 60% in about half of family-seed cells), so one seed's
+    reading proves nothing either way. Over 20 seeds the observed median must sit
+    within 5 points of the null's, and the share of seeds above 60% within 15 points
+    -- about 1.5 binomial sd at 20 seeds. Shipped pet_care: 60.0% vs 57.5%, 35% vs 27%.
+    """
+    obs, null = [], []
+    for seed in SEEDS:
+        dev = _family_dev(seed, family)
+        obs.append(positional_leakage(dev).exploitable_accuracy)
+        null += null_readings(dev, positional_leakage, draws=5, seed=seed)
+    assert statistics.median(obs) <= statistics.median(null) + 0.05
+    above = sum(x > 0.6 for x in obs) / len(obs)
+    assert above <= sum(x > 0.6 for x in null) / len(null) + 0.15
 
 
 @pytest.mark.parametrize("family", NEW)
@@ -171,3 +205,53 @@ def test_no_single_word_policy_reaches_the_pair_blind_bar():
                     for i, t in zip(items, tokens, strict=True)
                 ]
                 assert score(items, ds, word).ics >= bar, (split, word, absent)
+
+
+@pytest.mark.parametrize("family", NEW)
+def test_new_families_balance_clause_length(family):
+    """Equal token counts are not enough: the privileged clause must not be the longer
+    one more often than the shorter, on dev frames and on held-out frames separately.
+    Round 45's first pet_care draft leaned 6-0 and a length rule read 90% on dev."""
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    from clause_length_probe import lean
+
+    frames = ALL_FRAMES[family]
+    for held in (False, True):
+        leans = [lean(a, b) for k, (a, b) in enumerate(frames) if (k in HELD_OUT_FRAMES) == held]
+        assert sum(leans) == 0, (family, "held-out" if held else "dev", leans)
+
+
+def test_the_pet_care_length_exploit_reads_chance_across_seeds():
+    """The reviewer's exploit read 90% dev / 83% test on the first draft. On one seed
+    it is noisy (the shipped dev reads 30%), so the median over 20 seeds is asserted."""
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    from clause_length_probe import pet_care_exploit
+
+    readings = [pet_care_exploit(generate(PAIRS, seed, families=FAMILIES)) for seed in SEEDS]
+    assert 0.45 <= statistics.median(readings) <= 0.55, sorted(readings)
+
+
+def test_the_body_does_not_always_name_the_skipped_pet_first():
+    from tactbench.policies.skyline import _SKIPPED_PET
+
+    first = []
+    for i in load("v3", "dev"):
+        if i.moment.family == "pet_care":
+            body = i.moment.signals[0].content
+            skipped = next(g for g in _SKIPPED_PET.search(body).groups() if g)
+            names = re.findall(r"\b[A-Z][a-z]+\b", body.split(":", 1)[-1].split("—")[-1])
+            first.append(names[0] == skipped)
+    assert 0.3 <= sum(first) / len(first) <= 0.7
+
+
+def test_the_dataset_doc_claims_about_old_families_clause_length():
+    """DATASET.md: the dev-majority length rule transfers to held-out frames at or below
+    50% in eight of the nine original families; deadline reads 83%."""
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    from clause_length_probe import transfer
+
+    held = {f: transfer(f)[1] for f in FRAMES}
+    assert sorted(f for f, x in held.items() if x > 0.5) == ["deadline"]
+    assert round(held["deadline"], 2) == 0.83
+    doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
+    assert "at or below 50% there in eight of the nine. `deadline` reads 83%" in doc

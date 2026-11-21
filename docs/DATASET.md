@@ -224,8 +224,7 @@ counts are mostly chance.)
 
 `data/v3` is `tactbench build --version v3 --pairs 32 --families 10`: v2 plus one new
 family (400 dev / 240 test). A smart feeder reports that one pet left its meal and the
-other ate; the decider says which pet is medically fragile — *"Recovering after
-surgery is Mochi. Healthy as ever is Pepper."* Speak when the pet that skipped is the
+other ate; the decider says which pet is medically fragile — *"Mending after an operation is Mochi. Thriving in excellent health is Pepper."* Speak when the pet that skipped is the
 fragile one; stay quiet when it is the healthy one. Both names appear in the shared
 body and on both sides, and swap roles, so it is a role permutation like every other
 family.
@@ -243,6 +242,24 @@ a constant, so a probe of token positions cannot see which clause holds it. A pl
 "privileged clause always first" mutation left the positional probe at chance and was
 caught only by the order-balance check. The check exists for every family; it is the
 guard that matters for this one.
+
+**Clause length — found in review, fixed for `pet_care`, a known weakness elsewhere.**
+Frames are held to equal *token* counts, not character counts. The first `pet_care`
+draft had the privileged clause longer in 6 of 8 frames and never shorter, and every
+body named the skipped pet first, so "speak if the clause ending in the body's first
+name is the longer one" read 90% on dev and 83% on test. The frames now balance
+length on dev frames and on held-out frames separately, two of four body phrasings
+name the skipped pet second, and the exploit's median over 20 seeds is 50%
+(`experiments/clause_length_probe.py`; both gated in `tests/test_dataset_v3.py`).
+
+The original nine families were never held to this. Each leans on its *dev* frames —
+childcare's and commerce's privileged clause is shorter in 4 of 5 — but a rule learned
+on the dev frames does not transfer to the held-out frames: it reads at or below 50%
+there in eight of the nine. `deadline` reads 83%, on three frames, which is too few to
+call. On dev the lean is one more feature of five public frames, which a parser of the
+templates already exploits fully (Round 33); changing those families would change v1
+and v2, so they are left as published and the length-balance test applies to families
+added from v3 on.
 
 ### Token permutations and the bigram probe
 

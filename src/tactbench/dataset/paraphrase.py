@@ -46,6 +46,8 @@ def _filler(clause: str, template: str) -> str | None:
 def reword(item: Item) -> Item:
     """The same moment with its decider in the family's paraphrase frame."""
     family = item.moment.family
+    if family not in PARAPHRASE_FRAMES:
+        raise ValueError(f"no paraphrase frame for family {family!r} (v2's nine only)")
     privileged, other = FRAMES[family][frame_of(item.moment) % len(FRAMES[family])]
     new_privileged, new_other = PARAPHRASE_FRAMES[family]
     decider = item.moment.signals[-1]

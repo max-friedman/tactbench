@@ -50,9 +50,9 @@ _RETURN_ITEM = re.compile(
     re.I,
 )
 
-# "feeder: Biscuit left breakfast" / "— Biscuit's bowl is still full" / "eaten by Biscuit since"
+# "feeder: Biscuit left breakfast" / "Biscuit's bowl is still full" / "eaten by Biscuit since"
 _SKIPPED_PET = re.compile(
-    r"feeder: (\w+) left|— (\w+)'s bowl is still full|eaten by (\w+) since", re.I
+    r"feeder: (\w+) left|(\w+)'s bowl is still full|eaten by (\w+) since", re.I
 )
 
 

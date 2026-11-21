@@ -24,7 +24,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **591 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **596 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2544,12 +2544,11 @@ the new family; no single word reaches the pair-blind bar. The prose-frame and
 disjointness tests now run over `ALL_FRAMES`, so they cover the new frames.
 
 **Shipped.** `PetCareScenario`: a feeder reports one pet skipped a meal; the decider
-says which pet is fragile ("Recovering after surgery is Mochi. Healthy as ever is
-Pepper."). Appended as `LATER_SCENARIOS`, frames in `LATER_FRAMES`; `generate(...,
+says which pet is fragile ("Mending after an operation is Mochi. Thriving in excellent health is Pepper."). Appended as `LATER_SCENARIOS`, frames in `LATER_FRAMES`; `generate(...,
 families=)` and `tactbench build --families`. `FRAMES` still means the nine, and is
 read live (an experiment swaps its entries at runtime — a merged copy would have
 silently ignored that; caught when the first draft broke it). The skyline reads
-the skipped pet from the body. 591 tests.
+the skipped pet from the body. 591 tests at first draft.
 
 **Mutations.** A planted "privileged clause always first" for `pet_care` is caught —
 by the order-balance test, **not** the positional probe, which reads chance because
@@ -2557,6 +2556,21 @@ the marker is a drawn name (recorded in DATASET.md). A planted name-pool split (
 skipped pet always from one half of `PETS`) is caught by nothing, and correctly so:
 both names follow the same token in both clauses, so it reveals which pet skipped,
 not the label. The both-names-on-both-sides test is the structural guard.
+
+**Review (subagent, not §D-independent) — a real leak, fixed.** The first draft's
+privileged clause was longer in 6 of 8 pet_care frames and never shorter, and the body
+always named the skipped pet first: "speak iff the clause ending in the body's first
+name is longer" read **90% dev / 83% test**. Equal token counts had hidden it. Fixed in
+the data: frame lengths balance on dev and on held-out frames separately, two of four
+body phrasings name the skipped pet second, the debatable "Overweight this month" frame
+replaced by a surgical cone vs a plain collar. New gates: length balance for every
+family added from v3 on; the exploit's 20-seed median in [45%, 55%] (on one seed it is
+noisy — the shipped dev reads 30%); positional vs its null over 20 seeds instead of one
+seed (60.0% vs 57.5%). Restoring the old frames fails the length gate: `fails`. The
+original nine families also lean on dev frames but do not transfer to held-out ones
+(8 of 9 at or below 50%; deadline 83% on 3 frames) — left as published, recorded in
+DATASET.md and gated. `paraphrase.reword` raises a clear error for a family with no
+frame. 596 tests.
 
 **Not done.** No LLM runs on v3 (queued as N). Commute disruption dropped as a
 candidate: it duplicates `driving`.
