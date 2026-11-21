@@ -5,14 +5,20 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 46)
+
+- **LLM results on `v3`**: all 22 runs, in `results/v3-dev/`. Old-family decisions are
+  reused from v2 and checked equal one by one; only the 40 `pet_care` moments were
+  queried. README v3 table and claims, gated by `tests/test_results_v3.py`. Qwen2.5-3B
+  naive is over 5% unparsed on v3 (6.2%) and reported as inconclusive.
+
 ### Added (Round 45)
 
 - **Dataset `v3`**: v2 plus a tenth family, `pet_care` (400 dev / 240 test). Built with
   `tactbench build --version v3 --pairs 32 --families 10`; `generate(families=)`.
   The family is appended (`LATER_SCENARIOS`, `LATER_FRAMES`), so v1 and v2 are
   unchanged and v3's first nine families equal v2's — asserted in
-  `tests/test_dataset_v3.py`. The skyline resolves the new family; no LLM has been
-  run on v3.
+  `tests/test_dataset_v3.py`. The skyline resolves the new family; LLM runs on v3 are in Round 46.
 
 ### Added (Round 44)
 

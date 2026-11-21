@@ -371,8 +371,8 @@ label-shuffled null on 9 of 20 seeds; at 32 it does not on any, and `driving`'s
 fixed 63.3% becomes exactly 50.0%. Every LLM run has been redone on `v2`; the ordering, silence
 and pairs conclusions replicate, with three small exceptions listed under *On dataset
 v2*. Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator-at-32-pairs-round-37). `v3` (Round 45) is v2 plus a tenth family,
-`pet_care` (400 dev / 240 test); its first nine families are identical to v2's, and no
-LLM has been run on it yet
+`pet_care` (400 dev / 240 test); its first nine families are identical to v2's, and the
+22 runs on it are under *On dataset v3*
 ([details](docs/DATASET.md#dataset-v3--a-tenth-family-pet_care-round-45)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
@@ -498,6 +498,54 @@ violations, not 11–28 — still none in between.
 | `llm:rubric:llama-3.2-1b` | 900.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.012 | 40 | 360/360 | 0.0% | 0.0% |
 | `llm:naive:qwen2.5-0.5b` | 913.0 | −90.2 | −168.5 | 0.499 | 0.967 | 0.391 | 40 | 349/360 | 0.0% | 3.1% |
 <!-- llm-results-v2:end -->
+
+#### On dataset v3 — a tenth family
+
+The same 22 runs on `v3` (Round 45: v2 plus `pet_care`, 400 dev moments), Round 46.
+The nine old families are byte-identical to v2's, so those 360 decisions were reused
+from the v2 runs (a test checks every one is unchanged) and only the 40 `pet_care`
+moments were sent to a model.
+
+<!-- v3-claims:start -->
+**No run detectably reads the new family's decider.** On `pet_care`, **18** of the 22
+runs give all 40 moments the same answer. The best run gets **3** of its 20 pairs right
+on both sides (Llama-3.1-8B, naive prompt), against about **5** for a coin. Twenty pairs
+can only tell strong reading from chance, so this rules out strong reading and no
+more. The family does change behaviour: **6** runs that speak on the old families say
+nothing on any `pet_care` moment. The v2 ordering survives: of the 231 pairs of runs,
+**0** are reversed by ICS, and **2** are tied on one version and ordered on the other.
+The same **six** runs beat silence, all with zero hard violations. One verdict changes.
+Qwen2.5-3B with the naive prompt goes from **4.7%** to **6.2%** unparsed, which is over
+the 5% line, so its v3 score is inconclusive. The rise is all from the new family: **8**
+of its 40 `pet_care` answers are unreadable.
+<!-- v3-claims:end -->
+
+<!-- llm-results-v3:start -->
+| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:gemma-3-4b` | 438.0 | +15.8 | −15.3 | 0.546 | 0.265 | 0.279 | 0 | 97/400 | 7.0% | 0.0% |
+| `llm:rubric:qwen2.5-7b` | 464.0 | +10.8 | −22.1 | 0.533 | 0.160 | 0.202 | 0 | 60/400 | 2.0% | 0.0% |
+| `llm:rubric:gemma-2-2b` | 475.0 | +8.7 | −25.0 | 0.483 | 0.140 | 0.455 | 0 | 58/400 | 2.0% | 0.0% |
+| `llm:naive:gemma-2-2b` | 476.0 | +8.5 | −25.3 | 0.545 | 0.150 | 0.434 | 0 | 55/400 | 4.5% | 0.0% |
+| `llm:naive:llama-3.2-3b` | 492.0 | +5.4 | −29.5 | 0.488 | 0.105 | 0.293 | 0 | 43/400 | 1.0% | 0.0% |
+| `llm:rubric:llama-3.1-8b` | 506.0 | +2.7 | −33.2 | 0.579 | 0.055 | 0.314 | 0 | 19/400 | 2.5% | 0.0% |
+| `llm:naive:qwen2.5-1.5b` | 520.0 | +0.0 | −36.8 | — | 0.000 | 0.500 | 0 | 0/400 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-3b` | 520.0 | +0.0 | −36.8 | — | 0.000 | 0.300 | 0 | 0/400 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-1.5b` | 520.0 | +0.0 | −36.8 | — | 0.000 | 0.120 | 0 | 0/400 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-3b` | 520.0 | +0.0 | −36.8 | — | 0.000 | 0.450 | 0 | 0/400 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-3b` | 562.0 | −8.1 | −47.9 | 0.513 | 0.685 | 0.400 | 20 | 267/400 | 6.5% | 6.2% |
+| `llm:naive:gemma-3-4b` | 565.0 | −8.7 | −48.7 | 0.507 | 0.555 | 0.343 | 18 | 219/400 | 3.5% | 0.0% |
+| `llm:naive:llama-3.1-8b` | 594.0 | −14.2 | −56.3 | 0.529 | 0.550 | 0.272 | 20 | 208/400 | 9.5% | 0.0% |
+| `llm:naive:qwen2.5-7b` | 600.0 | −15.4 | −57.9 | 0.534 | 0.235 | 0.184 | 19 | 88/400 | 3.5% | 0.0% |
+| `llm:naive:phi-3.5-mini` | 660.0 | −26.9 | −73.7 | 0.501 | 0.895 | 0.420 | 20 | 357/400 | 0.5% | 0.0% |
+| `llm:rubric:phi-3.5-mini` | 660.0 | −26.9 | −73.7 | 0.500 | 0.900 | 0.450 | 20 | 360/400 | 0.0% | 0.0% |
+| `llm:rubric:smollm2-1.7b` | 938.0 | −80.4 | −146.8 | 0.503 | 0.985 | 0.445 | 36 | 392/400 | 2.5% | 0.0% |
+| `llm:rubric:qwen2.5-0.5b` | 999.0 | −92.1 | −162.9 | 0.501 | 1.000 | 0.455 | 40 | 399/400 | 0.5% | 0.0% |
+| `llm:naive:llama-3.2-1b` | 1000.0 | −92.3 | −163.2 | 0.500 | 1.000 | 0.154 | 40 | 400/400 | 0.0% | 0.0% |
+| `llm:naive:smollm2-1.7b` | 1000.0 | −92.3 | −163.2 | 0.500 | 1.000 | 0.450 | 40 | 400/400 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-1b` | 1000.0 | −92.3 | −163.2 | 0.500 | 1.000 | 0.011 | 40 | 400/400 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-0.5b` | 1013.0 | −94.8 | −166.6 | 0.499 | 0.970 | 0.392 | 40 | 389/400 | 0.0% | 2.8% |
+<!-- llm-results-v3:end -->
 
 `pairs` is the share of matched pairs answered correctly on **both** sides. The two
 sides share a body and need opposite answers, so a policy that does not read the
@@ -693,7 +741,6 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    (Round 31); the labels themselves need people.
 3. More scenario families — ten (`v3`, Round 45) is still one author's idea of a
    working life, and family count, not phrasing, is the ceiling on dataset diversity.
-   v3 has no LLM runs yet.
 4. Held-out test split behind a submission script — **blocked on custody**, not
    code (Round 33). Hiding the label file or the seed hides nothing; keeping the
    held-out *frames* private does (see limitations). It needs someone to write fresh

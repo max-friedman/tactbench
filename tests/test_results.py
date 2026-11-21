@@ -43,6 +43,7 @@ RUNS = load_results()
 MARKERS = {
     "v1": ("<!-- llm-results:start -->", "<!-- llm-results:end -->"),
     "v2": ("<!-- llm-results-v2:start -->", "<!-- llm-results-v2:end -->"),
+    "v3": ("<!-- llm-results-v3:start -->", "<!-- llm-results-v3:end -->"),
 }
 
 
