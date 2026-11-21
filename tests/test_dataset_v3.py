@@ -225,7 +225,9 @@ def test_new_families_balance_clause_length(family):
 
 def test_the_pet_care_length_exploit_reads_chance_across_seeds():
     """The reviewer's exploit read 90% dev / 83% test on the first draft. On one seed
-    it is noisy (the shipped dev reads 30%), so the median over 20 seeds is asserted."""
+    it is noisy, so the median over 20 seeds is asserted. (Round 47: the exploit now locates
+    the skipped pet as the skyline does; with the first-name locator it read 30% on
+    the shipped dev, and could not have failed once body order was balanced.)"""
     sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
     from clause_length_probe import pet_care_exploit
 
@@ -257,3 +259,19 @@ def test_the_dataset_doc_claims_about_old_families_clause_length():
     assert round(held["deadline"], 2) == 0.83
     doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
     assert "at or below 50% there in eight of the nine. `deadline` reads 83%" in doc
+
+
+def test_the_dataset_doc_claim_about_pet_care_longest_word():
+    """DATASET.md (Round 47): with the marker located properly, the longest-word rule
+    reads 70% dev / 67% test on pet_care; the other five features 50-60%."""
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    from clause_length_probe import FEATURES, feature_exploit
+
+    dev, test = load("v3", "dev"), load("v3", "test")
+    assert round(feature_exploit(dev, "pet_care", "longest"), 2) == 0.70
+    assert round(feature_exploit(test, "pet_care", "longest"), 2) == 0.67
+    for f in set(FEATURES) - {"longest"}:
+        for split in (dev, test):
+            assert 0.5 <= feature_exploit(split, "pet_care", f) <= 0.6, f
+    doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
+    assert "reads 70% on v3 dev and 67% on test" in doc

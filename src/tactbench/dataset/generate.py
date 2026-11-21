@@ -323,16 +323,19 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
     ],
     "home_security": [
         # Privileged: nobody is expected there, so motion there is worth a look.
-        # Character length balanced from the start (R45): dev frames lean +,-,+,-,0
-        # and held-out frames -,+,0.
-        ("Unoccupied this evening is the {who}", "Booked for gardeners is the {who}"),
-        ("Nobody coming round is the {who}", "Plumber arriving today is the {who}"),
-        ("Empty since breakfast is the {who}", "Expecting a courier is the {who}"),
-        ("Locked while we travel is the {who}", "Getting new windows fitted is the {who}"),
-        ("Vacant until Monday is the {who}", "Hosting a carpenter is the {who}"),
-        ("Closed to visitors is the {who}", "Opened for cleaners is the {who}"),
-        ("Sealed up overnight is the {who}", "Lent to neighbours is the {who}"),
-        ("Shut till autumn is the {who}", "Given to roofers is the {who}"),
+        # Both clauses of a frame name the SAME visitor in the same verb form (R47
+        # review: the first draft named a visitor only in the other clause, six of
+        # eight with an -er noun, and "speak unless the motion clause has an -er
+        # word" read 90% dev / 83% test). Character length leans +,-,0,+,- on dev and
+        # -,0,+ on held-out frames; every probed clause feature balances.
+        ("Gardeners avoiding the {who}", "Gardeners weeding the {who}"),
+        ("Plumber cancelled for the {who}", "Plumber requested for the {who}"),
+        ("Courier barred at the {who}", "Courier allowed at the {who}"),
+        ("Cleaners skipping the {who}", "Cleaners tidying the {who}"),
+        ("Carpenter halted in the {who}", "Carpenter scheduled in the {who}"),
+        ("Decorators banned from the {who}", "Decorators invited inside the {who}"),
+        ("Roofers bypassing the {who}", "Roofers repairing the {who}"),
+        ("Electricians disallowed from the {who}", "Electricians admitted to the {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
@@ -1066,8 +1069,9 @@ class PetCareScenario(Scenario):
 
 class HomeSecurityScenario(Scenario):
     """A camera sees motion in one part of the home while the user is at work. The
-    decider is where someone is expected today -- both zones appear in the shared body
-    and on both sides, and swap roles. Round 47, added in dataset v4 only."""
+    decider is which zone a booked visitor is (and is not) going to -- both zones
+    appear in the shared body and on both sides, and swap roles. Round 47, dataset v4
+    only."""
 
     family = "home_security"
     intent = "intrusion_alert"
@@ -1090,10 +1094,10 @@ class HomeSecurityScenario(Scenario):
         # The motion zone is named first in two phrasings and second in two (R45).
         phrasing = rng.choice(
             [
-                f"Camera alert: motion in the {a}; the {b} has been quiet all day.",
-                f"Security hub — the {b} is quiet, but there is motion in the {a}.",
-                f"Motion sensor: movement in the {a} at 2:40pm. Nothing from the {b}.",
-                f"Motion sensor: nothing from the {b}; movement in the {a} at 2:40pm.",
+                f"Camera alert: motion at the {a}; the {b} has been quiet all day.",
+                f"Security hub — the {b} is quiet, but there is motion at the {a}.",
+                f"Motion sensor: movement at the {a} a minute ago. Nothing from the {b}.",
+                f"Motion sensor: nothing from the {b}; movement at the {a} a minute ago.",
             ]
         )
         return [
@@ -1110,7 +1114,7 @@ class HomeSecurityScenario(Scenario):
         return (
             "The motion is somewhere nobody is expected today; that is worth a look "
             "while it is still happening.",
-            "The motion is where a visit was booked, and the place nobody is expected "
+            "The motion is where a visitor is expected, and the place nobody should be "
             "is quiet. Expected activity is not worth breaking focus for.",
         )
 

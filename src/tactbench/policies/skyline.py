@@ -55,8 +55,8 @@ _SKIPPED_PET = re.compile(
     r"feeder: (\w+) left|(\w+)'s bowl is still full|eaten by (\w+) since", re.I
 )
 
-# "motion in the garage" / "movement in the garage"
-_MOTION_ZONE = re.compile(r"(?:motion|movement) in the (\w+)", re.I)
+# "motion at the garage" / "movement at the garage"
+_MOTION_ZONE = re.compile(r"(?:motion|movement) at the (\w+)", re.I)
 
 
 #: The value that means *speak* when it occupies a frame's privileged role.

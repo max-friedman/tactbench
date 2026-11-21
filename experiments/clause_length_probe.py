@@ -10,19 +10,19 @@ Two readings:
 - **frame lean**: per family, in how many frames the privileged template is longer,
   shorter, or equal (fillers removed). A rule learned on the dev frames (0-4) is then
   applied to the held-out frames (5-7): that is what transfers.
-- **pet_care exploit** (the reviewer's): take the first pet name in the body as the
-  marker, find the decider clause ending in it, speak iff that clause is the longer
-  of the two with the names removed; ties count one half.
+- **exploit** (the R45 reviewer's): find the marker in the body (the pet that
+  skipped, the zone with motion), find the decider clause ending in it, speak iff
+  that clause is the longer of the two with the fillers removed; ties count one
+  half. ``feature_exploit`` does the same for other clause features (R47).
 
     uv run python experiments/clause_length_probe.py
 """
 
 from __future__ import annotations
 
-import re
-
-from tactbench.dataset.generate import ALL_FRAMES, HELD_OUT_FRAMES, PETS, WHO, ZONES
+from tactbench.dataset.generate import ALL_FRAMES, HELD_OUT_FRAMES, WHO
 from tactbench.dataset.loader import load
+from tactbench.policies.skyline import _MOTION_ZONE, _SKIPPED_PET
 from tactbench.schema import Item
 
 
@@ -44,26 +44,47 @@ def transfer(family: str) -> tuple[float, float]:
     return acc(dev), acc(held)
 
 
-#: The drawn names each later family fills its frames with.
-POOLS = {"pet_care": PETS, "home_security": ZONES}
+def _marker(item: Item) -> str:
+    """The value that means *speak* in the privileged role, read from the body the way
+    the skyline reads it. R47 review: taking the first pool name in the body was the
+    marker for pet_care's first draft only -- once body order was balanced, that rule
+    flips sign at random against the label and reads ~50% whatever the frames do."""
+    body = item.moment.signals[0].content
+    if item.moment.family == "home_security":
+        return _MOTION_ZONE.search(body).group(1)
+    return next(g for g in _SKIPPED_PET.search(body).groups() if g)
 
 
-def length_exploit(items: list[Item], family: str) -> float:
-    """The reviewer's rule, for any family whose fillers come from a name pool."""
-    names = "|".join(POOLS[family])
+#: Clause features a reader could compare once it has found the marker's clause.
+#: ``chars`` is the R45 rule; the rest were found by the R47 review (``er`` read
+#: 90% dev / 83% test on the first home_security draft).
+FEATURES = {
+    "chars": lambda c: len(c),
+    "er": lambda c: sum(w.lower().rstrip("s").endswith("er") for w in c.split()),
+    "s": lambda c: sum(w.endswith("s") for w in c.split()),
+    "ing": lambda c: sum(w.endswith("ing") for w in c.split()),
+    "ed": lambda c: sum(w.endswith("ed") for w in c.split()),
+    "longest": lambda c: max(len(w) for w in c.split()),
+}
+
+
+def feature_exploit(items: list[Item], family: str, feature: str = "chars") -> float:
+    """Speak iff the marker's clause has more of ``feature`` (fillers removed); ties 1/2."""
+    f = FEATURES[feature]
     score = 0.0
     chosen = [i for i in items if i.moment.family == family]
     for item in chosen:
-        body, decider = item.moment.signals[0].content, item.moment.signals[-1].content
-        marker = re.search(rf"\b({names})\b", body).group(1)
-        clauses = [c.rstrip(".") for c in decider.split(". ")]
-        mine = next(c for c in clauses if c.endswith(marker))
+        marker = _marker(item)
+        clauses = [c.rstrip(".").split() for c in item.moment.signals[-1].content.split(". ")]
+        mine = next(c for c in clauses if c[-1] == marker)
         other = next(c for c in clauses if c is not mine)
-        lm = len(mine) - len(marker)
-        lo = len(other) - len(other.split()[-1])
-        guess = 0.5 if lm == lo else float((lm > lo) == item.label.should_surface)
-        score += guess
+        fm, fo = f(" ".join(mine[:-1])), f(" ".join(other[:-1]))
+        score += 0.5 if fm == fo else float((fm > fo) == item.label.should_surface)
     return score / len(chosen)
+
+
+def length_exploit(items: list[Item], family: str) -> float:
+    return feature_exploit(items, family, "chars")
 
 
 def pet_care_exploit(items: list[Item]) -> float:
