@@ -2716,6 +2716,33 @@ stated and gated. (3) "Moves more than on v3" now gated against v2→v3's 0 reve
 
 ---
 
+## Round 49 — §A audit: does a character n-gram model beat silence?
+
+**In progress. Pre-registered before any measurement (committed alone).**
+
+**Claim, verbatim (README, *Shortcut resistance*):** "**A surface model no longer beats
+silence.**" The probes behind it are word unigrams, word bigrams, position-tagged
+words, a dict lookup, and (R45/R47) six clause features. None sees text below the word,
+and R47's leak was exactly that: an *-er* suffix rule read 90% before it was fixed. So
+the untried surface model chosen here is **character n-grams (3-5, within and across
+word boundaries) under L2 logistic regression**.
+
+**Probe.** `experiments/char_ngram_audit.py`, independent of the code under test: it
+imports nothing from `tactbench`, reads the committed JSONL, and builds features from
+signal `content` strings only. Pair ids and labels are used to group and to score,
+never as features. Fit on `dev`, scored on held-out `test` (frames 5-7, phrasings
+absent from dev). Run on v2, v3 and v4.
+
+**Falsified if, on any of v2/v3/v4 `test`:** overall accuracy **≥ 60%** (264 items on
+v4; chance sd about 3.1 points), **or** pairs-both-right **≥ 37.5%** (coin 25%, sd
+about 3.8 points on 132 pairs). Secondary, reported but not the verdict: test ICS
+against silence, scored afterwards by the project's scorer, since the probe must not
+import it.
+
+**Verdict:** not yet measured.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
