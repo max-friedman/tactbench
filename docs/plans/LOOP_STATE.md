@@ -17,7 +17,8 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 64 complete — three stale README limitations corrected and pinned
+- **Round:** 65 complete — README prose figures swept by mutation: 85 of 145 unpinned,
+  75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
   R62: invariants checked on every committed split; the skyline
   could not solve `v2para` and now does; loop audit. R61: the heuristic invariant is tested on every committed split
@@ -49,7 +50,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1185 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1190 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -338,6 +339,16 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
+
+S. **The 75 README figures still unpinned** (new, R65; `experiments/readme_figure_sweep.py`
+   lists them). By group, at R65's line numbers:
+   - History, not re-measurable: the R9-R13 story and before/after tables (lines 175-220,
+     268-277). Fix: label each as that round's recorded figure, as R64 did for 87%.
+   - Pinned elsewhere: the char n-gram paragraph (246-258), whose tests the sweep skips.
+   - Definitions: a coin's 25%, the 5% unparsed bar, 50% chance floors. These need no pin.
+   - **Current data, unpinned:** driving 63.3% → 50.0% (390), "359 of 360" (512), the
+     R27 sweep move "+10.1 to +38.7" (104, partly history), the skyline's ICS 0.0 on
+     unseen seeds (905), and the v1 LLM paragraph's "252 moments" (754). Pin these.
 
 Q. **Marker-aware order checks for `pet_care` and `home_security` — DONE in R55**,
    extended by its review to `travel` and `commerce`: `tests/test_marker_order.py`, all
@@ -3413,6 +3424,39 @@ recorded figure, labelled as one.
 **Loop:** an unpinned figure in prose drifts with the data. This one was unpinned for
 55 rounds because it read as history while sitting in a present-tense list. R17-R18 gated
 the results prose; the limitations section was never included. Local.
+
+---
+
+## Round 65 — which README figures can change without a test noticing?
+
+**Ending state: `shipped`.** R64 found a figure unpinned for 55 rounds, so this round
+measured the whole class. **Before:** `experiments/readme_figure_sweep.py` bumps the last
+digit of each number in the README's ungated prose, one at a time, and runs every
+test that reads the README. **85 of 145** changed with every test green. A scratch run
+gave that count; the committed script, run after the pins, gives **75 of 146**. The
+extra figure is the restored 2.0 below.
+
+**What the 85 were.** Mostly history: R9-R13's before/after tables and narrative.
+Then definitions: a coin's 25%, the 5% unparsed bar. Then 15 figures from the
+character n-gram paragraph, which the sweep skips because their own tests pin them by
+regex. That leaves a smaller set of statements about current data or code.
+
+**Pinned this round** (`tests/test_readme_prose.py`, each figure recomputed):
+- silence at −41.2 against the pair-blind bar (238 vs 336, v1 dev);
+- the cost constants;
+- the base-rate table (precision 0.010 at 100:1, "roughly 1%");
+- the best v1 run's +16.4 over silence.
+
+**One was wrong.** The README's cost list omitted two constants that `metrics.py`
+charges: commuting costs 1.0, like idle, and a clearly useful missed cue costs 2.0.
+The pin was red until the list was completed. METRICS.md's table already had both.
+
+**Queued:** the remaining current-data figures and labels for the historical ones
+(item S).
+
+**Review:** none beyond the gate; each pin recomputes its figure.
+
+**Loop:** nothing new beyond R64's local note. The sweep is the measurement R64 lacked.
 
 ---
 
