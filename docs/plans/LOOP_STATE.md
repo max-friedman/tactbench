@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 47 complete (`shipped`) — dataset `v4`: v3 plus an eleventh family,
+- **Round:** 48 complete (`shipped`) — all 22 LLM runs on `v4`; on `home_security`
+  17 of 22 are constant and the best reads 1 of 20 pairs. R47: dataset `v4`: v3 plus an eleventh family,
   `home_security`. R46: all 22 LLM runs on `v3`; on `pet_care` 18 of
   22 are constant and the best reads 3 of 20 pairs. R45: dataset `v3`: v2 plus a tenth family,
   `pet_care`. R44: mypy over `src/tactbench`, clean, gated from
@@ -26,7 +27,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **718 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **808 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -313,10 +314,8 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    left; a new one should come from a domain none of the eleven touches. (Commute
    disruption was dropped in R45: `driving` already asks which route is blocked.)
 
-O. **LLM runs on `v4` (new, R47).** As N was for v3: seed each run's v4 cache from v3
-   after checking the 400 old-family views are identical; 40 `home_security` dev
-   moments per run need calls (22 runs, free, local); then a v4 table and claims gated
-   like v3's.
+O. **LLM runs on `v4` — DONE in R48.** 22 runs, old-family decisions checked equal
+   to v3's one by one, table and claims gated (`tests/test_results_v4.py`).
 
 N. **LLM runs on `v3` — DONE in R46.** 22 runs, old-family decisions checked equal
    to v2's one by one, table and claims gated (`tests/test_results_v3.py`).
@@ -2671,6 +2670,47 @@ a reader can compare) and tested one instance (characters). The -er rule was the
 instance. Recorded against #56.
 
 **Not done.** No LLM runs on v4 (queued as O).
+
+**Loop:** nothing.
+
+---
+
+## Round 48 — the 22 LLM runs on dataset v4
+
+**Ending state: `shipped`.** Queue item O. Before-number: v4 had no LLM runs.
+
+**Check first.** `tests/test_results_v4.py`, the v3 run gates with v3→v4: every run
+complete with no failed call, both variants of every model, every v3 run repeated,
+every old-family decision exactly equal to v3's; README rows one-to-one with runs and
+every figure equal to a fresh rescore. It failed until the runs and table existed. The
+table markers went into `test_results.py` first.
+
+**Shipped.** Each v4 cache seeded from v3 after all 400 old-family policy views were
+checked identical; 40 `home_security` moments per run queried (22 runs, free, local).
+README: a v4 table and a gated claims block. On `home_security`, 17 of 22 runs are
+constant; the best two (Llama-3.1-8B and Qwen2.5-0.5B, naive) get 1 of 20 pairs both
+right, against a coin's ~5. The same six runs that went silent on `pet_care` are silent
+here. **The ordering moves more than on v3:** 5 of 231 run pairs reverse and 1 changes
+a tie — every one between runs below silence on both versions (gated). The six that
+beat silence keep set *and* order, zero hard violations. **One more verdict changes:**
+Qwen2.5-0.5B naive goes from 2.8% to 5.7% unparsed (14 of its 40 `home_security`
+answers unreadable) and is inconclusive on v4, alongside Qwen2.5-3B naive (6.2% →
+6.4%). Each claim was mutated in the README and its test failed. Wall times in
+`MANIFEST.json` are `null` for v4, as for v3 (resumed runs).
+
+**Cut from the draft.** A sentence explaining the reversals ("runs that speak on the
+new family pay for it") was an unmeasured account; removed rather than gated.
+
+**Review (subagent, not §D-independent) — all figures recomputed true; one MEDIUM,
+two LOW, all fixed before merge.** (1) The lead "No run reads the new family's
+decider" was ungated, dropped v3's 20-pair caveat, and the decisions partly contradict
+it: of the 15 pairs any run answers differently on the two sides, **13 are backwards**
+(5 each from naive Gemma-3-4B and naive Llama-3.1-8B). A run ignoring the decider would
+split them evenly. Reworded to "no run gets it right, and where it moves an answer it
+mostly moves it the wrong way", caveat restored, counts gated. The reviewer counted 14;
+my recount, now the test, is 13. Why the naive prompts read it backwards is not
+measured. (2) Qwen2.5-0.5B's one right pair has an unparsed side scored as silence;
+stated and gated. (3) "Moves more than on v3" now gated against v2→v3's 0 reversals.
 
 **Loop:** nothing.
 
