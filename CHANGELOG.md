@@ -5,6 +5,12 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 54)
+
+- **LLM results on `v5`**: all 28 runs (14 open-weight models, naive and rubric), README
+  table and claims gated in `tests/test_results_v5.py`. On `water_notice` no run reads
+  the decider measurably better than a coin; no verdict changes from v4.
+
 ### Fixed (Round 53)
 
 - **The system-turn preflight measures the prompt, not the model.** It compares a short

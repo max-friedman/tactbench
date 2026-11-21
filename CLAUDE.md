@@ -148,7 +148,7 @@ In order. Each is a self-contained increment.
    project exists to produce: whether frontier models beat a few dozen lines of
    if-statements on interruption cost. Report it honestly whichever way it lands.
    **Status:** eleven open-weight models (0.5B-8B) measured on v1-v4 (R23, R39, R46, R48),
-   three more on v4 only (R50);
+   three more on v4 (R50); all fourteen on v5 (R54);
    hosted frontier models not run — that needs a paid key (NEEDS-MAX 1).
 2. **Human-labeled subset** — a labeling CLI, multiple raters, reported κ. Measures
    how far construction drifts from what people actually want. **Status:** the CLI

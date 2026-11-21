@@ -13,7 +13,9 @@ findings** below.
 
 ## Current status
 
-- **Round:** 53 complete — the system-turn preflight is structural (padded vs short
+- **Round:** 54 complete — all 28 LLM runs on `v5`; on `water_notice` 18 of 28 are
+  constant, the best reads 5 of 20 pairs (a coin's expectation; not measurably better), and no verdict changes.
+  R53: the system-turn preflight is structural (padded vs short
   system turn), with a committed 14-model table. R52: dataset `v5`, a twelfth family (`water_notice`); a
   loop audit. R51: `tactbench llm --provider local` refuses a server that
   drops the system turn (tested against a fake and against real Mistral). R50: three more open-weight models on `v4` (28 runs); none beats
@@ -33,7 +35,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **902 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1012 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -321,9 +323,8 @@ Q. **Marker-aware order checks for `pet_care` and `home_security`** (new, R52 re
    Add the same for the two earlier random-marker families (cell balance covers them
    today, indirectly).
 
-P. **LLM runs on `v5`** (new, R52). Seed each run's v5 cache from its v4 cache, as R48
-   did, so only the 40 `water_notice` dev moments are queried: 28 runs × 40 calls.
-   Check old-family decisions equal v4's, decision by decision.
+P. **LLM runs on `v5` — DONE in R54.** 28 runs, old-family decisions checked equal
+   to v4's one by one, table and claims gated (`tests/test_results_v5.py`).
 
 8. **More families still welcome — `pet_care` (R45, `v3`), `home_security` (R47,
    `v4`), `water_notice` (R52, `v5`).** Twelve is still one author's idea of a working life. No named candidate
@@ -3016,6 +3017,45 @@ dropped turn); the table test cannot tell a hand-edited table from a generated o
 
 **Loop:** a check that asks the subject to perform a task tests the subject's ability
 as well as the property — candidate method finding below.
+
+---
+
+## Round 54 — all 28 LLM runs on v5: the new family's moved answers split evenly
+
+**Ending state: `shipped`.** Queue item P. **Before:** no model had been run on `v5`
+(R52); the README had no v5 table. **After:** all 28 runs (14 models × naive/rubric).
+Each v5 cache was seeded from the run's v4 cache, so only the 40 `water_notice` dev
+moments were queried (1120 calls, all after R53's preflight passed for every
+system-turn model). `test_old_family_decisions_are_exactly_v4s` checks the 440 reused
+decisions one by one.
+
+**Result.** On `water_notice`, 18 of 28 runs are constant (10 silent, 8 always speak).
+Best pairs-both-right is 5 of 20 (Mistral-7B naive), a coin's expectation — not
+measurably better than one (its 5 right vs 2 backwards has p≈0.23).
+Of 27 pairs answered differently on their two sides, 14 are right and 13 backwards —
+close to even, and 15 of the 27 come from two runs (Llama-3.1-8B 8, Mistral-7B 7, both
+naive). Over the same 28 runs `home_security` was 19 of 22 backwards (13 of 15 over
+R48's 22). So that family's "backwards" pattern does not recur here; with 20 pairs per
+run and a few dozen split pairs pooled, neither direction is strong evidence. On this
+family always-speak costs 40 against silence's 60, so mostly-speaking runs gain margin
+without reading anything (Llama-3.2-3B naive +4.0 → +6.7); the README says so. No verdict
+changes: the same 7 beat silence, the same 2 are inconclusive (Qwen2.5-0.5B naive
+5.7% → 6.7%, 7 of 40 new answers unreadable; Qwen2.5-3B naive 6.4% → 5.8%). Of 378
+pairs of runs, 3 reverse and 1 is tied on one version only, all involving Qwen2.5-0.5B naive.
+
+**Checks first.** `tests/test_results_v5.py` (the v4 gates, ported) was written in R52's
+wake and set aside in R53; it was red until the runs completed. The claims block is
+gated by `TestTheReadmeV5Claims`; mutating two quoted figures turns it red.
+
+**Review:** subagent, not §D-independent (owner instruction). Fixed from it: the
+headline said "no better than a coin" where the data says "not measurably better";
+the pooled even split hid that two runs supply most of it; the always-speak-beats-silence
+margin shift was unmentioned; the 14 was derived, not computed, and the opposite-label
+pairing the coin figure rests on was not asserted. All now pinned.
+
+**Loop:** nothing new. The cadence held: the round's run was long (≈3 h of local
+inference) and the in-progress state was committed with a labelled red commit rather
+than left in the working tree.
 
 ---
 
