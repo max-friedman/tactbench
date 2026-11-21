@@ -73,9 +73,12 @@ def build(
     version: str = typer.Option("v1", help="Dataset version directory."),
     pairs: int = typer.Option(20, help="Matched pairs per scenario family."),
     seed: int = typer.Option(20260726, help="Generation seed."),
+    families: int | None = typer.Option(
+        None, help="Scenario families to include (default: the original nine; v3 uses 10)."
+    ),
 ) -> None:
     """Generate the synthetic dataset splits."""
-    items = generate(n_pairs_per_scenario=pairs, seed=seed)
+    items = generate(n_pairs_per_scenario=pairs, seed=seed, families=families)
     # Split on a stable digest of the PAIR key, not Python's hash() and not the
     # item id.
     #

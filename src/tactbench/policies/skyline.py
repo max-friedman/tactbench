@@ -31,7 +31,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-from ..dataset.generate import FRAMES, WHO
+from ..dataset.generate import FRAMES, LATER_FRAMES, WHO
 from ..schema import Decision, Moment
 from .base import Policy
 
@@ -50,10 +50,16 @@ _RETURN_ITEM = re.compile(
     re.I,
 )
 
+# "feeder: Biscuit left breakfast" / "— Biscuit's bowl is still full" / "eaten by Biscuit since"
+_SKIPPED_PET = re.compile(
+    r"feeder: (\w+) left|— (\w+)'s bowl is still full|eaten by (\w+) since", re.I
+)
+
 
 #: The value that means *speak* when it occupies a frame's privileged role.
 #: ``None`` means the marker is not a constant and must be read from the moment --
-#: only ``travel``, where it is the gate boarding moved away from.
+#: ``travel`` (the gate boarding moved away from), ``commerce`` (the item whose
+#: return window closes) and ``pet_care`` (the pet that skipped its meal).
 _MARKERS = {
     "childcare": "you",
     "deadline": "you",
@@ -64,6 +70,7 @@ _MARKERS = {
     "meeting_prep": "contract review",
     "driving": "your route",
     "travel": None,
+    "pet_care": None,
 }
 
 
@@ -105,7 +112,7 @@ class SkylinePolicy(Policy):
         return match.group(1).strip().lower() if match else None
 
     def _resolve(self, moment: Moment, text: str, low: str) -> bool:
-        frames = FRAMES.get(moment.family)
+        frames = FRAMES.get(moment.family) or LATER_FRAMES.get(moment.family)
         if not frames:
             return False
         marker = _MARKERS.get(moment.family)
@@ -120,6 +127,11 @@ class SkylinePolicy(Policy):
                 if not change:
                     return False
                 marker = change.group(1)
+            elif moment.family == "pet_care":
+                skipped = _SKIPPED_PET.search(text)
+                if not skipped:
+                    return False
+                marker = next(g for g in skipped.groups() if g)
             else:
                 item = _RETURN_ITEM.search(low)
                 if not item:

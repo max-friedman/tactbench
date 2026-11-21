@@ -220,6 +220,30 @@ figures with it. (The first version of this section reported "97 → 45 of 180" 
 improvement and called commerce a second cause; review ran the null and showed both
 counts are mostly chance.)
 
+### Dataset v3 — a tenth family, `pet_care` (Round 45)
+
+`data/v3` is `tactbench build --version v3 --pairs 32 --families 10`: v2 plus one new
+family (400 dev / 240 test). A smart feeder reports that one pet left its meal and the
+other ate; the decider says which pet is medically fragile — *"Recovering after
+surgery is Mochi. Healthy as ever is Pepper."* Speak when the pet that skipped is the
+fragile one; stay quiet when it is the healthy one. Both names appear in the shared
+body and on both sides, and swap roles, so it is a role permutation like every other
+family.
+
+The family is **appended** to the generator's scenario list (`LATER_SCENARIOS`) and
+its frames kept apart from `FRAMES` (`LATER_FRAMES`), so `v1` and `v2` are
+byte-identical and every moment of the first nine families in v3 equals its v2
+counterpart — asserted in `tests/test_dataset_v3.py`, which also holds the new
+family to the unigram and bigram probes at chance (on ten seeds), the positional
+probe under its label-swap null, order-balanced cells, the skyline solving it and the
+heuristic not.
+
+One limit of the positional probe shows here: `pet_care`'s marker is a drawn name, not
+a constant, so a probe of token positions cannot see which clause holds it. A planted
+"privileged clause always first" mutation left the positional probe at chance and was
+caught only by the order-balance check. The check exists for every family; it is the
+guard that matters for this one.
+
 ### Token permutations and the bigram probe
 
 All nine are token permutations: both sides contain the same words, arranged
@@ -376,8 +400,11 @@ Regeneration with the same seed reproduces both splits exactly.
 
 ## Extending it
 
-Add a `Scenario` subclass in `src/tactbench/dataset/generate.py` implementing
-`positive()` and `near_miss()`, and register it in `SCENARIOS`. The test suite
+Add a `Scenario` subclass in `src/tactbench/dataset/generate.py` (a `state`, a
+shared `body`, `fillers` and `why`; frames under its family name). **Append** it to
+`LATER_SCENARIOS` with its frames in `LATER_FRAMES`, and build a new dataset version
+with `--families`; never insert into `SCENARIOS`, which would change every published
+version. `pet_care` (Round 45) is the worked example. The test suite
 enforces the invariants that make the benchmark meaningful:
 
 - every family contributes both a positive and a near-miss
@@ -388,7 +415,7 @@ enforces the invariants that make the benchmark meaningful:
 
 ## Known weaknesses
 
-- **Nine families is nine degrees of freedom.** Phrasing is no longer the weak point —
+- **Nine families is nine degrees of freedom (ten in `v3`).** Phrasing is no longer the weak point —
   the unigram audit confirms *vocabulary* doesn't carry the answer, though word
   **order** does (see above) — but the *scenarios*
   are still a small hand-authored set. Item count overstates diversity. More

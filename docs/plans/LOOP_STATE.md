@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 44 complete (`shipped`) — mypy over `src/tactbench`, clean, gated from
+- **Round:** 45 complete (`shipped`) — dataset `v3`: v2 plus a tenth family,
+  `pet_care`. R44: mypy over `src/tactbench`, clean, gated from
   pytest. R43: the two badly-worded paraphrase frames repaired
   and re-run. R42: paraphrase robustness measured on a reworded
   v2 slice: decisions are stable, but because no model reads the decider. R41: priority 3 restated; CLAUDE.md priorities
@@ -23,7 +24,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **569 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **591 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -305,9 +306,14 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
 
-8. **More families still welcome** — nine is better than six but still one
-   author's idea of a working life. Candidates: home security, commute
-   disruption, pet care.
+8. **More families still welcome — `pet_care` added in R45 (`v3`).** Ten is still one
+   author's idea of a working life. Remaining candidates: home security. (Commute
+   disruption was dropped in R45: `driving` already asks which route is blocked.)
+
+N. **LLM runs on `v3` (new, R45).** v3's nine old families are byte-identical to v2's,
+   so v2's cached decisions stand for them once that is checked moment by moment;
+   only `pet_care`'s 40 dev moments need calls (22 runs, free, local). Then a v3 table
+   gated like v2's.
 
 9. **Type checking — DONE in R44.** mypy, `check_untyped_defs`, gated from pytest
    (`tests/test_types.py`) because workflows are owner-only.
@@ -2519,6 +2525,41 @@ changed behaviour. After: 0 errors, 569 tests. `mypy` is a dev dependency.
 
 **Not done.** `tests/` is not type-checked; `--strict` is not on (it would mostly
 demand annotations on test helpers and rich/typer callbacks). Neither is queued.
+
+**Loop:** nothing.
+
+---
+
+## Round 45 — a tenth family, `pet_care`, in dataset v3
+
+**Ending state: `shipped`.** Queue item 8. Before-number: nine families; v1/v2 fixed.
+
+**Check first.** `tests/test_dataset_v3.py`, written before the family: v3
+reproducible and sized 400/240; the default build still nine families; every
+old-family moment in v3 identical to v2's; order-balanced cells for all ten families;
+the new family at 0.5 on unigram and bigram (shipped seed and ten more), positional
+under 60% and under its label-swap null; pairs differ only in the decider as a policy
+sees them; both pet names on both sides; skyline solves v3, heuristic does not solve
+the new family; no single word reaches the pair-blind bar. The prose-frame and
+disjointness tests now run over `ALL_FRAMES`, so they cover the new frames.
+
+**Shipped.** `PetCareScenario`: a feeder reports one pet skipped a meal; the decider
+says which pet is fragile ("Recovering after surgery is Mochi. Healthy as ever is
+Pepper."). Appended as `LATER_SCENARIOS`, frames in `LATER_FRAMES`; `generate(...,
+families=)` and `tactbench build --families`. `FRAMES` still means the nine, and is
+read live (an experiment swaps its entries at runtime — a merged copy would have
+silently ignored that; caught when the first draft broke it). The skyline reads
+the skipped pet from the body. 591 tests.
+
+**Mutations.** A planted "privileged clause always first" for `pet_care` is caught —
+by the order-balance test, **not** the positional probe, which reads chance because
+the marker is a drawn name (recorded in DATASET.md). A planted name-pool split (the
+skipped pet always from one half of `PETS`) is caught by nothing, and correctly so:
+both names follow the same token in both clauses, so it reveals which pet skipped,
+not the label. The both-names-on-both-sides test is the structural guard.
+
+**Not done.** No LLM runs on v3 (queued as N). Commute disruption dropped as a
+candidate: it duplicates `driving`.
 
 **Loop:** nothing.
 

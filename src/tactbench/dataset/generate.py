@@ -56,6 +56,16 @@ from ..schema import Activity, GoldLabel, Item, Moment, Signal, Source, UserStat
 #: 240 gate codes. See TravelScenario.body for why the space is wide.
 GATES = [f"{letter}{number}" for letter in "ABCDEF" for number in range(1, 41)]
 
+#: Pet names for ``pet_care``. Both names appear on both sides of a pair; a wide pool
+#: so no name lands on one role often enough to be learned (see GATES).
+PETS = [
+    "Biscuit", "Pepper", "Mochi", "Juniper", "Waffles", "Clementine", "Bramble",
+    "Nutmeg", "Pickle", "Saffron", "Tofu", "Marmalade", "Rascal", "Willow", "Pistachio",
+    "Truffle", "Ziggy", "Hazel", "Noodle", "Basil", "Sprout", "Cinder", "Poppy", "Fudge",
+    "Indigo", "Kiwi", "Olive", "Pumpkin", "Quill", "Rosemary", "Sable", "Tansy",
+    "Umber", "Velvet", "Wren", "Yuzu", "Acorn", "Barley", "Cobalt", "Dumpling",
+]  # fmt: skip
+
 COLLEAGUES = [
     "Priya Raman",
     "Marco Silva",
@@ -281,6 +291,25 @@ FRAMES: dict[str, list[tuple[str, str]]] = {
     ],
 }
 
+#: Frames for families added after v2 (see :data:`LATER_SCENARIOS`). Kept apart so
+#: ``FRAMES`` still means v1's and v2's nine families to every probe and experiment.
+#: The structural frame tests run over :data:`ALL_FRAMES`.
+LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
+    "pet_care": [
+        ("Taking daily tablets is {who}", "Needing zero tablets is {who}"),
+        ("Recovering after surgery is {who}", "Healthy as ever is {who}"),
+        ("Diagnosed with diabetes is {who}", "Cleared by vets is {who}"),
+        ("Prescribed a renal diet is {who}", "Fine on ordinary food is {who}"),
+        ("Elderly and frail is {who}", "Young and sturdy is {who}"),
+        ("Underweight this month is {who}", "Overweight this month is {who}"),
+        ("Flagged at last checkup is {who}", "Passed its last checkup is {who}"),
+        ("Monitored for kidney trouble is {who}", "Free of kidney trouble is {who}"),
+    ],
+}
+#: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
+#: frames goes through ``FRAMES`` first, so runtime swaps of a ``FRAMES`` entry hold.
+ALL_FRAMES = {**FRAMES, **LATER_FRAMES}
+
 #: The filler slot every frame clause carries.
 WHO = "{who}"
 
@@ -391,7 +420,9 @@ class Scenario:
     #:    orders appear within every frame and in both splits.
     @property
     def frames(self) -> list[tuple[str, str]]:
-        return FRAMES[self.family]
+        # FRAMES is read live (experiments swap its entries at runtime); families
+        # added after v2 live in LATER_FRAMES.
+        return FRAMES.get(self.family) or LATER_FRAMES[self.family]
 
     def fillers(self, rng: random.Random) -> tuple[str, str]:
         """``(marker, counterpart)``.
@@ -952,6 +983,55 @@ class FinanceScenario(Scenario):
         )
 
 
+class PetCareScenario(Scenario):
+    """A pet skipped a meal. The decider is which pet is medically fragile -- both
+    names appear in the shared body and on both sides, and swap roles. Round 45,
+    added in dataset v3 only."""
+
+    family = "pet_care"
+    intent = "pet_health_alert"
+    positive_value = 2
+    window_s = 3600
+    positive_slices = ["low_stakes"]
+    near_slices = ["not_actionable"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.FOCUSED_WORK,
+            device="laptop",
+            last_interaction_s=rng.randint(30, 600),
+            local_hour=rng.randint(10, 17),
+        )
+
+    def body(self, rng):
+        self._skipped, self._ate = rng.sample(PETS, 2)
+        a, b = self._skipped, self._ate
+        phrasing = rng.choice(
+            [
+                f"Smart feeder: {a} left breakfast untouched; {b} finished as usual.",
+                f"Feeder report — {a}'s bowl is still full, {b}'s is empty.",
+                f"Bowl sensor: no meal eaten by {a} since 7am. {b} ate normally.",
+            ]
+        )
+        return [
+            Signal(source=Source.APP_EVENT, age_s=900, content=phrasing, meta={"app": "feeder"})
+        ]
+
+    decider_source = Source.NOTIFICATION
+    decider_age_s = 86400
+
+    def fillers(self, rng):
+        return self._skipped, self._ate
+
+    def why(self):
+        return (
+            "The pet that skipped its meal is the medically fragile one; a missed meal "
+            "there is worth a call to the vet today.",
+            "The pet that skipped its meal is the healthy one, and the fragile one ate. "
+            "One missed meal in a healthy animal is not worth breaking focus for.",
+        )
+
+
 SCENARIOS: list[Scenario] = [
     TravelScenario(),
     DeadlineScenario(),
@@ -964,8 +1044,16 @@ SCENARIOS: list[Scenario] = [
     FinanceScenario(),
 ]
 
+#: Families added after v2, in order. Appended -- never inserted -- so a dataset built
+#: with ``families=len(SCENARIOS)`` (v1, v2) consumes the generator's random stream
+#: exactly as before, and every moment of the first nine families is unchanged in v3.
+LATER_SCENARIOS: list[Scenario] = [PetCareScenario()]
+ALL_SCENARIOS: list[Scenario] = [*SCENARIOS, *LATER_SCENARIOS]
 
-def generate(n_pairs_per_scenario: int = 20, seed: int = 20260726) -> list[Item]:
+
+def generate(
+    n_pairs_per_scenario: int = 20, seed: int = 20260726, families: int | None = None
+) -> list[Item]:
     """Generate a balanced, deterministic set of matched pairs.
 
     The split is 50/50 surface/stay-quiet by construction. That is deliberate: a
@@ -979,10 +1067,13 @@ def generate(n_pairs_per_scenario: int = 20, seed: int = 20260726) -> list[Item]
     handful of pairs to check structure, not statistics -- but anything measuring
     *leakage* must pass a legal size, so ``balanced_order`` says which you got
     rather than leaving it to be rediscovered.
+
+    ``families`` takes the first that many of :data:`ALL_SCENARIOS`; the default is
+    the original nine, which v1 and v2 use. v3 uses ten.
     """
     rng = random.Random(seed)
     items: list[Item] = []
-    for scenario in SCENARIOS:
+    for scenario in ALL_SCENARIOS[: len(SCENARIOS) if families is None else families]:
         for i in range(n_pairs_per_scenario):
             positive, near = scenario.pair(rng, i)
             items.append(positive)
