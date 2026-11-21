@@ -221,6 +221,24 @@
       }
     }
   },
+  "phi-4-mini": {
+    "bytes": 2491874688,
+    "file": "microsoft_Phi-4-mini-instruct-Q4_K_M.gguf",
+    "hf_repo": "bartowski/microsoft_Phi-4-mini-instruct-GGUF",
+    "n_ctx": 2048,
+    "quantization": "Q4_K_M",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "01999f17c39cc3074afae5e9c539bc82d45f2dd7faa3917c66cbef76fce8c0c2",
+    "system_role": true,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds_by_version": {
+      "v4": {
+        "naive": 3101.9,
+        "rubric": 3050.3
+      }
+    }
+  },
   "qwen2.5-0.5b": {
     "bytes": 491400032,
     "file": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
