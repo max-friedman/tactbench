@@ -32,7 +32,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **888 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **889 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2907,7 +2907,7 @@ a boil-water notice covers one of two districts; the decider, an old email, says
 is home now and which a former address. v1-v4 unchanged; v5's first eleven families
 equal v4's (asserted).
 
-**Checks first.** `tests/test_dataset_v5.py` (26 tests at first, adapted from v4's; 32 after review) was written
+**Checks first.** `tests/test_dataset_v5.py` (26 tests at first, adapted from v4's; 33 after review) was written
 and run before any data existed: 21 failed, 5 passed (the 5 test generator code alone).
 
 **What the checks found while building it.**
@@ -2919,13 +2919,14 @@ and run before any data existed: 21 failed, 5 passed (the 5 test generator code 
   iff the notice district's clause has more vowels" at **80% dev / 83% test**. Vowels
   and consonants were added to the search and are now gated.
 - **Positional, a deviation from v4's tests, disclosed.** On the first 20 seeds the
-  family read above 60% on 9 against 29% of null draws, failing the +15-point slack by
-  one seed. Over 200 seeds it is 34% against 36%, medians equal (57.5%); 20-seed blocks
-  range 2-12. The family test now compares over 60 seeds, same thresholds — **chosen
-  after the 20-seed reading failed.** v5's overall test drops v4's single-seed "at or
-  under the null median" (shipped 53.3% vs 51.6%; 20-seed medians 51.6% vs 52.2%;
-  pinned against DATASET.md) and keeps the 60% bound and the 20-seed comparison.
-  Positional is reported, not gated (Standing invariants), so no invariant moved. The
+  family read above 60% on 10 against 25% of null draws, failing the +15-point slack.
+  Over 60 seeds it is 30% against 31%; over 200, 35.5% against 32.6% (medians 60.0% vs
+  57.5%, one item in 40); 20-seed blocks range 2-10. The family test now compares over
+  60 seeds, same thresholds — **chosen after the 20-seed reading failed.** v5's overall
+  test drops v4's single-seed "at or under the null median" (shipped 53.1% vs 51.7%;
+  20-seed medians 51.9% vs 52.1%; pinned against DATASET.md) and keeps the 60% bound and
+  the 20-seed comparison. Positional is reported, not gated (Standing invariants), so no
+  invariant moved. The
   dataset was not re-rolled to pass.
 
 **Review (subagent, not §D-independent) — what it changed.** It found no shortcut that
@@ -2939,11 +2940,15 @@ learners). It did find:
   cell-balance test, which also catches this mutation. Not yet given their own
   marker-aware check — queue item Q.
 - Three ambiguous frames (*Unpacked boxes*, *Boiler drained*, *Sofa collected*),
-  replaced by search; v5 rebuilt. Shipped set: no rule ≥70% on both splits in 749.
+  replaced by search; v5 rebuilt. A second review flagged *Electricity meter read*
+  (final readings happen on moving out); it and *Spare room vacated* were dropped and
+  v5 rebuilt again. Shipped set: no rule ≥70% on both splits in 749. The vowel gate
+  gained a mutation test.
 - Stale figures in the test file (from an earlier frame set) and in this entry;
   corrected, and the overall figures are now pinned against DATASET.md.
 - The loop audit below, first written as "all Loop lines since R28 were `nothing`".
-- The R49 character n-gram audit holds on v5 (test 50.0%) but is gated on v4 only.
+- The R49 character n-gram audit holds on v5 (test 51.0%, `water_notice` 50.0%) but is
+  gated on v4 only.
 
 Audit: `water_notice` unigram 50.0%, bigram 50.0%. Skyline solves v5; heuristic does
 not solve the family. No LLM has been run on v5 (queue item P).
@@ -2989,7 +2994,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | The audit cadence is never prompted | R28 ran the only loop audit until R52; §C's every-fifth-round and two-non-`nothing` triggers fired at R32-R33, R33, R36-R37, R38, R43 and R48 and no round noticed. Nothing in the round steps checks the cadence. | **candidate** — one instance, 23 rounds long. Check §C and the round steps first. |
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
-| A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — four instances in one project (R52: with a null, a 20-seed window still failed by chance; 200 seeds read 35% vs 34%; the count needs its sample size too). Check LOOP.md's measurement guidance first. |
+| A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — four instances in one project (R52: with a null, a 20-seed window failed — 50% against 25% — while 60 seeds read 30% against 31%; the count needs its sample size too). Check LOOP.md's measurement guidance first. |
 | A pre-registered falsifier names its null | R49: an §A audit pre-registered "pairs-both-right ≥ 37.5%" against a coin's 25%. Review found a pair-aware probe gets about 50% at chance, so the literal falsifier fired on 7 of 15 fits that read nothing. The fix: state which null a threshold is calibrated against, and which probes it can judge. | **candidate** — one instance. Check §A step 2 ("state the number that would falsify it") first; this may refine it, not add to it. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |

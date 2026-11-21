@@ -349,14 +349,14 @@ set met all of that; a scan of 139 cheap clause features then found "speak iff t
 notice district's clause has more vowels" reading **80% dev / 83% test**. Vowel and
 consonant counts were added to the search and gated. Review then dropped three frames
 a careful reader could take the wrong way (*"Unpacked boxes"*, often meaning boxes not
-yet unpacked; *"Boiler drained"*, routine maintenance; *"Sofa collected"*). On the
-shipped set a 749-feature scan finds no rule at 70% or more on both splits; the best on
-dev, a Scrabble-score comparison, reads 80% dev / 67% test, about what that many
-comparisons give.
+yet unpacked; *"Boiler drained"*, routine maintenance; *"Sofa collected"*), and a
+second review two more (*"Electricity meter read"*, which happens on moving out;
+*"Spare room vacated"*). On the shipped set a 749-feature scan finds no rule at 70% or
+more on both splits; the best on dev read 70% dev / 50% test.
 
 That scan is not an independent check: the search also ranked candidate sets by letter
 balance. The character 3-8-gram probe (Round 49) did not inform the search; on v5 it
-fits dev at 89.2% and reads 50.0% on held-out test (`water_notice` 54.2% of 24), and
+fits dev at 90.2% and reads 51.0% on held-out test (`water_notice` 50.0% of 24), and
 its verdict holds.
 
 **The token-positional probe cannot see this family's clause order.** Its features are
@@ -369,19 +369,21 @@ half the time (and a mutation test forces the order and requires 100%). `pet_car
 `home_security` have the same kind of marker; their order is guarded by the cell-balance
 test.
 
-The token-positional reading itself: on the shipped seed the family reads 62.5%
-positional against a label-swap null of 58.7%. Over the first 20 seeds 9 read above
-60% against 29% of null draws, one seed past the test's slack; over 200 seeds the rate
-is 34% against 36%, with equal medians (57.5%), and blocks of 20 seeds range from 2 to
-12. The family's test compares over 60 seeds with the same thresholds; that choice was
-made after the 20-seed reading failed. Overall, the shipped seed reads 53.3% against
-51.6%, and the 20-seed medians 51.6% against 52.2%; v5 keeps the seed-robust comparison
-and the single-seed 60% bound, not v4's single-seed comparison with the null.
-Positional is reported, not gated.
+The token-positional reading itself: on the shipped seed the family reads 57.5%
+positional against a label-swap null of 57.5%. Over the first 20 seeds 10 read above
+60% against 25% of null draws, past the test's slack; over 60 seeds the rate is 30%
+against 31%, and over 200 it is 35.5% against 32.6% (medians 60.0% against 57.5%, one
+item in 40), with blocks of 20 seeds ranging from 2 to 10 above. The family's test
+compares over 60 seeds with the same thresholds; that choice was made after the
+20-seed reading failed. Overall, the shipped seed reads 53.1% against 51.7%, and the
+20-seed medians 51.9% against 52.1%; v5 keeps the seed-robust comparison and the
+single-seed 60% bound, not v4's single-seed comparison with the null. Positional is
+reported, not gated.
 
 What the family does not resist, as for `home_security`: the former-address clause
 always carries an ordinary word of ending or reversal (*previously*, *formerly*, *old*,
-*removed*, *withdrawn*, *cancelled*, *unmounted*, *loaded*). A reader that locates the
+*returned*, *unscrewed*, *cancelled*, *unmounted*; in one frame the reversal sits on
+the home side instead, *unloaded*). A reader that locates the
 notice district's clause and knows those words solves the family — that is reading the
 decider. No LLM has been run on v5.
 

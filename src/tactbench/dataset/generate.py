@@ -349,7 +349,7 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
     ],
     "water_notice": [
         # Privileged: where the user lives now; the other clause is a former address.
-        # Chosen by search (R52) over 33 candidates that meet the structural rules
+        # Chosen by search (R52) over 29 candidates that meet the structural rules
         # (equal skeletons, a shared token before the slot, no stopword opening,
         # vocabulary disjoint across frames) and read clearly as home-now vs former
         # home, so that for every clause feature the probes gate (chars, -er, -s,
@@ -357,13 +357,13 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
         # clause wins as often as it loses on dev frames (0-4) and on held-out frames
         # (5-7) separately. A first set balanced the gated six only, and "speak iff
         # the notice district's clause has more vowels" read 80% dev / 83% test. The
-        # R52 review dropped three ambiguous frames ("Unpacked boxes", "Boiler
-        # drained", "Sofa collected").
+        # R52 reviews dropped five ambiguous frames ("Unpacked boxes", "Boiler
+        # drained", "Sofa collected", "Electricity meter read", "Spare room vacated").
         ("Currently renting in {who}", "Previously renting in {who}"),
         ("Presently housed in {who}", "Formerly housed in {who}"),
         ("Home address lists {who}", "Old address lists {who}"),
-        ("Electricity meter read in {who}", "Electricity meter removed in {who}"),
-        ("Council registration confirmed in {who}", "Council registration withdrawn in {who}"),
+        ("Keys received in {who}", "Keys returned in {who}"),
+        ("Nameplate fixed on a door in {who}", "Nameplate unscrewed from a door in {who}"),
         ("Broadband installed in {who}", "Broadband cancelled in {who}"),
         ("Doorbell camera mounted in {who}", "Doorbell camera unmounted in {who}"),
         ("Moving van unloaded in {who}", "Moving van loaded in {who}"),

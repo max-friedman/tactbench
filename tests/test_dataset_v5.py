@@ -49,10 +49,10 @@ SEED, PAIRS, FAMILIES = 20260726, 32, 12
 NEW = ["water_notice"]
 SEEDS = range(SEED, SEED + 20)
 #: R52: the new family's token-positional comparison runs over 60 seeds. On the first
-#: 20 seeds 9 read above 60% against 29% of null draws -- one seed past the
-#: +15-point slack; over 200 seeds the rate is 34% against 36% with equal medians
-#: (57.5%), and 20-seed blocks range from 2 to 12 above. Same thresholds, three times
-#: the sample; chosen after the 20-seed reading failed, and recorded as such in
+#: 20 seeds 10 read above 60% against 25% of null draws, past the +15-point slack;
+#: over 60 the rate is 30% against 31%, over 200 it is 35.5% against 32.6% (medians
+#: 60.0% vs 57.5%), and 20-seed blocks range from 2 to 10 above. Same thresholds, three
+#: times the sample; chosen after the 20-seed reading failed, and recorded as such in
 #: LOOP_STATE. **This probe cannot see clause order for this family** (its marker is a
 #: random district, not a fixed token) -- the R52 review forced the privileged clause
 #: first and it still passed. Order is guarded by
@@ -344,3 +344,15 @@ def test_the_positional_figures_stated_in_the_docs():
     doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
     for figure in figures:
         assert figure in doc, figure
+
+
+def test_the_vowel_gate_would_catch_a_lean(monkeypatch):
+    """R52 second review: nothing in the repo showed the vowel gate can fail. Lengthen
+    every privileged clause by two vowels and the reading must jump."""
+    import clause_length_probe as probe
+
+    padded = [(a.replace(" {who}", "oo {who}"), b) for a, b in ALL_FRAMES["water_notice"]]
+    monkeypatch.setitem(LATER_FRAMES, "water_notice", padded)
+    monkeypatch.setitem(probe.FEATURES, "vowels", lambda c: sum(ch in "aeiou" for ch in c))
+    items = generate(PAIRS, SEED, families=FAMILIES)
+    assert feature_exploit(items, "water_notice", "vowels") > 0.85
