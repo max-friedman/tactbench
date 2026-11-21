@@ -172,8 +172,8 @@ Waking the one person who can be there in fifteen minutes is. Same tokens, swapp
 roles — and a harder judgment than spotting the word *admitted*.
 
 **Why it mattered.** `quiet_hours` carries the highest false-positive cost in the
-benchmark (asleep, DND-doubled), so it drives **87% of the gap** between `always`
-and silence from 11% of the moments. Concentration plus exploitability meant a
+benchmark (asleep, DND-doubled), so it drove **87% of the gap** between `always`
+and silence from 11% of the moments as recorded in Round 9 (81% on `v1` today). Concentration plus exploitability meant a
 policy matching two substrings — `admitt` / `discharg` — and coin-flipping on the
 other eight families **beat silence at +28.0**, while the honest structural
 heuristic scored −22.9. On the current dataset that same policy scores **−78.0**,
@@ -832,8 +832,9 @@ print(evaluate(MyPolicy(), load("v1", "dev")))
 
 ## Honest limitations
 
-This is v1. The things that would make it stronger are not done yet, and pretending
-otherwise would defeat the purpose of building a benchmark:
+This is a first release (datasets `v1`-`v5`). The things that would make it stronger
+are not done yet, and pretending otherwise would defeat the purpose of building a
+benchmark:
 
 - **Surface resistance is now measured, not assumed — but only against the probes
   we thought to run.** A bag-of-bigrams scored **+99.4 versus silence** for eleven
@@ -879,19 +880,19 @@ otherwise would defeat the purpose of building a benchmark:
   The models run so far flip little under it, but they read the decider so rarely
   (at most 4 of 36 pairs) that a rewording a model fails to understand cannot be
   told apart from one it never looked at.
-- **Cost is concentrated in `quiet_hours`** — 87% of the `always`-versus-silence
-  gap from 11% of the moments, because a false positive while asleep under DND is
+- **Cost is concentrated in `quiet_hours`** — **81%** of the `always`-versus-silence
+  gap from 11% of the moments on `v1`, and **68%** from 8% on `v5`, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and
   it means the headline is sensitive to how that one family is written. It is no
   longer *exploitable* (see above), but it is still load-bearing.
-- **All eleven families are one author's idea of a working life** — knowledge work,
-  a car, a pharmacy, school pickup, a pet, a house. Interruption norms are culturally specific and
+- **All twelve families are one author's idea of a working life** — knowledge work,
+  a car, a pharmacy, school pickup, a pet, a house, a water supply. Interruption norms are culturally specific and
   this captures one culture's.
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
 - **No frontier LLM has been run.** Fourteen open-weight models of 8B parameters and
-  under are measured (three on v4 only); whether frontier models do better is the result the project
+  under are measured (all fourteen on `v4` and `v5`, eleven on `v1`-`v3`); whether frontier models do better is the result the project
   exists to produce, and it costs money that has not been spent. The harness runs
   them unchanged.
 - **The pair-blind bar reads labels.** It is the optimum over policies that cannot

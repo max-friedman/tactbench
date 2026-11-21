@@ -317,7 +317,7 @@ matched pairs prevented keyword matching; the probe hit **93.5%**.
 The exemption granted to `quiet_hours` was a second, subtler version of the same
 error. It probed at 100% and was excused as irreducible. Because that family also
 carries the highest false-positive cost — driving 87% of the `always`-vs-silence
-gap from 11% of moments — a policy matching two substrings and coin-flipping
+gap from 11% of moments as recorded in Round 9 (81% on `v1` today) — a policy matching two substrings and coin-flipping
 elsewhere beat silence while the honest heuristic did not. `TestNoKeywordExploit`
 now fails the build if that keyword policy clears the bar. It checks one policy, not
 keyword policies in general: Round 23 found a five-word topic policy that beats
