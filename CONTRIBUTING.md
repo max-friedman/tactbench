@@ -12,6 +12,7 @@ Everything must pass before a PR merges. CI runs all of it on Python 3.11–3.13
 uv run pytest -q
 uv run ruff check .
 uv run ruff format --check .
+uv run mypy
 uv run tactbench audit    # per-family shortcut probe
 uv run tactbench eval     # sanity-check the leaderboard still reads sensibly
 ```

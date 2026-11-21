@@ -5,6 +5,12 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 44)
+
+- **mypy** over `src/tactbench` (`[tool.mypy]` in `pyproject.toml`,
+  `check_untyped_defs`), run by `tests/test_types.py` so CI's test job enforces it.
+  Fixed the 8 errors it found; none changed behaviour.
+
 ### Fixed (Round 43)
 
 - Two paraphrase frames that read badly (travel's counterpart, quiet_hours'

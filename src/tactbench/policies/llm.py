@@ -37,6 +37,7 @@ import json
 import os
 import urllib.request
 from dataclasses import dataclass
+from typing import Any
 
 from ..schema import Decision, Moment
 from .base import Policy
@@ -278,7 +279,7 @@ class LLMPolicy(Policy):
         self.max_tokens = max_tokens
         self.system = NAIVE_SYSTEM if variant == "naive" else RUBRIC_SYSTEM
         self.name = f"llm:{variant}:{self.model}"
-        self._client = None
+        self._client: Any = None  # an SDK client, imported lazily per provider
 
     def _require_key(self) -> str:
         if self.spec.env_var is None:
