@@ -67,6 +67,24 @@
       }
     }
   },
+  "granite-3.3-2b": {
+    "bytes": 1545303616,
+    "file": "ibm-granite_granite-3.3-2b-instruct-Q4_K_M.gguf",
+    "hf_repo": "bartowski/ibm-granite_granite-3.3-2b-instruct-GGUF",
+    "n_ctx": 2048,
+    "quantization": "Q4_K_M",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "555b91485955bc96eb445b57dd4bbf8809aa7d8cce7c313f4f8bc5b2340896b4",
+    "system_role": true,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds_by_version": {
+      "v4": {
+        "naive": 2206.4,
+        "rubric": 2330.6
+      }
+    }
+  },
   "llama-3.1-8b": {
     "bytes": 4920739232,
     "file": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
@@ -169,6 +187,24 @@
       }
     }
   },
+  "mistral-7b": {
+    "bytes": 4372812000,
+    "file": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+    "hf_repo": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
+    "n_ctx": 2048,
+    "quantization": "Q4_K_M",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+    "system_role": false,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds_by_version": {
+      "v4": {
+        "naive": 4043.1,
+        "rubric": 4335.4
+      }
+    }
+  },
   "phi-3.5-mini": {
     "bytes": 2393232672,
     "file": "Phi-3.5-mini-instruct-Q4_K_M.gguf",
@@ -200,6 +236,24 @@
       "v4": {
         "naive": null,
         "rubric": null
+      }
+    }
+  },
+  "phi-4-mini": {
+    "bytes": 2491874688,
+    "file": "microsoft_Phi-4-mini-instruct-Q4_K_M.gguf",
+    "hf_repo": "bartowski/microsoft_Phi-4-mini-instruct-GGUF",
+    "n_ctx": 2048,
+    "quantization": "Q4_K_M",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "01999f17c39cc3074afae5e9c539bc82d45f2dd7faa3917c66cbef76fce8c0c2",
+    "system_role": true,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds_by_version": {
+      "v4": {
+        "naive": 3101.9,
+        "rubric": 3050.3
       }
     }
   },

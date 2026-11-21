@@ -99,13 +99,34 @@ def test_every_committed_run_records_what_produced_it(name):
     assert entry["temperature"] == 0
 
 
+RESULT_VERSIONS = sorted(
+    p.name.removesuffix("-dev")
+    for p in (Path(__file__).resolve().parents[1] / "results").glob("*-dev")
+)
+
+
 @pytest.mark.parametrize("model", sorted(manifest()))
 def test_every_model_in_the_manifest_has_both_variants(model):
     """Round 23 dropped Phi-3.5's naive run while moving files during a resumed
     job; every other check stayed green because each covers only the runs that
-    exist. Reporting one variant of a model silently is a selected result."""
-    for variant in ("naive", "rubric"):
-        assert f"llm:{variant}:{model}" in RUNS, f"{model}: no committed {variant} run"
+    exist. Reporting one variant of a model silently is a selected result.
+
+    Round 50 added models run only on v4, so this no longer assumes v1: in *every*
+    results version, a model has both variants or neither, and every manifest model
+    has runs somewhere."""
+    seen = False
+    for version in RESULT_VERSIONS:
+        runs = load_results(version)
+        has = {v for v in ("naive", "rubric") if f"llm:{v}:{model}" in runs}
+        assert has in (set(), {"naive", "rubric"}), f"{model} on {version}: only {has}"
+        seen = seen or bool(has)
+    assert seen, f"{model}: in the manifest with no committed run"
+
+
+@pytest.mark.parametrize("version", RESULT_VERSIONS)
+def test_every_run_in_every_version_is_in_the_manifest(version):
+    for name in load_results(version):
+        assert name.split(":", 2)[2] in manifest(), f"{name} on {version}: no manifest entry"
 
 
 def test_runs_and_readme_rows_correspond_one_to_one():

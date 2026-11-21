@@ -24,6 +24,16 @@ from tactbench.schema import pair_key
 RUNS = load_results("v4")
 MODELS = sorted({name.split(":", 2)[2] for name in RUNS})
 NEW = {"home_security"}
+V3 = load_results("v3")
+#: The 22 runs carried over from v3. The Round 48 claims are about these.
+CARRIED = {n: ds for n, ds in RUNS.items() if n in V3}
+#: Round 50: models first run on v4, declared so no run can join unannounced.
+ADDED_MODELS = {"mistral-7b", "phi-4-mini", "granite-3.3-2b"}
+ADDED = {n: ds for n, ds in RUNS.items() if n not in V3}
+
+
+def _carried(cards):
+    return [t for t in cards if t[0].policy in CARRIED]
 
 
 @pytest.mark.parametrize("name", sorted(RUNS))
@@ -46,13 +56,14 @@ def test_every_v4_model_has_both_variants(model):
 
 
 def test_every_v3_run_was_repeated_on_v4():
-    assert set(RUNS) == set(load_results("v3"))
+    assert set(V3) <= set(RUNS)
+    assert {n.split(":", 2)[2] for n in ADDED} == ADDED_MODELS
 
 
-@pytest.mark.parametrize("name", sorted(RUNS))
+@pytest.mark.parametrize("name", sorted(CARRIED))
 def test_old_family_decisions_are_exactly_v3s(name):
     """The seeded cache must not have changed or dropped a single old-family answer."""
-    v3 = {d.moment_id: d.model_dump() for d in load_results("v3")[name]}
+    v3 = {d.moment_id: d.model_dump() for d in V3[name]}
     family = {i.moment.id: i.moment.family for i in load("v4", "dev")}
     old = [d for d in RUNS[name] if family[d.moment_id] not in NEW]
     assert len(old) == len(v3)
@@ -105,12 +116,12 @@ class TestTheReadmeV4Claims:
     def _new_family():
         items = [i for i in load("v4", "dev") if i.moment.family == "home_security"]
         ids = {i.moment.id for i in items}
-        return items, {n: [d for d in ds if d.moment_id in ids] for n, ds in RUNS.items()}
+        return items, {n: [d for d in ds if d.moment_id in ids] for n, ds in CARRIED.items()}
 
     @staticmethod
     def _order_changes() -> list[tuple[str, str, bool]]:
         v3 = {c.policy: c.ics for c, _, _ in scorecards("v3")}
-        v4 = {c.policy: c.ics for c, _, _ in scorecards("v4")}
+        v4 = {c.policy: c.ics for c, _, _ in _carried(scorecards("v4"))}
         out = []
         for x, y in combinations(sorted(v3), 2):
             s3 = (v3[x] > v3[y]) - (v3[x] < v3[y])
@@ -179,7 +190,7 @@ class TestTheReadmeV4Claims:
         _, runs = self._new_family()
         silenced = {
             n
-            for n, ds in RUNS.items()
+            for n, ds in CARRIED.items()
             if not any(d.surface for d in runs[n])
             and any(d.surface for d in ds if d.moment_id not in {x.moment_id for x in runs[n]})
         }
@@ -196,7 +207,7 @@ class TestTheReadmeV4Claims:
 
     def test_ordering_against_v3(self):
         changes = self._order_changes()
-        assert len(list(combinations(RUNS, 2))) == 231
+        assert len(list(combinations(CARRIED, 2))) == 231
         assert sum(r for *_, r in changes) == 5
         assert sum(not r for *_, r in changes) == 1
         v2 = {c.policy: c.ics for c, _, _ in scorecards("v2")}
@@ -212,14 +223,14 @@ class TestTheReadmeV4Claims:
 
     def test_every_order_change_is_below_silence_on_both_versions(self):
         n3 = {c.policy: c.ics_normalized for c, _, _ in scorecards("v3")}
-        n4 = {c.policy: c.ics_normalized for c, _, _ in scorecards("v4")}
+        n4 = {c.policy: c.ics_normalized for c, _, _ in _carried(scorecards("v4"))}
         for x, y, _ in self._order_changes():
             assert n3[x] < 0 and n4[x] < 0 and n3[y] < 0 and n4[y] < 0, (x, y)
         assert "lose to silence on both versions" in self._block()
 
     def test_the_six_that_beat_silence_keep_their_order(self):
         def ranked(version):
-            cards = [c for c, _, _ in scorecards(version) if c.ics_normalized > 0]
+            cards = [c for c, _, _ in _carried(scorecards(version)) if c.ics_normalized > 0]
             return [c.policy for c in sorted(cards, key=lambda c: c.ics)], cards
 
         order3, _ = ranked("v3")
@@ -230,7 +241,7 @@ class TestTheReadmeV4Claims:
 
     def test_the_verdicts_that_change(self):
         def rates(version):
-            return {c.policy: u for c, u, _ in scorecards(version)}
+            return {c.policy: u for c, u, _ in _carried(scorecards(version))}
 
         u3, u4 = rates("v3"), rates("v4")
         assert {p for p, u in u3.items() if u > MAX_UNPARSED} == {"llm:naive:qwen2.5-3b"}
@@ -247,3 +258,81 @@ class TestTheReadmeV4Claims:
         ds = runs["llm:naive:qwen2.5-0.5b"]
         assert len(ds) == 40 and round(unparsed_rate(ds) * 40) == 14
         assert "**14** of its 40 `home_security` answers" in self._block()
+
+
+class TestTheReadmeV4AddedClaims:
+    """Every figure in the README's Round 50 block, recomputed from the added runs."""
+
+    @staticmethod
+    def _block() -> str:
+        text = (Path(__file__).parent.parent / "README.md").read_text()
+        start, end = "<!-- v4-added-claims:start -->", "<!-- v4-added-claims:end -->"
+        return " ".join(text.split(start)[1].split(end)[0].split())
+
+    @staticmethod
+    def _cards():
+        return {c.policy: c for c, _, _ in scorecards("v4") if c.policy in ADDED}
+
+    def test_six_runs_twenty_eight_in_all(self):
+        assert len(ADDED) == 6 and len(RUNS) == 28
+        assert "add **6** runs, making **28** on v4" in self._block()
+
+    def test_the_rubric_runs_that_go_quiet(self):
+        cards = self._cards()
+        assert cards["llm:rubric:phi-4-mini"].surfaced == 2
+        assert cards["llm:rubric:mistral-7b"].surfaced == 1
+        assert cards["llm:rubric:phi-4-mini"].n == 440
+        assert "**2** and **1** of 440 moments" in self._block()
+
+    def test_the_one_above_silence_is_silence_plus_two(self):
+        cards = self._cards()
+        above = [p for p, c in cards.items() if c.ics_normalized > 0]
+        assert above == ["llm:rubric:phi-4-mini"]
+        c = cards["llm:rubric:phi-4-mini"]
+        assert round(c.ics_normalized, 1) == 0.7 and c.precision_at_interrupt == 1.0
+        assert max(c.ics_normalized for c in cards.values()) < 1.0
+        block = self._block()
+        assert "Phi-4-mini's **+0.7**" in block and "correctly both times" in block
+
+    def test_hard_violations(self):
+        cards = self._cards()
+        naive = [c.hard_violations for p, c in cards.items() if ":naive:" in p]
+        assert min(naive) == 20 and max(naive) == 40
+        assert cards["llm:rubric:granite-3.3-2b"].hard_violations == 25
+        assert {p for p, c in cards.items() if c.hard_violations} == {
+            *(p for p in cards if ":naive:" in p),
+            "llm:rubric:granite-3.3-2b",
+        }
+        block = self._block()
+        assert "(**20** to **40**)" in block and "rubric (**25**)" in block
+
+    def test_home_security_pairs(self):
+        items = [i for i in load("v4", "dev") if i.moment.family == "home_security"]
+        label = {i.moment.id: i.label.should_surface for i in items}
+        sides: dict[str, list[str]] = {}
+        for i in items:
+            sides.setdefault(pair_key(i.moment.id), []).append(i.moment.id)
+        best, split, backwards = {}, 0, 0
+        for name in ADDED:
+            ds = {d.moment_id: d for d in RUNS[name]}
+            best[name] = sum(all(ds[m].surface == label[m] for m in p) for p in sides.values())
+            moved = [p for p in sides.values() if ds[p[0]].surface != ds[p[1]].surface]
+            split += len(moved)
+            backwards += sum(ds[p[0]].surface != label[p[0]] for p in moved)
+        top = max(best.values())
+        assert top == 1 and [n for n, v in best.items() if v == top] == ["llm:naive:phi-4-mini"]
+        assert len(sides) == 20 and split == 7 and backwards == 6
+        block = self._block()
+        assert "the best gets **1** of 20 pairs" in block and "(Phi-4-mini, naive)" in block
+        assert "**7** pairs get different answers" in block and "**6** of those" in block
+
+    def test_mistral_ran_without_a_system_turn(self):
+        import importlib.util
+
+        path = Path(__file__).parent.parent / "experiments" / "run_local_llms.py"
+        spec = importlib.util.spec_from_file_location("run_local_llms", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assert "mistral-7b" in module.NO_SYSTEM_ROLE
+        assert "Mistral-7B ran with `--no-system-role`" in self._block()
