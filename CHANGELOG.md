@@ -5,6 +5,18 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 42)
+
+- **A reworded slice of v2** (`data/v2para/dev.jsonl`, `dataset/paraphrase.py`): v2
+  dev's frame-0 moments with each decider re-rendered through a new frame — same
+  facts, roles and ids. All 22 open-weight runs repeated on it (`results/v2para-dev/`).
+- `results.paraphrase_robustness` and `experiments/paraphrase_robustness.py`: flips
+  against the independence level, pairs-both-right and ICS on both wordings. The
+  12 informative runs flip 78 moments against 264 expected under independence, but
+  no run gets more than 4 of 36 pairs both right on either wording — the decisions
+  are stable because they do not depend on the decider. Gated in
+  `tests/test_results_v2para.py`.
+
 ### Changed (Round 40)
 
 - **`tactbench audit` prints a chance reference for the positional probe**

@@ -13,14 +13,15 @@ findings** below.
 
 ## Current status
 
-- **Round:** 41 complete (`shipped`) — priority 3 restated; CLAUDE.md priorities
+- **Round:** 42 complete (`shipped`) — paraphrase robustness measured on a reworded
+  v2 slice: decisions are stable, but because no model reads the decider. R41: priority 3 restated; CLAUDE.md priorities
   carry status. R40 (#36): the audit prints the positional probe's chance level. R39 (#35): all 22 LLM runs on `v2`; the conclusions replicate. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
   draw does not fix it. R34 (#30):
   the viewer shows the pair-blind bar. R33 (#29, `blocked`): hidden test labels need private *frames*. R32 (#28): CHANGELOG backfilled for R15–R21. R31 (#27):
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **461 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **563 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -248,7 +249,7 @@ H. **Restate priority 3's goal — DONE in R41.** Original entry: Paraphrase exp
    not measured (R33). Rescope it to
    what it can do — defeat generic string matchers, which the audit measures — and
    decide whether to do it as part of a `v2` dataset (see E's blast radius).
-L. **Paraphrase robustness (new, R41; the restated priority 3).** Reword a sample
+L. **Paraphrase robustness — DONE in R42.** Original entry: Reword a sample
    of v2 moments — same facts, same roles, different sentence structure — and
    measure how often each model's decision changes. Needs new frames written as
    permutations (CLAUDE.md rule 3), the audit at chance on them, and LLM calls on
@@ -2421,6 +2422,40 @@ and the robustness measurement added. Docs only; 461 tests.
 
 ---
 
+## Round 42 — decisions survive rewording, because they ignore what was reworded
+
+**Ending state: `shipped`.** Queue item L. Before-number: none — no reworded moments
+existed, so robustness was unmeasured.
+
+**Check first.** `tests/test_paraphrase.py` (written before the data): the
+paraphrase frames meet the prose-frame properties (filler not clause-initial, no
+stopword opener, equal skeletons, a shared token before the slot), are new wording,
+change only the decider, keep every pair a permutation, and hold the gated probes at
+0.5 per family; the committed set is reproducible from `paraphrase.build()`.
+
+**Shipped.** `dataset/paraphrase.py`: one new frame pair per family; `data/v2para/
+dev.jsonl` = v2 dev frame 0 reworded (36 pairs, 72 moments, ids kept). All 22 runs
+repeated on it (`results/v2para-dev/`, free, ~6h of CPU). `results.
+paraphrase_robustness` compares each decision with the same model's on the original
+moment; `experiments/paraphrase_robustness.py` prints the table. Result: 8 runs
+constant on both (uninformative); the 12 runs with an independence level of at least
+5 flips all flip below it, 78 against 264 expected, closest Llama-3.1-8B rubric 6 vs
+7.7; no ICS moves more than 13. **But no run gets more than 4 of 36 pairs both right
+on either wording (coin about 9)** — the stability is that of decisions driven by
+the shared body and state, which rewording does not touch. So robustness of *decider
+reading* is not measurable with these models. README section and limitation; every
+figure gated in `tests/test_results_v2para.py` (one mutated figure: `fails`). 563
+tests.
+
+**Watch for.** Low flips alone would have read as "robust". The pairs column is what
+stops that; any future perturbation experiment needs a discrimination column beside
+its stability column.
+
+**Loop:** nothing new — a variant of the "a threshold count needs its null" candidate
+(a stability figure needs a discrimination figure); noted there, not filed.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -2441,7 +2476,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). |
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
-| A threshold count needs its null | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — three instances in one project. Check LOOP.md's measurement guidance first. |
+| A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — three instances in one project. Check LOOP.md's measurement guidance first. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
@@ -2550,5 +2585,7 @@ dataset or the policy is wrong, not the assertion.
   `results/MANIFEST.json` reports both variants (R23).
 - **The README LLM table equals a fresh re-score of `results/`**, row for row, and
   each conclusion the README draws from it is a test (R23).
+- **Every v2 run is repeated on the reworded set, and the README's paraphrase claims
+  equal a fresh recomputation** (`tests/test_results_v2para.py`, R42).
 - ICS stays monotone, anchored, and responsive in comprehension — the metric must
   rank the middle, not only separate the ends.

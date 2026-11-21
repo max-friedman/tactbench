@@ -148,6 +148,10 @@
       "v2": {
         "naive": null,
         "rubric": null
+      },
+      "v2para": {
+        "naive": 1881.3,
+        "rubric": 1908.1
       }
     }
   },
