@@ -19,6 +19,7 @@ from tactbench.dataset.loader import load
 from tactbench.policies.llm import unparsed_rate
 from tactbench.results import load_results, pairs_both_right, scorecards
 from tactbench.runner import normalized, pair_blind_ics
+from tactbench.schema import pair_key
 
 RUNS = load_results("v4")
 MODELS = sorted({name.split(":", 2)[2] for name in RUNS})
@@ -140,6 +141,40 @@ class TestTheReadmeV4Claims:
         assert "Llama-3.1-8B and Qwen2.5-0.5B, both naive" in block
         assert "about **5** for a coin" in block
 
+    def test_the_lucky_pair_is_a_fallback(self):
+        items, runs = self._new_family()
+        ds = {d.moment_id: d for d in runs["llm:naive:qwen2.5-0.5b"]}
+        label = {i.moment.id: i.label.should_surface for i in items}
+        sides: dict[str, list[str]] = {}
+        for i in items:
+            sides.setdefault(pair_key(i.moment.id), []).append(i.moment.id)
+        right = [p for p in sides.values() if all(ds[m].surface == label[m] for m in p)]
+        assert len(right) == 1
+        assert any(unparsed_rate([ds[m]]) == 1.0 for m in right[0])
+        assert "one side was unreadable and scored as silence" in self._block()
+
+    def test_answers_the_decider_moves_are_mostly_backwards(self):
+        items, runs = self._new_family()
+        label = {i.moment.id: i.label.should_surface for i in items}
+        sides: dict[str, list[str]] = {}
+        for i in items:
+            sides.setdefault(pair_key(i.moment.id), []).append(i.moment.id)
+        per_run = {}
+        for name, decisions in runs.items():
+            ds = {d.moment_id: d for d in decisions}
+            split = [p for p in sides.values() if ds[p[0]].surface != ds[p[1]].surface]
+            wrong = sum(ds[p[0]].surface != label[p[0]] for p in split)
+            per_run[name] = (len(split), wrong)
+        assert sum(n for n, _ in per_run.values()) == 15
+        assert sum(w for _, w in per_run.values()) == 13
+        assert per_run["llm:naive:gemma-3-4b"][1] == 5
+        assert per_run["llm:naive:llama-3.1-8b"][1] == 5
+        assert max(w for _, w in per_run.values()) == 5
+        block = self._block()
+        assert "**15** pairs get different answers" in block
+        assert "**13** of those are backwards" in block
+        assert "naive prompt, **5** each" in block
+
     def test_the_same_runs_are_silenced_as_on_pet_care(self):
         _, runs = self._new_family()
         silenced = {
@@ -164,8 +199,16 @@ class TestTheReadmeV4Claims:
         assert len(list(combinations(RUNS, 2))) == 231
         assert sum(r for *_, r in changes) == 5
         assert sum(not r for *_, r in changes) == 1
+        v2 = {c.policy: c.ics for c, _, _ in scorecards("v2")}
+        v3 = {c.policy: c.ics for c, _, _ in scorecards("v3")}
+        v3_reversed = sum(
+            ((v2[x] > v2[y]) - (v2[x] < v2[y])) * ((v3[x] > v3[y]) - (v3[x] < v3[y])) < 0
+            for x, y in combinations(sorted(v2), 2)
+        )
+        assert v3_reversed == 0 < 5
         block = self._block()
         assert "**5** are reversed" in block and "**1** is tied" in block
+        assert "(v3 against v2: **0**)" in block
 
     def test_every_order_change_is_below_silence_on_both_versions(self):
         n3 = {c.policy: c.ics_normalized for c, _, _ in scorecards("v3")}

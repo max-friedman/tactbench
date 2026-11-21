@@ -559,19 +559,25 @@ reused from the v3 runs (a test checks every one is unchanged) and only the 40
 `home_security` moments were sent to a model.
 
 <!-- v4-claims:start -->
-**No run reads the new family's decider either.** On `home_security`, **17** of the 22
-runs give all 40 moments the same answer, and a run that answers both sides of a pair
-alike cannot get that pair right. The best runs get **1** of their 20 pairs right on
-both sides (Llama-3.1-8B and Qwen2.5-0.5B, both naive prompt), against about **5** for a
-coin. The same **6** runs that went quiet on `pet_care` say nothing on any
-`home_security` moment. The ordering moves more than it did on v3: of the 231 pairs of
-runs, **5** are reversed by ICS and **1** is tied on one version and ordered on the
-other. Every one of those changes is between runs that lose to silence on both
-versions. The six runs that beat silence keep their order, and they are the same **six**,
-all with zero hard violations. One more verdict changes. Qwen2.5-0.5B with the naive
-prompt goes from **2.8%** to **5.7%** unparsed, so its v4 score is inconclusive: **14** of
-its 40 `home_security` answers are unreadable. Qwen2.5-3B naive stays inconclusive
-(**6.2%** to **6.4%**).
+**No run gets the new family's decider right, and where it moves an answer it mostly
+moves it the wrong way.** On `home_security`, **17** of the 22 runs give all 40 moments
+the same answer, and a run that answers both sides of a pair alike cannot get that pair
+right. The best runs get **1** of their 20 pairs right on both sides (Llama-3.1-8B and
+Qwen2.5-0.5B, both naive prompt), against about **5** for a coin. Qwen2.5-0.5B's one pair
+is luck of the fallback: one side was unreadable and scored as silence. Across all
+runs, **15** pairs get different answers on their two sides, and **13** of those are
+backwards (wrong on both sides), against an even split for a run whose answers ignore
+the decider. Most come from Gemma-3-4B and Llama-3.1-8B with the naive prompt, **5**
+each. Twenty pairs per run can tell only strong effects from chance. The same **6**
+runs that went quiet on `pet_care` say nothing on any `home_security` moment. The
+ordering moves more than it did on v3: of the 231 pairs of runs, **5** are reversed by
+ICS (v3 against v2: **0**) and **1** is tied on one version and ordered on the other.
+Every one of those changes is between runs that lose to silence on both versions. The
+six runs that beat silence keep their order, and they are the same **six**, all with
+zero hard violations. One more verdict changes. Qwen2.5-0.5B with the naive prompt goes
+from **2.8%** to **5.7%** unparsed, so its v4 score is inconclusive: **14** of its 40
+`home_security` answers are unreadable. Qwen2.5-3B naive stays inconclusive (**6.2%** to
+**6.4%**).
 <!-- v4-claims:end -->
 
 <!-- llm-results-v4:start -->

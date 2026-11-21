@@ -27,7 +27,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **806 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **808 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2700,6 +2700,17 @@ answers unreadable) and is inconclusive on v4, alongside Qwen2.5-3B naive (6.2% 
 
 **Cut from the draft.** A sentence explaining the reversals ("runs that speak on the
 new family pay for it") was an unmeasured account; removed rather than gated.
+
+**Review (subagent, not §D-independent) — all figures recomputed true; one MEDIUM,
+two LOW, all fixed before merge.** (1) The lead "No run reads the new family's
+decider" was ungated, dropped v3's 20-pair caveat, and the decisions partly contradict
+it: of the 15 pairs any run answers differently on the two sides, **13 are backwards**
+(5 each from naive Gemma-3-4B and naive Llama-3.1-8B). A run ignoring the decider would
+split them evenly. Reworded to "no run gets it right, and where it moves an answer it
+mostly moves it the wrong way", caveat restored, counts gated. The reviewer counted 14;
+my recount, now the test, is 13. Why the naive prompts read it backwards is not
+measured. (2) Qwen2.5-0.5B's one right pair has an unparsed side scored as silence;
+stated and gated. (3) "Moves more than on v3" now gated against v2→v3's 0 reversals.
 
 **Loop:** nothing.
 

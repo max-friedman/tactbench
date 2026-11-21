@@ -9,7 +9,8 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 - **LLM results on `v4`**: the 22 open-weight runs, decisions in `results/v4-dev/`, a
   v4 README table and a claims block, each figure gated by `tests/test_results_v4.py`.
-  No run reads `home_security`'s decider (best 1 of 20 pairs); Qwen2.5-0.5B naive
+  No run gets `home_security`'s decider right (best 1 of 20 pairs); of 15 pairs
+  answered differently on their two sides, 13 are backwards. Qwen2.5-0.5B naive
   becomes inconclusive (5.7% unparsed).
 
 ### Added (Round 47)
