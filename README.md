@@ -427,7 +427,14 @@ uv run tactbench llm --provider local --model qwen2.5-7b \
 
 The model name is required — it becomes part of the result. Some chat templates
 (Gemma 2) reject a system turn; `--no-system-role` sends the same system prompt,
-unchanged, at the top of the user turn instead. A run whose calls fail is not a
+unchanged, at the top of the user turn instead. Others drop it *silently*: under
+llama-cpp-python's `mistral-instruct` format, Mistral 7B received the same token
+count with and without a system turn, so it would have answered without the
+instructions and still produced a well-formed result (Round 50). The local runner
+now puts a secret word in the system turn before every run and refuses to start
+if the model cannot repeat it (models on `--no-system-role` skip the check). The
+eleven models published before it were re-checked by hand — the secret word, or
+the prompt token count rising with a system turn — and all received it. A run whose calls fail is not a
 result: the server's error is scored as silence, so the CLI marks any run above 5%
 unparsed *inconclusive*, and a test refuses to publish one containing a failed call.
 
