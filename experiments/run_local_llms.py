@@ -3,7 +3,7 @@
 Free to run: each model is a quantized GGUF file served by llama.cpp's
 OpenAI-compatible server on this machine. No API key, no spend.
 
-    python experiments/run_local_llms.py --models-dir DIR --server-python PY [--only NAME]
+    uv run python experiments/run_local_llms.py --models-dir DIR --server-python PY [--only NAME]
 
 ``--server-python`` is an interpreter with ``llama-cpp-python[server]`` installed
 (kept out of this project's dependencies; it compiles C++). For each model in
@@ -31,6 +31,8 @@ import sys
 import time
 import urllib.request
 from pathlib import Path
+
+from tactbench.policies.llm import LLMPolicy
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_ROOT = ROOT / "results"
@@ -103,35 +105,6 @@ def wait_ready(proc: subprocess.Popen, timeout: float = 300) -> None:
     raise TimeoutError("server never became ready")
 
 
-def system_turn_reaches_the_model() -> bool:
-    """Preflight: does the server deliver a system message at all?
-
-    A secret word is put only in the system turn and asked for in the user turn.
-    A template that drops the system turn cannot answer it. Run before any call, so
-    a model can never be scored on a prompt it did not see.
-    """
-    body = json.dumps(
-        {
-            "model": "preflight",
-            "temperature": 0,
-            "max_tokens": 12,
-            "messages": [
-                {"role": "system", "content": "The secret word is ZEBRA. When asked, "
-                 "reply with only the secret word."},
-                {"role": "user", "content": "What is the secret word?"},
-            ],
-        }
-    ).encode()  # fmt: skip
-    request = urllib.request.Request(
-        f"http://127.0.0.1:{PORT}/v1/chat/completions",
-        data=body,
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(request, timeout=120) as response:
-        reply = json.load(response)["choices"][0]["message"]["content"]
-    return "zebra" in reply.lower()
-
-
 def run_model(
     name: str, path: Path, server_python: str, threads: int, version: str = "v1"
 ) -> dict[str, float | None]:
@@ -147,7 +120,9 @@ def run_model(
     timings = {}
     try:
         wait_ready(proc)
-        if name not in NO_SYSTEM_ROLE and not system_turn_reaches_the_model():
+        # The CLI checks this too (Round 51); failing here names the fix.
+        local = LLMPolicy(provider="local", model=name, base_url=f"http://127.0.0.1:{PORT}/v1")
+        if name not in NO_SYSTEM_ROLE and not local.system_turn_reaches_the_model():
             raise SystemExit(
                 f"{name}: the server drops the system turn (secret-word preflight failed)."
                 " Add it to NO_SYSTEM_ROLE so the prompt goes in the user turn."

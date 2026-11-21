@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import http.server
 import json
+import re
 import threading
+from pathlib import Path
 
 import pytest
 
@@ -202,13 +204,28 @@ class TestParsingIsStrictAboutTheDecision:
 
 class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
     seen: list[dict] = []
+    #: Round 51: system-turn preflight calls, kept apart so ``seen`` still counts
+    #: only the moments a run asked about.
+    preflight: list[dict] = []
+    #: Simulate a chat template that silently discards the system turn.
+    drops_system = False
 
     def do_POST(self):  # noqa: N802 - stdlib name
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        _FakeOpenAI.seen.append(
-            {"path": self.path, "body": body, "auth": self.headers.get("Authorization")}
-        )
-        reply = {"choices": [{"message": {"content": '{"surface": "false", "confidence": 0.8}'}}]}
+        call = {"path": self.path, "body": body, "auth": self.headers.get("Authorization")}
+        messages = body["messages"]
+        if not _FakeOpenAI.drops_system:
+            visible = messages
+        else:
+            visible = [m for m in messages if m["role"] != "system"]
+        secret = re.search(r"secret word is (\w+)", " ".join(m["content"] for m in visible))
+        if any("secret word" in m["content"] for m in messages):
+            _FakeOpenAI.preflight.append(call)
+            content = secret.group(1) if secret else "I don't know."
+        else:
+            _FakeOpenAI.seen.append(call)
+            content = '{"surface": "false", "confidence": 0.8}'
+        reply = {"choices": [{"message": {"content": content}}]}
         data = json.dumps(reply).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -223,6 +240,8 @@ class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
 @pytest.fixture
 def fake_server():
     _FakeOpenAI.seen = []
+    _FakeOpenAI.preflight = []
+    _FakeOpenAI.drops_system = False
     srv = http.server.HTTPServer(("127.0.0.1", 0), _FakeOpenAI)
     t = threading.Thread(target=srv.serve_forever, daemon=True)
     t.start()
@@ -356,3 +375,130 @@ class TestCacheIsPerDatasetVersion:
         self._run(fake_server, "v2")
         names = sorted(p.name for p in (tmp_path / "runs").iterdir())
         assert names == ["llm_rubric_m-dev.jsonl", "llm_rubric_m-v2-dev.jsonl"]
+
+
+class TestSystemTurnPreflight:
+    """Round 50 found llama-cpp-python's ``mistral-instruct`` format drops the system
+    turn without an error: the model answers, the answers parse, and the run scores
+    a prompt the model never saw. Round 51 moves the check into the policy, so
+    ``tactbench llm --provider local`` refuses such a server before asking anything.
+    """
+
+    def _invoke(self, fake_server, *extra):
+        from typer.testing import CliRunner
+
+        from tactbench.cli import app
+
+        args = ["llm", "--provider", "local", "--model", "m", "--base-url", fake_server]
+        return CliRunner().invoke(app, [*args, "--limit", "2", *extra])
+
+    def test_the_policy_detects_a_dropped_system_turn(self, fake_server):
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is True
+        _FakeOpenAI.drops_system = True
+        assert policy.system_turn_reaches_the_model() is False
+        # the secret travels only in the system turn, never in the user turn
+        for call in _FakeOpenAI.preflight:
+            system, user = call["body"]["messages"]
+            assert system["role"] == "system" and "secret word is" in system["content"]
+            assert user["role"] == "user" and "secret word is" not in user["content"]
+
+    def test_the_cli_refuses_a_server_that_drops_it(self, fake_server, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        _FakeOpenAI.drops_system = True
+        result = self._invoke(fake_server)
+        assert result.exit_code == 1
+        assert "--no-system-role" in result.output
+        assert _FakeOpenAI.seen == []  # not one moment was asked
+        assert not (tmp_path / "runs").exists() or not any((tmp_path / "runs").iterdir())
+
+    def test_the_cli_runs_once_the_check_passes(self, fake_server, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        result = self._invoke(fake_server)
+        assert result.exit_code == 0, result.output
+        assert len(_FakeOpenAI.preflight) == 1 and len(_FakeOpenAI.seen) == 2
+
+    def test_without_a_system_role_there_is_nothing_to_check(
+        self, fake_server, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        _FakeOpenAI.drops_system = True
+        result = self._invoke(fake_server, "--no-system-role")
+        assert result.exit_code == 0, result.output
+        assert _FakeOpenAI.preflight == [] and len(_FakeOpenAI.seen) == 2
+
+    def test_a_fully_cached_run_asks_nothing(self, fake_server, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        assert self._invoke(fake_server).exit_code == 0
+        _FakeOpenAI.preflight, _FakeOpenAI.seen = [], []
+        _FakeOpenAI.drops_system = True  # rescoring a cache needs no server at all
+        result = self._invoke(fake_server)
+        assert result.exit_code == 0, result.output
+        assert _FakeOpenAI.preflight == [] and _FakeOpenAI.seen == []
+
+    @pytest.mark.parametrize("failure", ["refused", "http500", "no_choices"])
+    def test_a_server_error_names_the_fix(self, failure, tmp_path, monkeypatch):
+        """Review of R51: these were uncaught tracebacks. HTTP 500 is how Gemma 2's
+        template rejects a system turn, so it must point at --no-system-role."""
+        import socket
+
+        from typer.testing import CliRunner
+
+        from tactbench.cli import app
+
+        class Broken(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):  # noqa: N802 - stdlib name
+                self.rfile.read(int(self.headers["Content-Length"]))
+                data = b"{}" if failure == "no_choices" else b"boom"
+                self.send_response(200 if failure == "no_choices" else 500)
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def log_message(self, *args):
+                pass
+
+        monkeypatch.chdir(tmp_path)
+        srv = None
+        if failure == "refused":
+            with socket.socket() as s:
+                s.bind(("127.0.0.1", 0))
+                port = s.getsockname()[1]
+        else:
+            srv = http.server.HTTPServer(("127.0.0.1", 0), Broken)
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            port = srv.server_port
+        try:
+            args = ["llm", "--provider", "local", "--model", "m", "--limit", "2"]
+            url = f"http://127.0.0.1:{port}/v1"
+            result = CliRunner().invoke(app, [*args, "--base-url", url])
+        finally:
+            if srv:
+                srv.shutdown()
+                srv.server_close()
+        assert result.exit_code == 1
+        assert result.exception is None or isinstance(result.exception, SystemExit)
+        assert "--no-system-role" in result.output
+        assert not (tmp_path / "runs").exists()
+
+    def test_the_secret_word_is_drawn_per_call(self, fake_server):
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        for _ in range(20):
+            assert policy.system_turn_reaches_the_model()
+        words = {
+            re.search(r"secret word is (\w+)", c["body"]["messages"][0]["content"]).group(1)
+            for c in _FakeOpenAI.preflight
+        }
+        assert len(words) > 1 and words <= set(LLMPolicy.PREFLIGHT_WORDS)
+
+    def test_hosted_providers_are_not_checked(self):
+        policy = LLMPolicy(provider="anthropic", model="x")
+        with pytest.raises(ValueError):
+            policy.system_turn_reaches_the_model()
+
+    def test_the_local_runner_uses_the_policys_check(self):
+        """One implementation: the experiment script must not keep its own copy."""
+        script = Path(__file__).parent.parent / "experiments" / "run_local_llms.py"
+        text = script.read_text()
+        assert ".system_turn_reaches_the_model()" in text
+        assert "def system_turn_reaches_the_model" not in text

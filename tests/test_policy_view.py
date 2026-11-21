@@ -80,6 +80,8 @@ def test_the_llm_command_hands_policies_no_slices(tmp_path, monkeypatch):
         return Decision(moment_id=moment.id, surface=False, rationale="spy")
 
     monkeypatch.setattr(LLMPolicy, "decide", spy)
+    # No server here; the R51 system-turn preflight is tested in test_llm.py.
+    monkeypatch.setattr(LLMPolicy, "system_turn_reaches_the_model", lambda self: True)
     monkeypatch.chdir(tmp_path)
     args = ["llm", "--provider", "local", "--model", "spy", "--limit", "5"]
     result = CliRunner().invoke(app, args)
@@ -191,6 +193,8 @@ def test_the_llm_command_hands_policies_an_opaque_id(tmp_path, monkeypatch):
         return Decision(moment_id=moment.id, surface=False, rationale="spy")
 
     monkeypatch.setattr(LLMPolicy, "decide", spy)
+    # No server here; the R51 system-turn preflight is tested in test_llm.py.
+    monkeypatch.setattr(LLMPolicy, "system_turn_reaches_the_model", lambda self: True)
     monkeypatch.chdir(tmp_path)
     args = ["llm", "--provider", "local", "--model", "spy", "--limit", "5"]
     result = CliRunner().invoke(app, args)
