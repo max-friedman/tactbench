@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 52 complete — dataset `v5`, a twelfth family (`water_notice`); a
+- **Round:** 53 complete — the system-turn preflight is structural (padded vs short
+  system turn), with a committed 14-model table. R52: dataset `v5`, a twelfth family (`water_notice`); a
   loop audit. R51: `tactbench llm --provider local` refuses a server that
   drops the system turn (tested against a fake and against real Mistral). R50: three more open-weight models on `v4` (28 runs); none beats
   silence by more than +0.7; a chat template that silently drops the system turn is now
@@ -32,7 +33,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **889 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **896 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2973,6 +2974,45 @@ fourth (sample size).
 
 ---
 
+## Round 53 — the system-turn preflight was testing the model, not the template
+
+**Ending state: `shipped`.** Not a queue item: a defect that stopped queue item P.
+**Before:** the v5 runs (P) stopped at the second model. Llama-3.2-1B failed R51's
+secret-word preflight although its server does deliver the system turn: it repeated
+the word 3 times in 7 ("P", "LED"). R51's review had named this risk ("a model that
+declines to reveal a secret would be refused with the wrong diagnosis; none has") — it
+had not, only because the drawn word was lucky. **After:** the preflight is structural.
+It sends the same user turn under a short system turn and under that turn padded, and
+requires the prompt to grow; a dropped turn leaves both the same length. The word test
+remains only for servers that report no usage.
+
+**The first structural version was wrong too, and the real servers showed it.** It
+compared a system turn against none. Granite 3.3's template inserts its own longer
+default when no system turn is sent (64 prompt tokens against 37 with ours), so it was
+refused while repeating the word 7 of 7. Qwen's margin was 2 tokens for the same
+reason. Both calls now carry a system turn.
+
+**Evidence committed, not by hand.** `experiments/system_turn_check.py` runs every
+local model's server and writes `results/SYSTEM_TURN.md`: short/padded/none token
+counts, whether the preflight passes, and how many of seven words each model repeats.
+All twelve system-turn models pass; Mistral reads 11/11/11 and Gemma 2 answers HTTP
+500 — both on `--no-system-role`. `TestTheSystemTurnTable` gates the table against
+`run_local_llms.MODELS` and `NO_SYSTEM_ROLE`. This replaces R50/R51's "re-checked by
+hand, no committed log".
+
+**Checks first.** Fake-server modes for a weak model, a server without usage, and a
+template with a default system prompt; each new test was red before its fix.
+
+**Set aside for R54:** the v5 results test file and README section (in the scratchpad),
+and the two completed v5 runs, which re-run from cache.
+
+**Review:** subagent, not §D-independent (owner instruction).
+
+**Loop:** a check that asks the subject to perform a task tests the subject's ability
+as well as the property — candidate method finding below.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -2991,6 +3031,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
 | A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). R45 adds one: "equal skeletons" held clause *token* count equal and left *character* length free — a pet_care length rule read 90%. R47 adds another: the R45 length gate tested characters and missed an *-er* suffix rule at 90%. |
+| A check that asks the subject to perform tests its ability too | R51's preflight asked a model to repeat a word to prove a system turn arrived; a 1B model that receives the turn failed 4 of 7 (R53). The first fix compared against no system turn and was confounded by a template default. A property check should measure the property (here, prompt length) rather than a behaviour that depends on it. | **candidate** — one instance, two steps. |
 | The audit cadence is never prompted | R28 ran the only loop audit until R52; §C's every-fifth-round and two-non-`nothing` triggers fired at R32-R33, R33, R36-R37, R38, R43 and R48 and no round noticed. Nothing in the round steps checks the cadence. | **candidate** — one instance, 23 rounds long. Check §C and the round steps first. |
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
