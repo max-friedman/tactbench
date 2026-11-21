@@ -507,14 +507,17 @@ from the v2 runs (a test checks every one is unchanged) and only the 40 `pet_car
 moments were sent to a model.
 
 <!-- v3-claims:start -->
-**The new family adds nothing a model reads.** On `pet_care`, **18** of the 22 runs
-give all 40 moments the same answer. The best run gets **3** of its 20 pairs right on
-both sides (Llama-3.1-8B, naive prompt), against about **5** for a coin. The v2
-ordering survives: of the 231 pairs of runs, **0** are reversed by ICS, and **2** are
-tied on one version and ordered on the other. The same **six** runs beat silence, all
-with zero hard violations. One verdict changes. Qwen2.5-3B with the naive prompt goes
-from **4.7%** to **6.2%** unparsed, which is over the 5% line, so its v3 score is
-inconclusive.
+**No run detectably reads the new family's decider.** On `pet_care`, **18** of the 22
+runs give all 40 moments the same answer. The best run gets **3** of its 20 pairs right
+on both sides (Llama-3.1-8B, naive prompt), against about **5** for a coin. Twenty pairs
+can only tell strong reading from chance, so this rules out strong reading and no
+more. The family does change behaviour: **6** runs that speak on the old families say
+nothing on any `pet_care` moment. The v2 ordering survives: of the 231 pairs of runs,
+**0** are reversed by ICS, and **2** are tied on one version and ordered on the other.
+The same **six** runs beat silence, all with zero hard violations. One verdict changes.
+Qwen2.5-3B with the naive prompt goes from **4.7%** to **6.2%** unparsed, which is over
+the 5% line, so its v3 score is inconclusive. The rise is all from the new family: **8**
+of its 40 `pet_care` answers are unreadable.
 <!-- v3-claims:end -->
 
 <!-- llm-results-v3:start -->

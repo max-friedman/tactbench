@@ -17,6 +17,7 @@ from test_results import _readme_rows
 from tactbench.cli import MAX_UNPARSED
 from tactbench.dataset.generate import LATER_FRAMES
 from tactbench.dataset.loader import load
+from tactbench.policies.llm import unparsed_rate
 from tactbench.results import load_results, pairs_both_right, scorecards
 from tactbench.runner import normalized, pair_blind_ics
 
@@ -97,7 +98,8 @@ class TestTheReadmeV3Claims:
     @staticmethod
     def _block() -> str:
         text = (Path(__file__).parent.parent / "README.md").read_text()
-        return text.split("<!-- v3-claims:start -->")[1].split("<!-- v3-claims:end -->")[0]
+        block = text.split("<!-- v3-claims:start -->")[1].split("<!-- v3-claims:end -->")[0]
+        return " ".join(block.split())
 
     @staticmethod
     def _pet_care():
@@ -114,8 +116,10 @@ class TestTheReadmeV3Claims:
     def test_best_new_family_pairs_and_the_coin(self):
         items, runs = self._pet_care()
         n_pairs = len(items) // 2
-        best = max(runs, key=lambda n: pairs_both_right(items, runs[n]))
-        assert best == "llm:naive:llama-3.1-8b"
+        scores = {n: pairs_both_right(items, ds) for n, ds in runs.items()}
+        top = max(scores.values())
+        assert [n for n, v in scores.items() if v == top] == ["llm:naive:llama-3.1-8b"]
+        best = "llm:naive:llama-3.1-8b"
         assert round(pairs_both_right(items, runs[best]) * n_pairs) == 3
         assert n_pairs == 20 and round(n_pairs * 0.25) == 5
         block = self._block()
@@ -134,11 +138,13 @@ class TestTheReadmeV3Claims:
         assert len(list(combinations(v2, 2))) == 231
         assert (reversed_, retied) == (0, 2)
         block = self._block()
-        assert "**0** are reversed" in block and "**2** are\ntied" in block
+        assert "**0** are reversed" in block and "**2** are tied" in block
 
     def test_six_beat_silence_without_hard_violations(self):
         beat = [c for c, _, _ in scorecards("v3") if c.ics_normalized > 0]
         assert len(beat) == 6 and all(c.hard_violations == 0 for c in beat)
+        beat_v2 = {c.policy for c, _, _ in scorecards("v2") if c.ics_normalized > 0}
+        assert {c.policy for c in beat} == beat_v2
         assert "same **six** runs beat silence" in self._block()
 
     def test_the_one_verdict_that_changes(self):
@@ -151,3 +157,20 @@ class TestTheReadmeV3Claims:
         block = self._block()
         assert f"**{u2:.1%}**" in block
         assert f"**{over('v3')['llm:naive:qwen2.5-3b']:.1%}**" in block
+
+    def test_runs_silenced_by_the_new_family(self):
+        _, runs = self._pet_care()
+        silenced = [
+            n
+            for n, ds in RUNS.items()
+            if not any(d.surface for d in runs[n])
+            and any(d.surface for d in ds if d.moment_id not in {x.moment_id for x in runs[n]})
+        ]
+        assert len(silenced) == 6
+        assert "**6** runs that speak on the old families" in self._block()
+
+    def test_the_unparsed_rise_is_the_new_familys(self):
+        _, runs = self._pet_care()
+        ds = runs["llm:naive:qwen2.5-3b"]
+        assert len(ds) == 40 and round(unparsed_rate(ds) * 40) == 8
+        assert "**8** of its 40 `pet_care` answers" in self._block()

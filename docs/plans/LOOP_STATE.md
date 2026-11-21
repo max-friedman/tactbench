@@ -25,7 +25,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **681 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **683 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2602,6 +2602,16 @@ seeded cache, so no whole-run timing exists.
 differs by 0.0005 + float error). Fixed with a 1e-9 epsilon, not a wider tolerance.
 The v1/v2 tests have the same comparison and pass by luck of their values; not
 changed this round.
+
+**Review (subagent, not §D-independent) — every figure recomputed true; three fixes.**
+(1) The headline "adds nothing a model reads" overstated 20 pairs: a coin's sd there is
+~1.9, so only strong reading is ruled out. Reworded to "no run detectably reads", the
+power limit stated, and the effect the family *does* have added and gated: 6 runs that
+speak elsewhere are silent on every `pet_care` moment (the reviewer counted 7; the
+recount is 6). (2) "The same six beat silence" was gated on the count only; now on set
+equality with v2, as v2's own test does. (3) The best run is asserted unique, and the
+unparsed rise is attributed (8 of 40 `pet_care` answers). The claims check now
+normalises line breaks, so rewrapping the README cannot break or fake it. 683 tests.
 
 **Loop:** nothing.
 
