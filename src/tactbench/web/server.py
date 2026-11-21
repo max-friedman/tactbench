@@ -97,7 +97,7 @@ board.innerHTML =
     const bcls = r.vs_pair_blind > 0 ? 'good' : 'bad';
     const bsign = r.vs_pair_blind > 0 ? '+' : '';
     const v = r.violations ? '<span class="bad">' + r.violations + '</span>' : '0';
-    return '<tr><td><b>' + r.policy + '</b></td><td>' + r.ics.toFixed(1) +
+    return '<tr><td><b>' + esc(r.policy) + '</b></td><td>' + r.ics.toFixed(1) +
       '</td><td class="' + cls + '">' + sign + r.normalized.toFixed(1) +
       '</td><td class="' + bcls + '">' + bsign + r.vs_pair_blind.toFixed(1) +
       '</td><td>' + fmt(r.precision) + '</td><td>' + fmt(r.recall) +
@@ -148,13 +148,13 @@ function render() {
     const want = m.should ? 'should have spoken' : 'should have stayed quiet';
     const cls = d.hard ? 'bad' : (bad ? 'warn' : 'good');
     return '<div class="card' + (bad ? ' err' : '') + '">' +
-      '<div class="row"><span class="id">' + m.id + '</span>' +
-      '<span class="id">' + m.state +
+      '<div class="row"><span class="id">' + esc(m.id) + '</span>' +
+      '<span class="id">' + esc(m.state) +
       (m.dnd ? ' · DND' : '') + ' · ' + m.hour + ':00' +
-      m.slices.map(function (s) { return '<span class="badge">' + s + '</span>'; }).join('') +
+      m.slices.map(function (s) { return '<span class="badge">' + esc(s) + '</span>'; }).join('') +
       '</span></div>' +
       m.signals.map(function (s) {
-        return '<div class="sig"><b>' + s.source + '</b><br>' + esc(s.content) + '</div>';
+        return '<div class="sig"><b>' + esc(s.source) + '</b><br>' + esc(s.content) + '</div>';
       }).join('') +
       '<div class="verdict"><span class="' + cls + '">' + said + '</span>' +
       ' · ' + want + ' · cost ' + d.cost.toFixed(1) +
@@ -164,9 +164,11 @@ function render() {
   }).join('') || '<p class="sub">Nothing matches those filters.</p>';
 }
 
+// Every text field goes through this before innerHTML (R60: five did not, and planted
+// markup in a policy name or moment id ran). Quotes too, so attribute use is safe.
 function esc(s) {
-  return s.replace(/[&<>]/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c];
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
 }
 

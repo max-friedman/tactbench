@@ -5,6 +5,13 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Fixed (Round 60)
+
+- **The viewer escapes every text field.** Policy names, moment ids, states, slices and
+  signal sources went into `innerHTML` raw, so planted markup ran in five of seven
+  fields. `experiments/viewer_injection_probe.py` shows it in a browser; a static test
+  gates it.
+
 ### Fixed (Round 59)
 
 - **The viewer names its dataset version** (`dataset v5 · 480 moments · …`); it never

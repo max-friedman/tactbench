@@ -15,7 +15,8 @@ findings** below.
 
 - **Loop audit due:** R62 (fifth round after R57's audit). A round at or past it runs
   the audit or writes `deferred: <reason>` on its Loop line (proposed upstream, #60).
-- **Round:** 59 complete — the viewer is tested on every version and names the one
+- **Round:** 60 complete — the viewer escapes every text field; planted markup ran
+  in 5 of 7 before. R59: the viewer is tested on every version and names the one
   it shows. R58: coverage map refreshed (stale since R34); viewer gap queued (R).
   R57: loop audit (due); the null finding filed upstream (#61).
   R56: two method findings sent upstream: the audit-cadence
@@ -42,7 +43,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1112 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1119 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -224,7 +225,7 @@ last round whose commit changed the file.
 | `results/` + `results.py` | R42 | committed decisions + MANIFEST per version; old-family decisions checked equal across versions |
 | `experiments/run_local_llms.py` | R53 | reproduces every LLM row from weights; caches seed from the previous version |
 | `labeling.py` | R31 | CLI and Fleiss' κ, tested on synthetic raters; **no real labels** (NEEDS-MAX 2) |
-| `web/server.py` | R59 | pair-blind column; header names the dataset version, built in the payload and asserted exactly in the served page; `tests/test_web.py` on every dataset on disk (board == `eval`); v5 rendered in Chromium, no JS errors. `innerHTML` unescaped for ids and policy names |
+| `web/server.py` | R59 | pair-blind column; header names the dataset version, built in the payload and asserted exactly in the served page; `tests/test_web.py` on every dataset on disk (board == `eval`); v5 rendered in Chromium, no JS errors. Every text field escaped before `innerHTML` (R60), checked statically in the suite and by `experiments/viewer_injection_probe.py` in a browser |
 | `.github/workflows/` | owner-only | CI on py3.11-3.13 + reproducibility + audit; not editable by a round |
 
 ---
@@ -3219,6 +3220,33 @@ there are no page errors, and the silence figure matches the README's v5 table.
 Not fixed, and older than this round: ids, states and policy names go into `innerHTML`
 unescaped. That is harmless while the data is constructed, but it matters once human
 labels or outside policy names reach the viewer.
+
+**Loop:** nothing new.
+
+---
+
+## Round 60 — five viewer fields rendered markup
+
+**Ending state: `shipped`.** Not a queue item: an older gap R59's review named. **Before:**
+`experiments/viewer_injection_probe.py` plants an `<img onerror>` in each of the seven
+text fields the viewer renders and opens the page in Chromium. With every moment shown,
+**5 of 7 ran**: policy name, moment id, state, slice, signal source. Only signal content
+and rationale went through `esc`, which also left quotes alone. **After:** all seven
+escaped, quotes included; the probe reports none run. Harmless while every field is
+generated here, but the next things to reach the viewer are outside policy names and
+human labels (priorities 1-2).
+
+**Checks first.** CI has no browser, so the gated check is static:
+`test_every_text_field_is_escaped_before_innerHTML` finds every `x.<text field>` in the
+page script that is neither inside `esc(...)` nor a DOM property that never parses HTML.
+Run on the pre-R60 page, it flags exactly the five the browser showed running. A
+mutation test per field un-escapes one and requires the check to fail.
+
+**Measurement note.** The probe's first run reported only `policy`. The page's default
+filter shows failures only, so the planted moment was never rendered. A probe must
+show every row it plants in before an empty result means anything.
+
+**Review:** subagent, not §D-independent (owner instruction).
 
 **Loop:** nothing new.
 

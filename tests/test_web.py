@@ -5,6 +5,7 @@ Round 59, whose page also never said which dataset version it showed."""
 from __future__ import annotations
 
 import json
+import re
 import threading
 import urllib.request
 from functools import partial
@@ -110,3 +111,50 @@ def test_the_page_shows_the_pair_blind_column(payload):
     assert "vs pair-blind" in html and "vs silence" in html
     assert "__DATA__" not in html and '"vs_pair_blind"' in html
     assert "vs pair-blind" in PAGE
+
+
+#: The payload's text fields (everything else on the page is a number or a boolean).
+TEXT_FIELDS = ("policy", "id", "state", "source", "content", "rationale")
+#: The only places a text field may appear outside ``esc(...)``: DOM properties that
+#: never parse HTML, and lookups.
+SAFE_USES = (
+    "o.value = r.policy",
+    "o.textContent = r.policy",
+    "DATA.board[0].policy",
+)
+
+
+def _unescaped_text_uses(page: str) -> list[str]:
+    """Every ``x.<text field>`` in the page's script that is neither wrapped in
+    ``esc(...)`` nor a known safe use. Slices are iterated as bare ``s`` in a map, so
+    the badge's concatenation is checked separately."""
+    script = page.split("<script>")[1].split("</script>")[0]
+    bad = []
+    for match in re.finditer(r"\b(\w+)\.(" + "|".join(TEXT_FIELDS) + r")\b", script):
+        start = match.start()
+        if script[start - 4 : start] == "esc(":
+            continue
+        line = script[script.rfind("\n", 0, start) + 1 : script.find("\n", start)]
+        if any(use in line for use in SAFE_USES) and match.group(0) in "".join(SAFE_USES):
+            continue
+        bad.append(line.strip())
+    if "'<span class=\"badge\">' + esc(s) +" not in script:
+        bad.append("slice badge")
+    return bad
+
+
+def test_every_text_field_is_escaped_before_innerHTML():
+    """R60: five text fields (policy, id, state, slice, source) went into innerHTML
+    raw, and planted markup in any of them ran in Chromium. Browser-free: the script
+    may use a text field only through ``esc`` or a property that never parses HTML."""
+    assert _unescaped_text_uses(PAGE) == []
+    assert '"' in PAGE.split("function esc")[1].split("}")[0]  # quotes escaped too
+
+
+@pytest.mark.parametrize("field", ["r.policy", "m.id", "m.state", "s.source", "m.rationale"])
+def test_the_escape_check_catches_a_raw_field(field):
+    assert _unescaped_text_uses(PAGE.replace(f"esc({field})", field, 1)), field
+
+
+def test_the_escape_check_catches_a_raw_slice():
+    assert _unescaped_text_uses(PAGE.replace("esc(s) +", "s +", 1))
