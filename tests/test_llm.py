@@ -436,6 +436,61 @@ class TestSystemTurnPreflight:
         assert result.exit_code == 0, result.output
         assert _FakeOpenAI.preflight == [] and _FakeOpenAI.seen == []
 
+    @pytest.mark.parametrize("failure", ["refused", "http500", "no_choices"])
+    def test_a_server_error_names_the_fix(self, failure, tmp_path, monkeypatch):
+        """Review of R51: these were uncaught tracebacks. HTTP 500 is how Gemma 2's
+        template rejects a system turn, so it must point at --no-system-role."""
+        import socket
+
+        from typer.testing import CliRunner
+
+        from tactbench.cli import app
+
+        class Broken(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):  # noqa: N802 - stdlib name
+                self.rfile.read(int(self.headers["Content-Length"]))
+                data = b"{}" if failure == "no_choices" else b"boom"
+                self.send_response(200 if failure == "no_choices" else 500)
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def log_message(self, *args):
+                pass
+
+        monkeypatch.chdir(tmp_path)
+        srv = None
+        if failure == "refused":
+            with socket.socket() as s:
+                s.bind(("127.0.0.1", 0))
+                port = s.getsockname()[1]
+        else:
+            srv = http.server.HTTPServer(("127.0.0.1", 0), Broken)
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            port = srv.server_port
+        try:
+            args = ["llm", "--provider", "local", "--model", "m", "--limit", "2"]
+            url = f"http://127.0.0.1:{port}/v1"
+            result = CliRunner().invoke(app, [*args, "--base-url", url])
+        finally:
+            if srv:
+                srv.shutdown()
+                srv.server_close()
+        assert result.exit_code == 1
+        assert result.exception is None or isinstance(result.exception, SystemExit)
+        assert "--no-system-role" in result.output
+        assert not (tmp_path / "runs").exists()
+
+    def test_the_secret_word_is_drawn_per_call(self, fake_server):
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        for _ in range(20):
+            assert policy.system_turn_reaches_the_model()
+        words = {
+            re.search(r"secret word is (\w+)", c["body"]["messages"][0]["content"]).group(1)
+            for c in _FakeOpenAI.preflight
+        }
+        assert len(words) > 1 and words <= set(LLMPolicy.PREFLIGHT_WORDS)
+
     def test_hosted_providers_are_not_checked(self):
         policy = LLMPolicy(provider="anthropic", model="x")
         with pytest.raises(ValueError):

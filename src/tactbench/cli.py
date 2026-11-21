@@ -256,7 +256,16 @@ def llm_cmd(
     # Round 51: a template can drop the system turn silently (Mistral under
     # llama-cpp-python), so check it reaches the model before asking anything.
     if todo and policy.provider == "local" and policy.system_role:
-        if not policy.system_turn_reaches_the_model():
+        try:
+            delivered = policy.system_turn_reaches_the_model()
+        except (OSError, KeyError, IndexError, ValueError) as err:  # URLError is an OSError
+            console.print(
+                f"[red]The system-turn preflight could not get an answer[/red] ({err!r}). "
+                "Check the server is up at --base-url. A template that rejects a system "
+                "turn outright (Gemma 2 answers HTTP 500) needs --no-system-role."
+            )
+            raise typer.Exit(1) from None
+        if not delivered:
             console.print(
                 "[red]The server does not deliver a system turn to the model[/red]: it "
                 "could not repeat a word sent only there, so every answer would be to a "

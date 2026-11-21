@@ -433,8 +433,8 @@ count with and without a system turn, so it would have answered without the
 instructions and still produced a well-formed result (Round 50). `tactbench llm
 --provider local` now puts a secret word in the system turn before it asks about any
 moment, and exits if the model cannot repeat it (Round 51; `--no-system-role` runs
-skip the check, and a fully cached run asks nothing). Against the real servers it
-refuses Mistral 7B and passes Qwen2.5-0.5B. The ten earlier
+skip the check, and a fully cached run asks nothing). Checked by hand against
+the real servers, with no committed log: it refuses Mistral 7B and passes Qwen2.5-0.5B. The ten earlier
 models that use a system turn were re-checked by hand — the secret word, or the
 prompt token count rising with a system turn — and all received it; that check left
 no committed log. A run whose calls fail is not a
@@ -459,7 +459,7 @@ Free to reproduce: every row is a quantized (Q4_K_M) open-weight model run on a
 model gets. The decisions are committed in `results/v1-dev/`, the weights' sha256
 and runtime in `results/MANIFEST.json`, and `tactbench results` re-scores them;
 a test fails the build if this table disagrees with that output. To rerun:
-`python experiments/run_local_llms.py --models-dir DIR --server-python PY`.
+`uv run python experiments/run_local_llms.py --models-dir DIR --server-python PY`.
 
 <!-- llm-results:start -->
 | model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |

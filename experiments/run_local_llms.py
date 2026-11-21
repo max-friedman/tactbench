@@ -3,7 +3,7 @@
 Free to run: each model is a quantized GGUF file served by llama.cpp's
 OpenAI-compatible server on this machine. No API key, no spend.
 
-    python experiments/run_local_llms.py --models-dir DIR --server-python PY [--only NAME]
+    uv run python experiments/run_local_llms.py --models-dir DIR --server-python PY [--only NAME]
 
 ``--server-python`` is an interpreter with ``llama-cpp-python[server]`` installed
 (kept out of this project's dependencies; it compiles C++). For each model in

@@ -31,7 +31,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **845 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **849 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2868,8 +2868,17 @@ implementation; the two that passed red assert nothing is asked
 Two `test_policy_view` tests spy on `decide` with no server; they now stub the
 preflight to pass, which is what they are about (what a policy sees, not the server).
 
-**Real servers:** the CLI refuses Mistral-7B (exit 1, no moment asked) and runs
+**Real servers (by hand, no committed log):** the CLI refuses Mistral-7B (exit 1, no moment asked) and runs
 Qwen2.5-0.5B.
+
+**Review (subagent, not §D-independent) — fixed:** a preflight server error (refused,
+HTTP 500, no `choices`) was an uncaught traceback; HTTP 500 is how Gemma 2 rejects a
+system turn, so it now names `--no-system-role` (3 tests, red without the fix). The
+script now imports `tactbench`, so its documented `python experiments/...` became
+`uv run python`. The secret word is drawn per call from seven, not a constant.
+**Not fixed:** the runner test is a text search; the match is a substring with
+`max_tokens=12`, so a model that reasons first would be refused with the wrong
+diagnosis.
 
 **Left open:** the hand re-check of the ten earlier system-turn models still has no
 committed log. A model that declines to reveal a "secret" would be refused with the
