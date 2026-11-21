@@ -243,12 +243,21 @@ each one had shipped green under the checks that existed at the time.
 **Below the word (Round 49 audit).** Every probe above reads whole words, and Round
 47's leak was a suffix. So a character 3-8-gram model — an averaged perceptron, written
 without importing the benchmark — was fit on `v4/dev` and scored on held-out `v4/test`.
-It fits dev (93.2%) and reads chance on held-out test: **51.5%** accuracy, **12.1%**
-pairs-both-right, against a coin's 25%. Over five seeds on each of v2, v3 and v4 the
-highest readings are 53.3% and 16.7%, and it never beats silence (measured once in
-R49; the gate re-runs v4 only). The same probe finds
-a planted three-letter suffix cue on held-out frames at **99.2%**, so the chance
-reading is not a probe that cannot see. `test_the_char_ngram_audit_holds` gates it.
+It fits dev (93.2%) and reads chance on held-out test: **51.5%** accuracy. Its **12.1%**
+pairs-both-right is lower than a coin's 25% because it gives most pairs the same answer
+on both sides; where it splits a pair it picks the right side in **57.1%** of 28. A
+planted cue — `ish` glued to a middle word of every stay-quiet decider — is found on
+held-out frames at **98.5%**, while word unigrams read it at 53.4%, so the probe can see
+below the word. A pair-aware variant, trained on the difference between a pair's two
+deciders, scores **37.1%** pairs-both-right. That is what answering every pair
+oppositely buys at chance: it picks the right side **53.3%** of the time. Over five seeds
+on v2, v3 and v4 (measured once in R49; the gate re-runs v4 seed 0):
+- the plain probe reads at most 53.3% accuracy and 16.7% pairs-both-right;
+- the pair-aware one picks the right side in 48.4-57.7% of pairs, above 50% on every v2
+  and v3 seed but significant on none;
+- neither beats silence (closest: −1.0).
+
+`test_the_char_ngram_audit_holds` gates it.
 
 **A fifth property, and the one that nearly got recorded as a defect.** Clause
 order alternates on the pair's index *within its frame*, so a frame needs at least

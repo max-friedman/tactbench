@@ -2770,6 +2770,34 @@ are frozen, and v4 contains all their families. The test also asserts that the p
 imports nothing from `tactbench`. ICS was scored afterwards by the project's scorer in
 a scratch script; it is not part of the gate.
 
+**Review (subagent, not §D-independent) — no HIGH; two MEDIUM, both fixed.** I
+reproduced the reviewer's numbers before acting on them.
+(1) *The control did not show sub-word power.* `ish` on the **last** word often hit a
+recurring entity, and the reviewer measured word unigrams on it at 86%. It now goes on
+a **middle** word of three or more letters. The char probe reads it at 96.7-99.1% and
+word unigrams at 53-55%. The gate now also requires word unigrams to stay under 60% on
+the control, or the reading is `unmeasurable`.
+(2) *The pairs falsifier is mis-specified for a pair-aware probe.* The reviewer's
+strongest learner trains on the difference between a pair's two deciders and answers
+the sides oppositely. So it gets about 50% pairs-both-right with no reading at all, not
+a coin's 25%.
+- My reproduction over 15 fits: pairs-both-right **33.3-39.2%**, which **crosses the
+  literal pre-registered 37.5% in 7 of 15**.
+- Its right-side choice is 48.4-57.7%. It is above 50% on every v2 and v3 seed, but no
+  single fit is significant (p ≥ 0.2 at 71-94 split pairs).
+- It never beats silence; the closest is −1.0, on v2 seed 1.
+
+**I did not rewrite the threshold.** Read literally, the pre-registration is tripped
+by this variant. I keep the verdict at `holds` because the claim is about beating
+silence, which no variant does, and because the variant's side-choice reads chance.
+That is a judgement, and it is written down here rather than hidden.
+
+Pair-choice accuracy is now reported for every probe. The pair-aware variant is in the
+probe and gated at a side-choice below **65%** (`MAX_PAIR_CHOICE`). That bound was
+added after the review and is labelled so in the code. The fit and control floors (85%
+and 90%) were also set after the first strong reading, not pre-registered.
+LOW: the first learner's readings were never committed. They are recorded only here.
+
 **What it does not show.** A character n-gram model is one more probe, not all of them.
 The standing invariant is still "a clean audit bounds only the shortcuts you thought to
 test".
@@ -2799,6 +2827,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
 | A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — three instances in one project. Check LOOP.md's measurement guidance first. |
+| A pre-registered falsifier names its null | R49: an §A audit pre-registered "pairs-both-right ≥ 37.5%" against a coin's 25%. Review found a pair-aware probe gets about 50% at chance, so the literal falsifier fired on 7 of 15 fits that read nothing. The fix: state which null a threshold is calibrated against, and which probes it can judge. | **candidate** — one instance. Check §A step 2 ("state the number that would falsify it") first; this may refine it, not add to it. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
@@ -2834,9 +2863,12 @@ dataset or the policy is wrong, not the assertion.
   `TestProseFrameStructure` catches every frame-shape defect on all nine families
   without a dataset or a seed.
 - **A character 3-8-gram model fit on dev reads chance on held-out test** (R49 §A):
-  accuracy < 60%, pairs-both-right < 37.5%, and it must still fit dev (≥ 85%) and find
-  a planted sub-word cue (≥ 90%), or the reading counts as unmeasured, not clean.
-  `test_the_char_ngram_audit_holds`.
+  accuracy < 60%, pairs-both-right < 37.5%. Its pair-aware variant picks the right
+  side of < 65% of pairs. The probe must still fit dev (≥ 85%) and find a planted
+  mid-word suffix (≥ 90%), and word unigrams must miss that suffix (< 60%). Otherwise
+  the reading counts as unmeasured, not clean. `test_the_char_ngram_audit_holds`.
+  **Judge pair-aware probes by side choice (chance 50%), never by pairs-both-right
+  against a coin's 25%.**
 - **A clean audit bounds only the shortcuts you thought to test.** A probe scoring
   at chance means *that probe* found nothing — not that the dataset forces a
   judgment. R11: ten rounds of 50.0% were a bag of words being unable to see

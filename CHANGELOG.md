@@ -9,8 +9,9 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 - **§A audit: character n-grams.** `experiments/char_ngram_audit.py` (imports nothing
   from `tactbench`) fits a 3-8-gram averaged perceptron on dev: 51.5% accuracy and 12.1%
-  pairs-both-right on held-out `v4/test`, while a planted suffix cue reads 99.2%.
-  Verdict `holds`; gated by `test_the_char_ngram_audit_holds`.
+  pairs-both-right on held-out `v4/test`; a planted mid-word suffix reads 98.5% (word
+  unigrams 53.4%). A pair-aware variant picks the right side 53.3% of the time and
+  never beats silence. Verdict `holds`; gated by `test_the_char_ngram_audit_holds`.
 
 ### Added (Round 48)
 

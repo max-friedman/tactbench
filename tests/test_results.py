@@ -291,10 +291,11 @@ def test_the_char_ngram_audit_holds():
     """Round 49 §A audit, wired in because it held. ``experiments/char_ngram_audit.py``
     imports nothing from ``tactbench``; it fits a character 3-8-gram averaged
     perceptron on ``v4/dev`` and reads held-out ``v4/test``. Fails if test accuracy
-    reaches 60% or pairs-both-right 37.5% (the pre-registered falsifiers), and
-    reports *unmeasurable* -- also a failure here -- if the probe stops fitting dev
-    or stops finding a planted sub-word leak, since a probe that cannot find
-    anything certifies nothing (R47)."""
+    reaches 60% or pairs-both-right 37.5% (the pre-registered falsifiers), or if the
+    pair-aware variant picks the right side of 65% of pairs (added after review). It
+    reports *unmeasurable* -- also a failure here -- if the probe stops fitting dev,
+    misses a planted mid-word suffix, or that suffix becomes visible to word
+    unigrams, since a probe that cannot find anything certifies nothing (R47)."""
     import subprocess
     import sys
 
@@ -312,7 +313,12 @@ def test_the_char_ngram_audit_holds():
     import re
 
     readme = " ".join((root / "README.md").read_text().split())
-    fit, acc, pairs, control = re.findall(r"(\d+\.\d)%", out.splitlines()[0])
+    fit, acc, pairs, choice, control, words, pw_pairs, pw_choice = re.findall(
+        r"(\d+\.\d)%", out.splitlines()[0]
+    )
     assert f"fits dev ({fit}%)" in readme
-    assert f"**{acc}%** accuracy, **{pairs}%** pairs-both-right" in readme
-    assert f"at **{control}%**" in readme
+    assert f"**{acc}%** accuracy" in readme and f"Its **{pairs}%** pairs-both-right" in readme
+    assert f"right side in **{choice}%**" in readme
+    assert f"at **{control}%**" in readme and f"word unigrams read it at {words}%" in readme
+    assert f"**{pw_pairs}%** pairs-both-right" in readme
+    assert f"picks the right side **{pw_choice}%**" in readme
