@@ -652,9 +652,12 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    frontier models are not.
 2. Human-labeled subset with reported agreement — the labeling tool and κ are built
    (Round 31); the labels themselves need people.
-3. More scenario families — six is the real ceiling on dataset diversity now that
-   phrasing has stopped being the weak point.
-4. Held-out test split behind a submission script — **blocked on custody**, not
+3. More scenario families — nine is still one author's idea of a working life, and
+   family count, not phrasing, is now the ceiling on dataset diversity.
+4. A paraphrase-robustness measurement: the same moments reworded, and whether a
+   model's decisions survive. Generic string matchers already read chance, so this is
+   about realism and robustness, not about closing a shortcut (Round 41).
+5. Held-out test split behind a submission script — **blocked on custody**, not
    code (Round 33). Hiding the label file or the seed hides nothing; keeping the
    held-out *frames* private does (see limitations). It needs someone to write fresh
    held-out frames, keep them off the public repo, and host scoring.
