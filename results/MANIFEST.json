@@ -15,6 +15,10 @@
       "rubric": 877.3
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 511.9,
+        "rubric": 496.5
+      },
       "v2": {
         "naive": 1666.3,
         "rubric": 1714.4
@@ -151,6 +155,10 @@
       "rubric": 481.5
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 165.5,
+        "rubric": 241.8
+      },
       "v2": {
         "naive": 542.4,
         "rubric": 817.4
@@ -189,6 +197,10 @@
       "rubric": 760.5
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 446.0,
+        "rubric": 488.6
+      },
       "v2": {
         "naive": 1524.1,
         "rubric": 1531.8
@@ -309,6 +321,10 @@
       "rubric": 457.2
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 187.7,
+        "rubric": 253.2
+      },
       "v2": {
         "naive": 675.9,
         "rubric": 905.1
@@ -347,6 +363,10 @@
       "rubric": 452.5
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 247.6,
+        "rubric": 251.7
+      },
       "v2": {
         "naive": 835.6,
         "rubric": 876.4
@@ -385,6 +405,10 @@
       "rubric": 785.0
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 464.2,
+        "rubric": 473.9
+      },
       "v2": {
         "naive": 1599.9,
         "rubric": 1606.7
@@ -461,6 +485,10 @@
       "rubric": 595.8
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 306.6,
+        "rubric": 340.9
+      },
       "v2": {
         "naive": 1087.4,
         "rubric": 1124.4
