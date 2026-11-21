@@ -55,6 +55,9 @@ _SKIPPED_PET = re.compile(
     r"feeder: (\w+) left|(\w+)'s bowl is still full|eaten by (\w+) since", re.I
 )
 
+# "motion in the garage" / "movement in the garage"
+_MOTION_ZONE = re.compile(r"(?:motion|movement) in the (\w+)", re.I)
+
 
 #: The value that means *speak* when it occupies a frame's privileged role.
 #: ``None`` means the marker is not a constant and must be read from the moment --
@@ -71,6 +74,7 @@ _MARKERS = {
     "driving": "your route",
     "travel": None,
     "pet_care": None,
+    "home_security": None,
 }
 
 
@@ -127,6 +131,11 @@ class SkylinePolicy(Policy):
                 if not change:
                     return False
                 marker = change.group(1)
+            elif moment.family == "home_security":
+                zone = _MOTION_ZONE.search(text)
+                if not zone:
+                    return False
+                marker = zone.group(1)
             elif moment.family == "pet_care":
                 skipped = _SKIPPED_PET.search(text)
                 if not skipped:
@@ -168,6 +177,7 @@ class SkylinePolicy(Policy):
             "health": "refill_reminder",
             "childcare": "pickup_conflict",
             "finance": "payment_shortfall",
+            "home_security": "intrusion_alert",
         }
         return Decision(
             moment_id=moment.id,

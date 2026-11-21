@@ -43,7 +43,8 @@ from tactbench.runner import evaluate, pair_blind_ics
 from tactbench.schema import Decision, frame_of, pair_key, policy_view
 
 SEED, PAIRS, FAMILIES = 20260726, 32, 10
-NEW = sorted(LATER_FRAMES)
+#: v3 is the first ten families; later ones (v4 on) are tested in their own files.
+NEW = ["pet_care"]
 
 
 def _split(items, held):
@@ -51,9 +52,10 @@ def _split(items, held):
 
 
 def test_the_family_lists_are_consistent():
-    assert len(ALL_SCENARIOS) == FAMILIES and NEW == ["pet_care"]
+    assert [s.family for s in ALL_SCENARIOS[:FAMILIES]][-1:] == NEW
     assert set(FRAMES) == {s.family for s in SCENARIOS}
     assert set(ALL_FRAMES) == {s.family for s in ALL_SCENARIOS}
+    assert set(LATER_FRAMES) >= set(NEW)
 
 
 def test_the_committed_v3_splits_are_reproducible():
@@ -91,7 +93,7 @@ def test_every_v3_cell_is_order_balanced():
             if i.label.should_surface
         )
         cells = {(f, fr) for f, fr, _ in c}
-        assert {f for f, _ in cells} == set(ALL_FRAMES), split
+        assert {f for f, _ in cells} == set(FRAMES) | set(NEW), split
         assert all(c[(f, fr, True)] == c[(f, fr, False)] for f, fr in cells), split
 
 

@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 46 complete (`shipped`) — all 22 LLM runs on `v3`; on `pet_care` 18 of
+- **Round:** 47 complete (`shipped`) — dataset `v4`: v3 plus an eleventh family,
+  `home_security`. R46: all 22 LLM runs on `v3`; on `pet_care` 18 of
   22 are constant and the best reads 3 of 20 pairs. R45: dataset `v3`: v2 plus a tenth family,
   `pet_care`. R44: mypy over `src/tactbench`, clean, gated from
   pytest. R43: the two badly-worded paraphrase frames repaired
@@ -25,7 +26,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **683 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **708 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -307,9 +308,15 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
 
-8. **More families still welcome — `pet_care` added in R45 (`v3`).** Ten is still one
-   author's idea of a working life. Remaining candidates: home security. (Commute
+8. **More families still welcome — `pet_care` (R45, `v3`), `home_security` (R47,
+   `v4`).** Eleven is still one author's idea of a working life. No named candidate
+   left; a new one should come from a domain none of the eleven touches. (Commute
    disruption was dropped in R45: `driving` already asks which route is blocked.)
+
+O. **LLM runs on `v4` (new, R47).** As N was for v3: seed each run's v4 cache from v3
+   after checking the 400 old-family views are identical; 40 `home_security` dev
+   moments per run need calls (22 runs, free, local); then a v4 table and claims gated
+   like v3's.
 
 N. **LLM runs on `v3` — DONE in R46.** 22 runs, old-family decisions checked equal
    to v2's one by one, table and claims gated (`tests/test_results_v3.py`).
@@ -2612,6 +2619,41 @@ recount is 6). (2) "The same six beat silence" was gated on the count only; now 
 equality with v2, as v2's own test does. (3) The best run is asserted unique, and the
 unparsed rise is attributed (8 of 40 `pet_care` answers). The claims check now
 normalises line breaks, so rewrapping the README cannot break or fake it. 683 tests.
+
+**Loop:** nothing.
+
+---
+
+## Round 47 — an eleventh family, `home_security`, in dataset v4
+
+**Ending state: `shipped`.** Queue item 8. Before-number: ten families; v1-v3 fixed.
+
+**Check first.** `tests/test_dataset_v4.py`, written before the family and failing at
+collection until it existed: v4 reproducible and sized 440/264; every old-family moment
+identical to v3's; order-balanced cells for all eleven; unigram and bigram at 50% on
+ten seeds; positional against its null over 20 seeds; pairs differ only in the decider
+as a policy sees them; a 40-word zone pool sharing no word with a frame; both zones on
+both sides; the body names the motion zone first in 30-70%; frame lengths balanced on
+dev and held-out; the length exploit's 20-seed median in [45%, 55%]; skyline solves,
+heuristic does not; no single word reaches the pair-blind bar. `test_dataset_v3.py`
+is scoped to v3's ten families (it had asserted the scenario list *was* ten long).
+`clause_length_probe.pet_care_exploit` generalised to `length_exploit(items, family)`.
+
+**Shipped.** `HomeSecurityScenario`: a camera sees motion in one zone while the user is
+at work; the decider (a calendar entry) says where a visit is booked and where nobody
+is expected. Speak iff the motion is where nobody is expected. Skyline reads the
+motion zone from the body. 708 tests; audit: `home_security` 50.0% unigram and bigram,
+positional 57.5% against a null of 61.3%.
+
+**Mutations.** Body always naming the motion zone first: caught by the body-order test
+only. Two frames padded so the privileged clause is longer: caught by the length-balance
+test and the positional-null test, **not** by the exploit median — a one-frame lean
+moves it too little; the balance test is the guard. Skyline reading "the garage" for
+"garage": caught by solvability. (Generator mutations need a rebuild of `data/v4` to
+reach most tests, which read committed data; the reproducibility test catches the
+un-rebuilt case.)
+
+**Not done.** No LLM runs on v4 (queued as O).
 
 **Loop:** nothing.
 

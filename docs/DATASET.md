@@ -261,6 +261,31 @@ templates already exploits fully (Round 33); changing those families would chang
 and v2, so they are left as published and the length-balance test applies to families
 added from v3 on.
 
+### Dataset v4 — an eleventh family, `home_security` (Round 47)
+
+`data/v4` is `tactbench build --version v4 --pairs 32 --families 11`: v3 plus one new
+family (440 dev / 264 test). The user is at work; a camera reports motion in one part
+of the home while another is quiet. The decider, a calendar entry, says where someone
+is expected today — *"Vacant until Monday is the shed. Hosting a carpenter is the
+garage."* Speak when the motion is where nobody is expected; stay quiet when it is
+where a visit was booked. Both zones appear in the shared body and on both sides, and
+swap roles. Zones are drawn from a pool of 40 single words, none of which appears in a
+frame.
+
+Built the way v3 was, and held to everything v3's new family is
+(`tests/test_dataset_v4.py`): every moment of the first ten families equals its v3
+counterpart; unigram and bigram at 50% on ten seeds; the positional probe against its
+null over 20 seeds; order-balanced cells; both zones on both sides; the body names the
+motion zone first in about half of moments; frame character lengths balance on dev
+and on held-out frames from the first draft; the length exploit's median over 20 seeds
+within 45–55%; the skyline solves it and the heuristic does not.
+
+Three planted faults were each caught: the body always naming the motion zone first
+(by the body-order test); two frames padded so the privileged clause runs longer (by
+the length-balance test and the positional null — **not** by the length exploit's
+median, which a one-frame lean moves too little to fail); a skyline reading the wrong
+filler (by the solvability test).
+
 ### Token permutations and the bigram probe
 
 All nine are token permutations: both sides contain the same words, arranged

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import re
 
-from tactbench.dataset.generate import ALL_FRAMES, HELD_OUT_FRAMES, PETS, WHO
+from tactbench.dataset.generate import ALL_FRAMES, HELD_OUT_FRAMES, PETS, WHO, ZONES
 from tactbench.dataset.loader import load
 from tactbench.schema import Item
 
@@ -44,11 +44,16 @@ def transfer(family: str) -> tuple[float, float]:
     return acc(dev), acc(held)
 
 
-def pet_care_exploit(items: list[Item]) -> float:
-    names = "|".join(PETS)
+#: The drawn names each later family fills its frames with.
+POOLS = {"pet_care": PETS, "home_security": ZONES}
+
+
+def length_exploit(items: list[Item], family: str) -> float:
+    """The reviewer's rule, for any family whose fillers come from a name pool."""
+    names = "|".join(POOLS[family])
     score = 0.0
-    pets = [i for i in items if i.moment.family == "pet_care"]
-    for item in pets:
+    chosen = [i for i in items if i.moment.family == family]
+    for item in chosen:
         body, decider = item.moment.signals[0].content, item.moment.signals[-1].content
         marker = re.search(rf"\b({names})\b", body).group(1)
         clauses = [c.rstrip(".") for c in decider.split(". ")]
@@ -58,7 +63,11 @@ def pet_care_exploit(items: list[Item]) -> float:
         lo = len(other) - len(other.split()[-1])
         guess = 0.5 if lm == lo else float((lm > lo) == item.label.should_surface)
         score += guess
-    return score / len(pets)
+    return score / len(chosen)
+
+
+def pet_care_exploit(items: list[Item]) -> float:
+    return length_exploit(items, "pet_care")
 
 
 def main() -> None:
@@ -70,6 +79,8 @@ def main() -> None:
         print(f"{family:<13} {counts:>19} {dev:>6.2f} {held:>9.2f}")
     for split in ("dev", "test"):
         print(f"pet_care exploit on v3/{split}: {pet_care_exploit(load('v3', split)):.1%}")
+        hs = length_exploit(load("v4", split), "home_security")
+        print(f"home_security exploit on v4/{split}: {hs:.1%}")
 
 
 if __name__ == "__main__":
