@@ -487,8 +487,8 @@ def audit(
     # Report the WORST probe, not the friendliest one. Printing only the unigram
     # verdict under a table full of bigram leaks is how a benchmark keeps looking
     # fine while it has stopped measuring what it claims to.
-    worst = max((report, ngram_report, pos_report), key=lambda r: r.exploitable_accuracy)
-    console.print(f"\n{worst.verdict()}")
+    worst_probe = max((report, ngram_report, pos_report), key=lambda r: r.exploitable_accuracy)
+    console.print(f"\n{worst_probe.verdict()}")
     if ngram_report.is_leaking(PER_FAMILY_THRESHOLD):
         console.print(
             f"\n[yellow]The unigram probe reports {report.accuracy:.1%} because it cannot "

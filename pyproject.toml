@@ -29,7 +29,11 @@ llm = ["anthropic>=0.40", "google-genai>=0.3", "openai>=1.30"]
 # clean checkout -- while passing locally, where the extra had been pip-installed
 # once by hand. Exactly the drift CI exists to catch.
 [dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.5"]
+dev = [
+    "mypy>=2.4.1",
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
 
 [project.scripts]
 tactbench = "tactbench.cli:app"
@@ -50,3 +54,13 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/tactbench"]
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+# Optional provider SDKs, imported lazily and not installed by default.
+module = ["anthropic", "openai", "google", "google.*"]
+ignore_missing_imports = true

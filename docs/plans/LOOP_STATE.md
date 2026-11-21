@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 43 complete (`shipped`) — the two badly-worded paraphrase frames repaired
+- **Round:** 44 complete (`shipped`) — mypy over `src/tactbench`, clean, gated from
+  pytest. R43: the two badly-worded paraphrase frames repaired
   and re-run. R42: paraphrase robustness measured on a reworded
   v2 slice: decisions are stable, but because no model reads the decider. R41: priority 3 restated; CLAUDE.md priorities
   carry status. R40 (#36): the audit prints the positional probe's chance level. R39 (#35): all 22 LLM runs on `v2`; the conclusions replicate. R38 (#34): the LLM cache and runner are per dataset version. R37 (#33): dataset `v2` at 32 pairs. R35 (#31, `rejected`): an entity
@@ -22,7 +23,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **568 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **569 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -308,8 +309,8 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    author's idea of a working life. Candidates: home security, commute
    disruption, pet care.
 
-9. **Type checking** — no mypy/pyright configured; worth adding to CI once the
-   schema surface settles.
+9. **Type checking — DONE in R44.** mypy, `check_untyped_defs`, gated from pytest
+   (`tests/test_types.py`) because workflows are owner-only.
 
 11. **Human label validation — tool DONE in R31; labels need people (NEEDS-MAX 2).** A labelling CLI is buildable now
    even if the raters are not.
@@ -2495,6 +2496,29 @@ clauses, so none was added; say so rather than imply the gate covers it.
 
 **Review:** none run — a two-frame data repair whose only published effect is one
 gated figure; the tests recompute it.
+
+**Loop:** nothing.
+
+---
+
+## Round 44 — type checking
+
+**Ending state: `shipped`.** Queue item 9. Before-number: no type checker configured;
+`mypy src/tactbench` reported **8 errors in 2 files**.
+
+**Check first.** `tests/test_types.py` runs mypy (config in `pyproject.toml`,
+`check_untyped_defs = true`) and fails on any error. It runs inside the existing test
+job on py3.11-3.13 — a separate CI step would touch `.github/workflows/`, which is
+owner-only. A planted annotation error makes it fail: `fails`.
+
+**Shipped.** The 8 errors: 6 from the LLM policy's lazily-imported SDK client being
+inferred as `None` (now `Any`) plus missing stubs for the optional SDKs (exempted by
+module name, nothing else); 2 a real reuse in `cli.audit`, where `worst` held a float
+in the per-family loop and then a `LeakageReport` (renamed `worst_probe`). Neither
+changed behaviour. After: 0 errors, 569 tests. `mypy` is a dev dependency.
+
+**Not done.** `tests/` is not type-checked; `--strict` is not on (it would mostly
+demand annotations on test helpers and rich/typer callbacks). Neither is queued.
 
 **Loop:** nothing.
 
