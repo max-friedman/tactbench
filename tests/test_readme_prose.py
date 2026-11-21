@@ -75,3 +75,53 @@ def test_no_stray_figure_remains_in_the_cost_list():
     block = README.split("**ICS (Interruption Cost Score)**")[1].split("Reported alongside")[0]
     figures = sorted({float(x) for x in re.findall(r"\b\d+\.\d\b", block)})
     assert figures == [0.5, 1.0, 2.0, 3.0, 5.0, 10.0]
+
+
+def test_driving_positional_reading_v1_and_v2():
+    """R37's fix, as the dataset section states it: driving's fixed 63.3% on v1
+    becomes exactly 50.0% on v2."""
+    from tactbench.audit import positional_leakage
+
+    def reading(version):
+        items = [i for i in load(version, "dev") if i.moment.family == "driving"]
+        return f"{positional_leakage(items).accuracy * 100:.1f}%"
+
+    v1, v2 = reading("v1"), reading("v2")
+    assert (v1, v2) == ("63.3%", "50.0%")
+    assert f"`driving`'s fixed {v1} becomes exactly {v2}" in README
+
+
+def test_the_v2_run_that_is_almost_constant():
+    from tactbench.results import load_results
+
+    run = load_results("v2")["llm:rubric:qwen2.5-0.5b"]
+    spoke = sum(d.surface for d in run)
+    assert (spoke, len(run)) == (359, 360)
+    assert f"(Qwen2.5-0.5B with the rubric speaks on {spoke} of {len(run)})" in README
+
+
+def test_phi_35_decides_identically_under_both_prompts_on_v1():
+    from tactbench.results import load_results
+
+    runs = load_results("v1")
+    naive = {d.moment_id: d.surface for d in runs["llm:naive:phi-3.5-mini"]}
+    rubric = {d.moment_id: d.surface for d in runs["llm:rubric:phi-3.5-mini"]}
+    same = sum(naive[k] == rubric[k] for k in naive)
+    assert same == len(naive) == 252
+    assert f"Phi-3.5 makes the same speak-or-stay-quiet decision on all {same} moments" in README
+
+
+def test_the_public_parser_solves_held_out_frames_of_an_unseen_seed():
+    from tactbench.dataset.generate import HELD_OUT_FRAMES, generate
+    from tactbench.policies.skyline import SkylinePolicy
+    from tactbench.schema import frame_of
+
+    items = [
+        i for i in generate(n_pairs_per_scenario=20, seed=4242)
+        if frame_of(i.moment) in HELD_OUT_FRAMES
+    ]  # fmt: skip
+    card = evaluate(SkylinePolicy(), items)
+    assert items and card.ics == 0.0
+    assert (
+        "(the skyline) scores ICS 0.0 on the held-out frames of splits built from seeds" in README
+    )
