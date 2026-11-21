@@ -44,6 +44,10 @@
       "v2": {
         "naive": null,
         "rubric": null
+      },
+      "v2para": {
+        "naive": 421.6,
+        "rubric": 381.2
       }
     }
   },
@@ -66,6 +70,10 @@
       "v2": {
         "naive": 2995.9,
         "rubric": 2948.7
+      },
+      "v2para": {
+        "naive": 612.4,
+        "rubric": 580.4
       }
     }
   },
@@ -240,6 +248,10 @@
       "v2": {
         "naive": 2806.9,
         "rubric": 2807.2
+      },
+      "v2para": {
+        "naive": 504.6,
+        "rubric": 511.8
       }
     }
   },
