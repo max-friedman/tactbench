@@ -15,7 +15,8 @@ findings** below.
 
 - **Loop audit due:** R62 (fifth round after R57's audit). A round at or past it runs
   the audit or writes `deferred: <reason>` on its Loop line (proposed upstream, #60).
-- **Round:** 60 complete — the viewer escapes every text field (planted markup ran
+- **Round:** 61 complete — the heuristic invariant is tested on every committed split
+  (it held on all 11). R60: the viewer escapes every text field (planted markup ran
   in 5 of 7 before) and embeds its data so no field can end the script block. R59: the viewer is tested on every version and names the one
   it shows. R58: coverage map refreshed (stale since R34); viewer gap queued (R).
   R57: loop audit (due); the null finding filed upstream (#61).
@@ -43,7 +44,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1133 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1147 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -212,7 +213,7 @@ last round whose commit changed the file.
 |---|---|---|
 | `dataset/generate.py` | R52 | 12 families (`v5`); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v5 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
 | `metrics.py` | R8 | ICS, base-rate weighting, hard violations raw; ICS constants still unvalidated by humans (NEEDS-MAX 2) |
-| `policies/builtin.py` | R1 | heuristic near chance; does not solve v1 (`test_metrics.py`) or each family added in v3-v5 (`test_the_heuristic_does_not_solve_the_new_family`); **v2 has no direct heuristic test** (its families are v1's, rebuilt at 32 pairs) |
+| `policies/builtin.py` | R1 | heuristic near chance and does not solve, on every committed split (R61, `tests/test_heuristic_committed.py`): precision exactly 0.500 on all 11, ICS > 0. Before R61 only a fresh 10-pair v1 build and each new family were tested |
 | `policies/skyline.py` | R52 | resolver built from the frame templates; markers read from the body for five families (`_MARKERS[...] is None`); solves v1-v5 |
 | `audit.py` | R40 | unigram + bigram gated, positional reported with a label-swap null column (R40). Gated probes seed-stable to 0.0% (R22); positional is not |
 | char n-gram audit | R49 | `experiments/char_ngram_audit.py`, gated on v4 (`test_the_char_ngram_audit_holds`); holds on v5 but not gated there |
@@ -3279,6 +3280,30 @@ violate the property found 12 misses. Noted for #56 at the next filing, not file
 
 ---
 
+## Round 61 — the heuristic invariant was never checked on a committed split
+
+**Ending state: `shipped`.** Gap named in R58's coverage map ("v2 has no direct heuristic
+test"), wider than stated. **Before:** the standing invariant "near chance (0.5 ± 0.15
+precision) and never solves the set" was tested in `test_metrics.py` on
+`generate(n_pairs_per_scenario=10)` -- a fresh nine-family build, not `data/v1` -- and
+v3-v5 each tested only their new family. No committed split was checked whole.
+Measured before writing the test: precision exactly **0.500** on all 11 committed
+splits (v1-v5 dev/test, v2para dev), ICS above zero on all (lowest 146.0, v2para dev).
+**After:** `tests/test_heuristic_committed.py` asserts both on every `*.jsonl` under
+`data/`, and the skyline -- which solves every split -- is rejected by the same check.
+
+Nothing failed; the round adds coverage, not a fix. Precision is exactly 0.5 everywhere
+because the heuristic answers both sides of every pair alike: **0 of 1,560** committed
+pairs get different answers (measured, all 11 splits). It reads only what the two sides
+share, which is the property the pairing exists to force.
+
+**Review:** none beyond the gate; a test-only round whose check is mutation-tested by
+the skyline.
+
+**Loop:** nothing new.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -3365,7 +3390,9 @@ dataset or the policy is wrong, not the assertion.
   might serialize a moment, not one reader's view of it.
 - Skyline beats silence with **zero** hard violations (task stays solvable).
 - Skyline never disagrees with a gold label (labels stay self-consistent).
-- The heuristic stays near chance (**0.5 ± 0.15** precision) and never solves the set.
+- The heuristic stays near chance (**0.5 ± 0.15** precision) and never solves the set —
+  on every committed split since R61 (`tests/test_heuristic_committed.py`; it reads
+  exactly 0.500 on all 11), not only a fresh v1 build.
 - Both sides of every pair carry an identical `UserState`.
 - Heuristic lexicons stay single words, ≤ 20 entries — no phrase-lifting.
 - Silence and skyline stay invariant to `base_rate` (neither can false-positive).
