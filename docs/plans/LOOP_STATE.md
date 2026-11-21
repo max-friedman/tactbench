@@ -17,7 +17,8 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 63 complete — the character n-gram audit is gated on v5 too (it holds).
+- **Round:** 64 complete — three stale README limitations corrected and pinned
+  (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
   R62: invariants checked on every committed split; the skyline
   could not solve `v2para` and now does; loop audit. R61: the heuristic invariant is tested on every committed split
   (it held on all 11). R60: the viewer escapes every text field (planted markup ran
@@ -48,7 +49,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1182 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1185 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -3380,6 +3381,38 @@ suite's runtime.
 now run on a second version.
 
 **Loop:** nothing new.
+
+---
+
+## Round 64 — the limitations section had gone stale in three places
+
+**Ending state: `shipped`.** Not a queue item. CLAUDE.md says the README's credibility
+rests on its limitations, so this round checked each limitation against today's data.
+**Before:** three were false.
+- "Cost is concentrated in `quiet_hours` — **87%** of the `always`-versus-silence gap
+  from 11% of the moments." Recomputed from summed per-moment costs: **81%** on `v1`
+  and `v2`, 70.8% on `v3`, 65.4% on `v4`, **68.0%** on `v5`, from 8.3% of the moments
+  there. 87% is the figure recorded in Round 9, for a dataset no longer committed. It
+  had been quoted, unpinned, in five places for 55 rounds.
+- "Fourteen open-weight models … (three on v4 only)". After R54 all fourteen ran on
+  `v4` and `v5`, and eleven on `v1`-`v3`.
+- "All **eleven** families". `v5` has twelve.
+- Also "This is v1", which reads as the dataset version.
+
+**After:** each one corrected. The two historical 87% mentions (the R9 story in README,
+METRICS.md and DATASET.md) are now marked as R9's recorded figure, with today's beside
+them. `tests/test_readme_limitations.py` recomputes the concentration on `v1` and `v5`,
+counts the v5 runs and models, and counts the families, against the exact phrases. It
+was red on all three before the edit.
+
+**Not re-measured:** the 87% itself. Round 9's dataset is not committed, so it stays a
+recorded figure, labelled as one.
+
+**Review:** none beyond the gate. The fixes are figures recomputed by the new test.
+
+**Loop:** an unpinned figure in prose drifts with the data. This one was unpinned for
+55 rounds because it read as history while sitting in a present-tense list. R17-R18 gated
+the results prose; the limitations section was never included. Local.
 
 ---
 
