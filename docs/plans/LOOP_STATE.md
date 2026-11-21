@@ -17,7 +17,8 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 62 complete — invariants checked on every committed split; the skyline
+- **Round:** 63 complete — the character n-gram audit is gated on v5 too (it holds).
+  R62: invariants checked on every committed split; the skyline
   could not solve `v2para` and now does; loop audit. R61: the heuristic invariant is tested on every committed split
   (it held on all 11). R60: the viewer escapes every text field (planted markup ran
   in 5 of 7 before) and embeds its data so no field can end the script block. R59: the viewer is tested on every version and names the one
@@ -47,7 +48,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1181 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1182 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -219,7 +220,7 @@ last round whose commit changed the file.
 | `policies/builtin.py` | R1 | heuristic near chance and does not solve, on every committed split (R61, `tests/test_heuristic_committed.py`): precision exactly 0.500 on all 11, ICS > 0. Before R61 only a fresh 10-pair v1 build and each new family were tested |
 | `policies/skyline.py` | R62 | resolver built from the frame templates **and the paraphrase frames** (R62); markers read from the body for five families; zero errors and zero hard violations on all 11 committed splits (`tests/test_invariants_committed.py`) |
 | `audit.py` | R40 | unigram + bigram gated, positional reported with a label-swap null column (R40). Gated probes seed-stable to 0.0% (R22); positional is not |
-| char n-gram audit | R49 | `experiments/char_ngram_audit.py`, gated on v4 (`test_the_char_ngram_audit_holds`); holds on v5 but not gated there |
+| char n-gram audit | R63 | `experiments/char_ngram_audit.py`, gated on v4 and v5 (`test_the_char_ngram_audit_holds`, `..._on_v5`); v5: test 51.0%, pair-aware side choice 57.1% |
 | clause order, random markers | R55 | `tests/test_marker_order.py`: all five body-read-marker families, every version; v1 dev strict xfail (R36) |
 | `README.md` results | R54 | built-in table vs `eval` (R17); one LLM table per version v1-v5 plus `v2para`, each row and each claims block gated against a fresh re-score (`tests/test_results*.py`) |
 | `cli.py` split | R10 | buckets on `pair_key`; `TestSplitIntegrity` |
@@ -3359,6 +3360,29 @@ their wording, twice.
 
 ---
 
+## Round 63 — the character n-gram audit, gated on v5
+
+**Ending state: `shipped`.** Gap in R58's coverage map. **Before:** R49's §A audit was
+gated on `v4` only. DATASET.md said it held on v5, from a run in R52, but nothing re-ran
+it. **Run first, before the test was written:** v5 fits dev at 90.2%. Held-out test
+reads 51.0% accuracy, with pairs-both-right 12.5% and side choice 54.5% of 33 split
+pairs. The planted control is found at 98.6%, and word unigrams read it at 56.9%. The
+pair-aware variant gets pairs-both-right 36.1% and side choice 57.1% of 91. That is
+`holds`, under the same falsifiers as v4: accuracy < 60%, pairs-both-right < 37.5%,
+pair-aware side choice < 65%, and the control found (≥ 90%) while unigrams miss it
+(< 60%).
+
+**After:** `test_the_char_ngram_audit_holds_on_v5` runs it and pins DATASET.md's two
+quoted figures. The script's default versions now include v5. It costs about 22 s of the
+suite's runtime.
+
+**Review:** none beyond the gate. The same probe and falsifiers as R49's reviewed audit,
+now run on a second version.
+
+**Loop:** nothing new.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -3417,7 +3441,8 @@ dataset or the policy is wrong, not the assertion.
   5 of 9 at its worst over eight seeds. This limits the *bound*, not the gate —
   `TestProseFrameStructure` catches every frame-shape defect on all nine families
   without a dataset or a seed.
-- **A character 3-8-gram model fit on dev reads chance on held-out test** (R49 §A):
+- **A character 3-8-gram model fit on dev reads chance on held-out test** (R49 §A; on v4
+  and, since R63, v5):
   accuracy < 60%, pairs-both-right < 37.5%. Its pair-aware variant picks the right
   side of < 65% of pairs. The probe must still fit dev (≥ 85%) and find a planted
   mid-word suffix (≥ 90%), and word unigrams must miss that suffix (< 60%). Otherwise

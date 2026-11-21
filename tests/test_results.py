@@ -344,3 +344,22 @@ def test_the_char_ngram_audit_holds():
     assert f"at **{control}%**" in readme and f"word unigrams read it at {words}%" in readme
     assert f"**{pw_pairs}%** pairs-both-right" in readme
     assert f"picks the right side **{pw_choice}%**" in readme
+
+
+def test_the_char_ngram_audit_holds_on_v5():
+    """R63: the same audit, same falsifiers, on the twelve-family set. Held since R52
+    (DATASET.md says so) but gated only on v4 until now."""
+    import re
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    probe = str(root / "experiments" / "char_ngram_audit.py")
+    out = subprocess.run(
+        [sys.executable, "-I", probe, "v5", "--verdict"],
+        capture_output=True, text=True, check=True, cwd=root,
+    ).stdout  # fmt: skip
+    assert out.strip().endswith("verdict: holds"), out
+    fit, acc = re.findall(r"(\d+\.\d)%", out.splitlines()[0])[:2]
+    doc = " ".join((root / "docs" / "DATASET.md").read_text().split())
+    assert f"on v5 it fits dev at {fit}% and reads {acc}% on held-out test" in doc
