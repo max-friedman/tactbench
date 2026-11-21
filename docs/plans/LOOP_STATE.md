@@ -15,8 +15,8 @@ findings** below.
 
 - **Loop audit due:** R62 (fifth round after R57's audit). A round at or past it runs
   the audit or writes `deferred: <reason>` on its Loop line (proposed upstream, #60).
-- **Round:** 60 complete — the viewer escapes every text field; planted markup ran
-  in 5 of 7 before. R59: the viewer is tested on every version and names the one
+- **Round:** 60 complete — the viewer escapes every text field (planted markup ran
+  in 5 of 7 before) and embeds its data so no field can end the script block. R59: the viewer is tested on every version and names the one
   it shows. R58: coverage map refreshed (stale since R34); viewer gap queued (R).
   R57: loop audit (due); the null finding filed upstream (#61).
   R56: two method findings sent upstream: the audit-cadence
@@ -43,7 +43,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1119 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1133 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -225,7 +225,7 @@ last round whose commit changed the file.
 | `results/` + `results.py` | R42 | committed decisions + MANIFEST per version; old-family decisions checked equal across versions |
 | `experiments/run_local_llms.py` | R53 | reproduces every LLM row from weights; caches seed from the previous version |
 | `labeling.py` | R31 | CLI and Fleiss' κ, tested on synthetic raters; **no real labels** (NEEDS-MAX 2) |
-| `web/server.py` | R59 | pair-blind column; header names the dataset version, built in the payload and asserted exactly in the served page; `tests/test_web.py` on every dataset on disk (board == `eval`); v5 rendered in Chromium, no JS errors. Every text field escaped before `innerHTML` (R60), checked statically in the suite and by `experiments/viewer_injection_probe.py` in a browser |
+| `web/server.py` | R59 | pair-blind column; header names the dataset version, built in the payload and asserted exactly in the served page; `tests/test_web.py` on every dataset on disk (board == `eval`); v5 rendered in Chromium, no JS errors. Every text field escaped before `innerHTML`, and the payload embedded with `<>&` as JSON escapes (R60); the static check is an allowlist with 19 mutation tests; `experiments/viewer_injection_probe.py` checks in a browser |
 | `.github/workflows/` | owner-only | CI on py3.11-3.13 + reproducibility + audit; not editable by a round |
 
 ---
@@ -3231,16 +3231,41 @@ labels or outside policy names reach the viewer.
 `experiments/viewer_injection_probe.py` plants an `<img onerror>` in each of the seven
 text fields the viewer renders and opens the page in Chromium. With every moment shown,
 **5 of 7 ran**: policy name, moment id, state, slice, signal source. Only signal content
-and rationale went through `esc`, which also left quotes alone. **After:** all seven
-escaped, quotes included; the probe reports none run. Harmless while every field is
-generated here, but the next things to reach the viewer are outside policy names and
-human labels (priorities 1-2).
+and rationale went through `esc`, which also left quotes alone. The probe plants by
+editing the built payload. Through a real dataset file only `id` and `slices` of those
+five can carry text: `state` and `source` are enums and policy names come from the code
+registry. So the exposure was two fields, and five were unescaped. **After:** all seven
+escaped, quotes included, and the probe reports none run. This was harmless while every
+field is generated here, but outside policy names and human labels (priorities 1-2) are
+the next things to reach the viewer.
 
-**Checks first.** CI has no browser, so the gated check is static:
-`test_every_text_field_is_escaped_before_innerHTML` finds every `x.<text field>` in the
-page script that is neither inside `esc(...)` nor a DOM property that never parses HTML.
-Run on the pre-R60 page, it flags exactly the five the browser showed running. A
-mutation test per field un-escapes one and requires the check to fail.
+**Checks first.** CI has no browser, so the gated check is static. Run on the pre-R60
+page, it flags exactly the five the browser showed running.
+
+**Review: the first static check fit today's code, not the property.** It exempted any
+line that contained a safe use, and it compared only the four characters before a
+match with `esc(`. Review got **12 real injections** past it: bracket access, index
+chains, destructuring, `family`/`slices`/`header` unlisted, a look-alike `noesc`, a
+weakened `esc`, `insertAdjacentHTML`, and others. The check is now an allowlist:
+- Outside seven verbatim safe lines, every read of any of the payload's 11 text fields
+  must be the whole argument of `esc(`, whether by dot, bracket, index chain or
+  destructuring.
+- The only HTML sinks allowed are the two known `innerHTML` writes.
+- `esc` must equal the reviewed definition exactly.
+
+The review's 12, plus the original 5, plus two more (escaping half an expression, a
+`return` inside `esc`), are each a mutation test that must fail. **Limit:** this is still
+a check on the script's text. A raw use smuggled through a variable not named as a
+field, such as an object passed whole into a string, is not caught. Only a JS engine,
+which CI lacks, would close that.
+
+**Review also found an older hole the escaping could not reach.** The payload was
+embedded with only `</` rewritten, so a field containing `<!--<script>` changed how
+Chromium parsed the page, and the page's own `</script>` stopped closing the script
+block. The board went from 5 policy rows to **0**, with no error. `embed()` now writes
+every `<`, `>` and `&` as a JSON escape. A test confirms the value survives
+`json.loads` and that the page has exactly one script block. In Chromium, the same field
+now leaves the board intact.
 
 **Measurement note.** The probe's first run reported only `policy`. The page's default
 filter shows failures only, so the planted moment was never rendered. A probe must
@@ -3248,7 +3273,9 @@ show every row it plants in before an empty result means anything.
 
 **Review:** subagent, not §D-independent (owner instruction).
 
-**Loop:** nothing new.
+**Loop:** another #56 instance. The mutation tests were the fix undone (`esc(x)` → `x`), so
+they showed only that the check caught its own fix. Mutating toward *other* ways to
+violate the property found 12 misses. Noted for #56 at the next filing, not filed now.
 
 ---
 

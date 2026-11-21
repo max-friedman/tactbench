@@ -113,48 +113,148 @@ def test_the_page_shows_the_pair_blind_column(payload):
     assert "vs pair-blind" in PAGE
 
 
-#: The payload's text fields (everything else on the page is a number or a boolean).
-TEXT_FIELDS = ("policy", "id", "state", "source", "content", "rationale")
-#: The only places a text field may appear outside ``esc(...)``: DOM properties that
-#: never parse HTML, and lookups.
-SAFE_USES = (
-    "o.value = r.policy",
-    "o.textContent = r.policy",
-    "DATA.board[0].policy",
-)
+#: Every string-valued key in the payload. Numbers and booleans are validated by the
+#: schema (``local_hour: int`` rejects markup) and cannot carry a tag.
+TEXT_FIELDS = (
+    "policy", "id", "state", "source", "content", "rationale",
+    "family", "slices", "header", "version", "split",
+)  # fmt: skip
+#: The only script lines that may read a text field outside ``esc(...)``, verbatim:
+#: each writes through a property that never parses HTML, or only compares.
+SAFE_LINES = {
+    "document.getElementById('meta').textContent = DATA.header;",
+    "o.value = r.policy; o.textContent = r.policy;",
+    "policySel.value = DATA.board[0].policy;",
+    "DATA.moments.forEach(function (m) { m.slices.forEach(function (s) { slices.add(s); }); });",
+    "o.value = s; o.textContent = s;",
+    "if (slice && m.slices.indexOf(slice) === -1) return false;",
+    "m.slices.map(function (s) { return '<span class=\"badge\">' + esc(s) + '</span>'; })"
+    ".join('') +",
+}
+#: The two HTML sinks the page uses, by the line that opens each; no other is allowed.
+SINK_LINES = {
+    "board.innerHTML =",
+    "document.getElementById('list').innerHTML = rows.map(function (m) {",
+}
+ESC = """function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}"""
+_FIELD = "|".join(TEXT_FIELDS)
+_DOT = re.compile(r"\.\s*(" + _FIELD + r")\b")
+_BRACKET = re.compile(r"\[\s*['\"`](" + _FIELD + r")['\"`]\s*\]")
+_DESTRUCTURE = re.compile(r"\b(?:const|let|var)\s*\{[^}]*\b(" + _FIELD + r")\b[^}]*\}")
+
+
+def _expression_start(line: str, end: int) -> int:
+    """Walk back from a field access over the expression it belongs to: names, dots,
+    and balanced ``[...]`` indexes, e.g. ``m.signals[0].content``."""
+    i = end
+    while i > 0:
+        c = line[i - 1]
+        if c.isalnum() or c in "_$.":
+            i -= 1
+        elif c == "]":
+            depth = 0
+            while i > 0:
+                i -= 1
+                depth += {"]": 1, "[": -1}.get(line[i], 0)
+                if depth == 0:
+                    break
+        else:
+            break
+    return i
 
 
 def _unescaped_text_uses(page: str) -> list[str]:
-    """Every ``x.<text field>`` in the page's script that is neither wrapped in
-    ``esc(...)`` nor a known safe use. Slices are iterated as bare ``s`` in a map, so
-    the badge's concatenation is checked separately."""
+    """Every way the page's script could put a text field into HTML unescaped.
+
+    An allowlist, not a pattern match on today's code: outside ``SAFE_LINES``, every
+    read of a text field -- by dot, bracket, index chain, or destructuring -- must be
+    the whole argument of ``esc(``; the only HTML sinks are the two known
+    ``innerHTML`` writes; and ``esc`` must be exactly the function above. R60's first
+    check exempted any line containing a safe use and read four characters before
+    the match; review got twelve real injections past it."""
     script = page.split("<script>")[1].split("</script>")[0]
     bad = []
-    for match in re.finditer(r"\b(\w+)\.(" + "|".join(TEXT_FIELDS) + r")\b", script):
-        start = match.start()
-        if script[start - 4 : start] == "esc(":
+    if script.count(ESC) != 1:
+        bad.append("esc() is not the reviewed definition")
+    script = script.replace(ESC, "")
+    for raw in script.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("//"):
             continue
-        line = script[script.rfind("\n", 0, start) + 1 : script.find("\n", start)]
-        if any(use in line for use in SAFE_USES) and match.group(0) in "".join(SAFE_USES):
+        for sink in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write"):
+            if sink in line and line not in SINK_LINES:
+                bad.append(f"sink: {line}")
+        if line in SAFE_LINES:
             continue
-        bad.append(line.strip())
-    if "'<span class=\"badge\">' + esc(s) +" not in script:
-        bad.append("slice badge")
+        if _BRACKET.search(line) or _DESTRUCTURE.search(line):
+            bad.append(f"indirect: {line}")
+        for match in _DOT.finditer(line):
+            start = _expression_start(line, match.start())
+            before = line[:start]
+            ok = before.endswith("esc(") and not (
+                len(before) > 4 and (before[-5].isalnum() or before[-5] in "_$")
+            )
+            if not ok or not line[match.end() :].startswith(")"):
+                bad.append(f"raw: {line}")
     return bad
 
 
 def test_every_text_field_is_escaped_before_innerHTML():
-    """R60: five text fields (policy, id, state, slice, source) went into innerHTML
-    raw, and planted markup in any of them ran in Chromium. Browser-free: the script
-    may use a text field only through ``esc`` or a property that never parses HTML."""
+    """R60: five text fields went into innerHTML raw. Browser-free, and an
+    allowlist: see ``_unescaped_text_uses``."""
     assert _unescaped_text_uses(PAGE) == []
-    assert '"' in PAGE.split("function esc")[1].split("}")[0]  # quotes escaped too
 
 
-@pytest.mark.parametrize("field", ["r.policy", "m.id", "m.state", "s.source", "m.rationale"])
-def test_the_escape_check_catches_a_raw_field(field):
-    assert _unescaped_text_uses(PAGE.replace(f"esc({field})", field, 1)), field
+#: Each of these reintroduces an injection (or weakens ``esc``) and must be caught.
+#: The first five are R60's own un-escapings; the rest are the twelve that got past
+#: R60's first check in review.
+MUTATIONS = {
+    "raw policy": ("esc(r.policy)", "r.policy"),
+    "raw id": ("esc(m.id)", "m.id"),
+    "raw state": ("esc(m.state)", "m.state"),
+    "raw source": ("esc(s.source)", "s.source"),
+    "raw rationale": ("esc(m.rationale)", "m.rationale"),
+    "raw slice badge": ("esc(s) + '</span>'", "s + '</span>'"),
+    "innerHTML on a safe line": (
+        "o.value = r.policy; o.textContent = r.policy;",
+        "o.value = r.policy; o.textContent = r.policy; o.innerHTML = r.policy;",
+    ),
+    "bracket access": ("esc(m.id)", "m['id']"),
+    "indexed chain": ("esc(m.rationale)", "m.signals[0].content"),
+    "destructuring": ("const d = m.decisions[p];", "const d = m.decisions[p]; const {id} = m;"),
+    "raw slices join": ("esc(m.rationale)", "m.slices.join(' ')"),
+    "raw family": ("esc(m.rationale)", "m.family"),
+    "raw slice in the select": ("o.value = s; o.textContent = s;", "o.value = s; o.innerHTML = s;"),
+    "header as innerHTML": (".textContent = DATA.header;", ".innerHTML = DATA.header;"),
+    "look-alike escape": ("esc(m.id)", "noesc(m.id)"),
+    "esc keeps quotes": ("'\"': '&quot;', ", ""),
+    "esc returns early": ("function esc(s) {\n", 'function esc(s) {\n  return s; // "\n'),
+    "insertAdjacentHTML": (
+        "function fmt(x)",
+        "board.insertAdjacentHTML('beforeend', DATA.moments[0].rationale);\nfunction fmt(x)",
+    ),
+    "escape only part": ("esc(m.id)", "esc(m.id).trim() + m.id"),
+}
 
 
-def test_the_escape_check_catches_a_raw_slice():
-    assert _unescaped_text_uses(PAGE.replace("esc(s) +", "s +", 1))
+@pytest.mark.parametrize("name", sorted(MUTATIONS))
+def test_the_escape_check_catches(name):
+    old, new = MUTATIONS[name]
+    assert PAGE.count(old) >= 1, f"{name}: mutation target missing"
+    assert _unescaped_text_uses(PAGE.replace(old, new, 1)), name
+
+
+def test_the_embedded_payload_cannot_leave_its_script_block():
+    """R60 review: rewriting only ``</`` let ``<!--<script>`` in a field blank the
+    viewer. Every ``<``, ``>``, ``&`` is now a JSON escape, and the value survives."""
+    payload = build_payload(load("v1", "dev"), "dev", "v1")
+    payload["moments"][0]["rationale"] = "<!--<script></script>-->& done"
+    html = _serve_once(payload)
+    blob = html.split("const DATA = ", 1)[1].split(";\n", 1)[0]
+    assert not set(blob) & set("<>&")
+    assert json.loads(blob) == payload
+    assert html.count("<script>") == 1 and html.count("</script>") == 1
