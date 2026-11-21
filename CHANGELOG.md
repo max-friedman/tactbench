@@ -5,6 +5,13 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 49)
+
+- **§A audit: character n-grams.** `experiments/char_ngram_audit.py` (imports nothing
+  from `tactbench`) fits a 3-8-gram averaged perceptron on dev: 51.5% accuracy and 12.1%
+  pairs-both-right on held-out `v4/test`, while a planted suffix cue reads 99.2%.
+  Verdict `holds`; gated by `test_the_char_ngram_audit_holds`.
+
 ### Added (Round 48)
 
 - **LLM results on `v4`**: the 22 open-weight runs, decisions in `results/v4-dev/`, a

@@ -285,3 +285,34 @@ def test_the_pairs_audit_holds():
         capture_output=True, text=True, check=True, cwd=root,
     ).stdout  # fmt: skip
     assert out.strip().endswith("verdict: holds"), out
+
+
+def test_the_char_ngram_audit_holds():
+    """Round 49 §A audit, wired in because it held. ``experiments/char_ngram_audit.py``
+    imports nothing from ``tactbench``; it fits a character 3-8-gram averaged
+    perceptron on ``v4/dev`` and reads held-out ``v4/test``. Fails if test accuracy
+    reaches 60% or pairs-both-right 37.5% (the pre-registered falsifiers), and
+    reports *unmeasurable* -- also a failure here -- if the probe stops fitting dev
+    or stops finding a planted sub-word leak, since a probe that cannot find
+    anything certifies nothing (R47)."""
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "experiments" / "char_ngram_audit.py").read_text()
+    assert "tactbench" not in "".join(
+        line for line in source.splitlines() if line.startswith(("import", "from"))
+    )
+    probe = str(root / "experiments" / "char_ngram_audit.py")
+    out = subprocess.run(
+        [sys.executable, "-I", probe, "v4", "--verdict"],
+        capture_output=True, text=True, check=True, cwd=root,
+    ).stdout  # fmt: skip
+    assert out.strip().endswith("verdict: holds"), out
+    import re
+
+    readme = " ".join((root / "README.md").read_text().split())
+    fit, acc, pairs, control = re.findall(r"(\d+\.\d)%", out.splitlines()[0])
+    assert f"fits dev ({fit}%)" in readme
+    assert f"**{acc}%** accuracy, **{pairs}%** pairs-both-right" in readme
+    assert f"at **{control}%**" in readme

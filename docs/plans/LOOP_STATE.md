@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 48 complete (`shipped`) — all 22 LLM runs on `v4`; on `home_security`
+- **Round:** 49 complete (§A `holds`) — a character n-gram model reads chance on
+  held-out test, gated. R48: all 22 LLM runs on `v4`; on `home_security`
   17 of 22 are constant and the best reads 1 of 20 pairs. R47: dataset `v4`: v3 plus an eleventh family,
   `home_security`. R46: all 22 LLM runs on `v3`; on `pet_care` 18 of
   22 are constant and the best reads 3 of 20 pairs. R45: dataset `v3`: v2 plus a tenth family,
@@ -27,7 +28,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **808 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **809 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2718,7 +2719,8 @@ stated and gated. (3) "Moves more than on v3" now gated against v2→v3's 0 reve
 
 ## Round 49 — §A audit: does a character n-gram model beat silence?
 
-**In progress. Pre-registered before any measurement (committed alone).**
+**Ending state: §A verdict `holds`.** The pre-registration below was committed alone,
+before any measurement (3e6c2fd).
 
 **Claim, verbatim (README, *Shortcut resistance*):** "**A surface model no longer beats
 silence.**" The probes behind it are word unigrams, word bigrams, position-tagged
@@ -2739,7 +2741,40 @@ about 3.8 points on 132 pairs). Secondary, reported but not the verdict: test IC
 against silence, scored afterwards by the project's scorer, since the probe must not
 import it.
 
-**Verdict:** not yet measured.
+**Verdict: `holds`.** v4, the gated configuration: dev fit 93.2%, held-out test
+accuracy **51.5%**, pairs-both-right **12.1%**, test ICS −50.9 against silence. Over
+shuffle seeds 0-4 on v2, v3 and v4 (15 fits): accuracy 48.3-53.3%, pairs-both-right
+9.2-16.7%, best ICS −17.6 against silence, never above it. Both falsifiers are clear by
+at least 6.7 and 20.8 points.
+
+**The probe changed after its first reading, in one direction: stronger.** As
+pre-registered, the learner was 3-5-gram SGD logistic regression. It fit only 54-57% of
+dev and gave near-constant test answers, so it could not have found anything. Its test
+readings (48.6-50.4%) were not taken as a verdict. Two changes followed:
+- n widened to 3-8, since a role swap such as `avoiding the garage` / `weeding the porch`
+  leaves nearly the same 3-5-gram multiset on both sides, and the span that tells them
+  apart (`ing the g`) is longer;
+- the learner became an averaged perceptron, which fits any separable training set.
+
+Every intermediate reading was under both thresholds, so the change could not have
+moved the verdict toward `holds`. The thresholds did not change.
+
+**Positive control, added because a clean reading from a probe that cannot see is the
+R47 mistake.** `ish` is glued to the last word of every stay-quiet moment's last
+signal, on dev and test. The probe finds it on held-out frames at **99.2%** (v4) and
+100% (v2, v3). The gate requires ≥90% on the control and ≥85% dev fit, or reports
+`unmeasurable as stated`. Both thresholds were mutated, and the gate went red each time.
+
+**Wired in** (§A step 6): `test_the_char_ngram_audit_holds`, v4 only (~20 s). v2 and v3
+are frozen, and v4 contains all their families. The test also asserts that the probe
+imports nothing from `tactbench`. ICS was scored afterwards by the project's scorer in
+a scratch script; it is not part of the gate.
+
+**What it does not show.** A character n-gram model is one more probe, not all of them.
+The standing invariant is still "a clean audit bounds only the shortcuts you thought to
+test".
+
+**Loop:** nothing.
 
 ---
 
@@ -2798,6 +2833,10 @@ dataset or the policy is wrong, not the assertion.
   5 of 9 at its worst over eight seeds. This limits the *bound*, not the gate —
   `TestProseFrameStructure` catches every frame-shape defect on all nine families
   without a dataset or a seed.
+- **A character 3-8-gram model fit on dev reads chance on held-out test** (R49 §A):
+  accuracy < 60%, pairs-both-right < 37.5%, and it must still fit dev (≥ 85%) and find
+  a planted sub-word cue (≥ 90%), or the reading counts as unmeasured, not clean.
+  `test_the_char_ngram_audit_holds`.
 - **A clean audit bounds only the shortcuts you thought to test.** A probe scoring
   at chance means *that probe* found nothing — not that the dataset forces a
   judgment. R11: ten rounds of 50.0% were a bag of words being unable to see

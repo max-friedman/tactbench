@@ -240,6 +240,16 @@ and only the first was foreseen — the other three came out of measurement:
 Properties 2–4 were all found by probes rather than by review of the wording, and
 each one had shipped green under the checks that existed at the time.
 
+**Below the word (Round 49 audit).** Every probe above reads whole words, and Round
+47's leak was a suffix. So a character 3-8-gram model — an averaged perceptron, written
+without importing the benchmark — was fit on `v4/dev` and scored on held-out `v4/test`.
+It fits dev (93.2%) and reads chance on held-out test: **51.5%** accuracy, **12.1%**
+pairs-both-right, against a coin's 25%. Over five seeds on each of v2, v3 and v4 the
+highest readings are 53.3% and 16.7%, and it never beats silence (measured once in
+R49; the gate re-runs v4 only). The same probe finds
+a planted three-letter suffix cue on held-out frames at **99.2%**, so the chance
+reading is not a probe that cannot see. `test_the_char_ngram_audit_holds` gates it.
+
 **A fifth property, and the one that nearly got recorded as a defect.** Clause
 order alternates on the pair's index *within its frame*, so a frame needs at least
 two pairs before both orders appear — **16 pairs per family**, since there are
@@ -717,7 +727,8 @@ otherwise would defeat the purpose of building a benchmark:
   we thought to run.** A bag-of-bigrams scored **+99.4 versus silence** for eleven
   rounds before anyone looked at word order, and nothing went red. It now scores
   **+0.0** two-sided — it ties saying nothing and never beats it — and the
-  unigram, bigram, lookup and exploit checks all gate the build. That is
+  unigram, bigram, character n-gram (R49), lookup and exploit checks all gate the
+  build. That is
   a bound on the shortcuts that have been *tried*; it is not a proof that none
   exists. The honest reading of a clean audit is "no probe we ran found one".
 - **Labels are by construction.** Each item was built around a known answer rather
