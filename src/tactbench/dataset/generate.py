@@ -66,6 +66,17 @@ PETS = [
     "Umber", "Velvet", "Wren", "Yuzu", "Acorn", "Barley", "Cobalt", "Dumpling",
 ]  # fmt: skip
 
+#: Parts of a home for ``home_security``. Single words, so a zone never shares a token
+#: with a frame; wide for the same reason as PETS.
+ZONES = [
+    "garage", "porch", "patio", "shed", "driveway", "attic", "basement", "cellar",
+    "doorstep", "conservatory", "greenhouse", "workshop", "carport", "veranda", "gazebo",
+    "annex", "loft", "pantry", "utility", "hallway", "study", "studio", "nursery",
+    "terrace", "courtyard", "stable", "boathouse", "summerhouse", "garden", "orchard",
+    "balcony", "lobby", "kitchen", "lounge", "den", "playroom", "gym", "library",
+    "laundry", "mudroom",
+]  # fmt: skip
+
 COLLEAGUES = [
     "Priya Raman",
     "Marco Silva",
@@ -309,6 +320,22 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
         ("Wearing a surgical cone is {who}", "Wearing a plain collar is {who}"),
         ("Flagged at last checkup is {who}", "Passed every recent checkup is {who}"),
         ("Watched for kidney trouble is {who}", "Spared from kidney trouble is {who}"),
+    ],
+    "home_security": [
+        # Privileged: nobody is expected there, so motion there is worth a look.
+        # Both clauses of a frame name the SAME visitor in the same verb form (R47
+        # review: the first draft named a visitor only in the other clause, six of
+        # eight with an -er noun, and "speak unless the motion clause has an -er
+        # word" read 90% dev / 83% test). Character length leans +,-,0,+,- on dev and
+        # -,0,+ on held-out frames; every probed clause feature balances.
+        ("Gardeners avoiding the {who}", "Gardeners weeding the {who}"),
+        ("Plumber cancelled for the {who}", "Plumber requested for the {who}"),
+        ("Courier barred at the {who}", "Courier allowed at the {who}"),
+        ("Cleaners skipping the {who}", "Cleaners tidying the {who}"),
+        ("Carpenter excluded from the {who}", "Carpenter scheduled into the {who}"),
+        ("Decorators banned from the {who}", "Decorators invited inside the {who}"),
+        ("Roofers bypassing the {who}", "Roofers repairing the {who}"),
+        ("Electricians disallowed from the {who}", "Electricians admitted to the {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
@@ -1040,6 +1067,58 @@ class PetCareScenario(Scenario):
         )
 
 
+class HomeSecurityScenario(Scenario):
+    """A camera sees motion in one part of the home while the user is at work. The
+    decider is which zone a booked visitor is (and is not) going to -- both zones
+    appear in the shared body and on both sides, and swap roles. Round 47, dataset v4
+    only."""
+
+    family = "home_security"
+    intent = "intrusion_alert"
+    positive_value = 3
+    window_s = 900
+    positive_slices = ["time_critical", "breaks_focus"]
+    near_slices = ["expected_activity", "breaks_focus"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.FOCUSED_WORK,
+            device="laptop",
+            last_interaction_s=rng.randint(30, 600),
+            local_hour=rng.randint(9, 17),
+        )
+
+    def body(self, rng):
+        self._motion, self._quiet = rng.sample(ZONES, 2)
+        a, b = self._motion, self._quiet
+        # The motion zone is named first in two phrasings and second in two (R45).
+        phrasing = rng.choice(
+            [
+                f"Camera alert: motion at the {a}; the {b} has been quiet all day.",
+                f"Security hub — the {b} is quiet, but there is motion at the {a}.",
+                f"Motion sensor: movement at the {a} a minute ago. Nothing from the {b}.",
+                f"Motion sensor: nothing from the {b}; movement at the {a} a minute ago.",
+            ]
+        )
+        return [
+            Signal(source=Source.APP_EVENT, age_s=60, content=phrasing, meta={"app": "cameras"})
+        ]
+
+    decider_source = Source.CALENDAR
+    decider_age_s = 28800
+
+    def fillers(self, rng):
+        return self._motion, self._quiet
+
+    def why(self):
+        return (
+            "The motion is somewhere nobody is expected today; that is worth a look "
+            "while it is still happening.",
+            "The motion is where a visitor is expected, and the place nobody should be "
+            "is quiet. Expected activity is not worth breaking focus for.",
+        )
+
+
 SCENARIOS: list[Scenario] = [
     TravelScenario(),
     DeadlineScenario(),
@@ -1055,7 +1134,7 @@ SCENARIOS: list[Scenario] = [
 #: Families added after v2, in order. Appended -- never inserted -- so a dataset built
 #: with ``families=len(SCENARIOS)`` (v1, v2) consumes the generator's random stream
 #: exactly as before, and every moment of the first nine families is unchanged in v3.
-LATER_SCENARIOS: list[Scenario] = [PetCareScenario()]
+LATER_SCENARIOS: list[Scenario] = [PetCareScenario(), HomeSecurityScenario()]
 ALL_SCENARIOS: list[Scenario] = [*SCENARIOS, *LATER_SCENARIOS]
 
 
@@ -1077,7 +1156,7 @@ def generate(
     rather than leaving it to be rediscovered.
 
     ``families`` takes the first that many of :data:`ALL_SCENARIOS`; the default is
-    the original nine, which v1 and v2 use. v3 uses ten.
+    the original nine, which v1 and v2 use. v3 uses ten, v4 eleven.
     """
     rng = random.Random(seed)
     items: list[Item] = []

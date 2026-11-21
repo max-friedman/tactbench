@@ -43,7 +43,8 @@ from tactbench.runner import evaluate, pair_blind_ics
 from tactbench.schema import Decision, frame_of, pair_key, policy_view
 
 SEED, PAIRS, FAMILIES = 20260726, 32, 10
-NEW = sorted(LATER_FRAMES)
+#: v3 is the first ten families; later ones (v4 on) are tested in their own files.
+NEW = ["pet_care"]
 
 
 def _split(items, held):
@@ -51,9 +52,10 @@ def _split(items, held):
 
 
 def test_the_family_lists_are_consistent():
-    assert len(ALL_SCENARIOS) == FAMILIES and NEW == ["pet_care"]
+    assert [s.family for s in ALL_SCENARIOS[:FAMILIES]][-1:] == NEW
     assert set(FRAMES) == {s.family for s in SCENARIOS}
     assert set(ALL_FRAMES) == {s.family for s in ALL_SCENARIOS}
+    assert set(LATER_FRAMES) >= set(NEW)
 
 
 def test_the_committed_v3_splits_are_reproducible():
@@ -91,7 +93,7 @@ def test_every_v3_cell_is_order_balanced():
             if i.label.should_surface
         )
         cells = {(f, fr) for f, fr, _ in c}
-        assert {f for f, _ in cells} == set(ALL_FRAMES), split
+        assert {f for f, _ in cells} == set(FRAMES) | set(NEW), split
         assert all(c[(f, fr, True)] == c[(f, fr, False)] for f, fr in cells), split
 
 
@@ -223,7 +225,9 @@ def test_new_families_balance_clause_length(family):
 
 def test_the_pet_care_length_exploit_reads_chance_across_seeds():
     """The reviewer's exploit read 90% dev / 83% test on the first draft. On one seed
-    it is noisy (the shipped dev reads 30%), so the median over 20 seeds is asserted."""
+    it is noisy, so the median over 20 seeds is asserted. (Round 47: the exploit now locates
+    the skipped pet as the skyline does; with the first-name locator it read 30% on
+    the shipped dev, and could not have failed once body order was balanced.)"""
     sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
     from clause_length_probe import pet_care_exploit
 
@@ -255,3 +259,19 @@ def test_the_dataset_doc_claims_about_old_families_clause_length():
     assert round(held["deadline"], 2) == 0.83
     doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
     assert "at or below 50% there in eight of the nine. `deadline` reads 83%" in doc
+
+
+def test_the_dataset_doc_claim_about_pet_care_longest_word():
+    """DATASET.md (Round 47): with the marker located properly, the longest-word rule
+    reads 70% dev / 67% test on pet_care; the other five features 50-60%."""
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    from clause_length_probe import FEATURES, feature_exploit
+
+    dev, test = load("v3", "dev"), load("v3", "test")
+    assert round(feature_exploit(dev, "pet_care", "longest"), 2) == 0.70
+    assert round(feature_exploit(test, "pet_care", "longest"), 2) == 0.67
+    for f in set(FEATURES) - {"longest"}:
+        for split in (dev, test):
+            assert 0.5 <= feature_exploit(split, "pet_care", f) <= 0.6, f
+    doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
+    assert "reads 70% on v3 dev and 67% on test" in doc

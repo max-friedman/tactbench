@@ -261,6 +261,67 @@ templates already exploits fully (Round 33); changing those families would chang
 and v2, so they are left as published and the length-balance test applies to families
 added from v3 on.
 
+**Longest word — a smaller lean in `pet_care`, found in Round 47.** With the marker
+located properly, "speak iff the skipped pet's clause has the shorter longest word"
+reads 70% on v3 dev and 67% on test (two of three held-out frames). The other five
+clause features read 50–60%. v3 is published with LLM runs against it, so this is
+recorded and gated (`tests/test_dataset_v3.py`) rather than changed; `home_security`
+is held to all six features from the start.
+
+### Dataset v4 — an eleventh family, `home_security` (Round 47)
+
+`data/v4` is `tactbench build --version v4 --pairs 32 --families 11`: v3 plus one new
+family (440 dev / 264 test). The user is at work; a camera reports motion at one part
+of the home while another is quiet. The decider says where a booked visitor is and is
+not going — *"Roofers bypassing the shed. Roofers repairing the garage."* Speak when
+the motion is where nobody is expected; stay quiet when it is where the visitor is.
+Both zones appear in the shared body and on both sides, and swap roles. Zones are
+drawn from a pool of 40 single words, none of which appears in a frame.
+
+Built the way v3 was, and held to everything v3's new family is
+(`tests/test_dataset_v4.py`): every moment of the first ten families equals its v3
+counterpart; unigram and bigram at 50% on ten seeds; the positional probe against its
+null over 20 seeds; order-balanced cells; both zones on both sides and the motion zone
+named first in about half of bodies, on dev and test; the skyline solves it and the
+heuristic does not.
+
+**A morphology leak, found in review and fixed before anything ran on v4.** The first
+draft named a visitor only in the non-privileged clause ("Booked for gardeners" against
+"Unoccupied this evening"), six of eight times with an *-er* noun. "Find the motion
+zone's clause; stay quiet if it has an -er word" read **90% dev / 83% test**, and it
+transferred to held-out frames because it depends on the frame design, not on a seed.
+Now both clauses of every frame name the same visitor in the same verb form, and the
+gate is no longer length alone: `experiments/clause_length_probe.feature_exploit`
+compares six clause features (characters, *-er*, *-s*, *-ing*, *-ed* words, longest
+word) between the marker's clause and the other, and every one must read chance over
+20 seeds and at most 60% on the held-out split. Three of the first draft's frames also
+named times that did not fit a weekday afternoon ("this evening", "overnight"); the
+body no longer names a clock time either.
+
+The review also found that the length check shipped with the first draft **could not
+fail**: it took the first zone in the body as the marker, and body order is balanced,
+so its sign flipped at random against the label. It now finds the marker the way the
+skyline does, and a test pads the privileged clauses and requires the reading to jump
+past 90%. The same fix applies to `pet_care`'s check (whose readings are unchanged at
+50%).
+
+The overall positional probe is held both to v3's single-seed check (shipped dev 52.3%
+against a null median of 52.4%) and to the same comparison over 20 seeds. An earlier
+rebuild read 52.5% against 52.4% on one seed — noise, as the seed sweep showed.
+
+A second review tried 111 cheap clause features (every letter, letter pairs, affixes,
+prepositions, lengths). One rule cleared 60% on both splits: "speak iff the motion
+clause has fewer *e*'s" reads 70% dev / 83% test, frame-determined. One hit in 111 is
+about what chance gives, so it is stated here and pinned in a test rather than tuned
+away — tuning frames against every letter would fit the probe, not fix a cue. The
+same review caught frame 4's verb ("halted in the garage" can mean the carpenter is
+there), now "excluded from".
+
+What the family does not resist, and no family does: the privileged clause always
+carries an ordinary word of exclusion or absence (*barred*, *skipping*, *cancelled*,
+*excluded*). A reader that locates the motion zone's clause and knows those words
+solves the family — that is reading the decider, which is the task.
+
 ### Token permutations and the bigram probe
 
 All nine are token permutations: both sides contain the same words, arranged

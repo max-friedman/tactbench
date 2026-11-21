@@ -5,6 +5,18 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 47)
+
+- **Dataset `v4`**: v3 plus an eleventh family, `home_security` (440 dev / 264 test).
+  Built with `tactbench build --version v4 --pairs 32 --families 11`. v1-v3 are
+  unchanged and v4's first ten families equal v3's — asserted in
+  `tests/test_dataset_v4.py`. The skyline resolves the new family; no LLM has been run
+  on v4. `experiments/clause_length_probe.feature_exploit` compares six clause
+  features between the marker's clause and the other, locating the marker as the
+  skyline does; the R45 length check could not fail once body order was balanced.
+- `pet_care` (v3) reads 70% dev / 67% test on a longest-word rule — recorded in
+  DATASET.md as a known weakness, not changed.
+
 ### Added (Round 46)
 
 - **LLM results on `v3`**: all 22 runs, in `results/v3-dev/`. Old-family decisions are

@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 46 complete (`shipped`) — all 22 LLM runs on `v3`; on `pet_care` 18 of
+- **Round:** 47 complete (`shipped`) — dataset `v4`: v3 plus an eleventh family,
+  `home_security`. R46: all 22 LLM runs on `v3`; on `pet_care` 18 of
   22 are constant and the best reads 3 of 20 pairs. R45: dataset `v3`: v2 plus a tenth family,
   `pet_care`. R44: mypy over `src/tactbench`, clean, gated from
   pytest. R43: the two badly-worded paraphrase frames repaired
@@ -25,7 +26,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **683 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **718 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -307,9 +308,15 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
    forbids it. Refine with a named exception, as `quiet_hours` is named in the
    audit — or reject and drop fatigue entirely. **Do not weaken it silently.**
 
-8. **More families still welcome — `pet_care` added in R45 (`v3`).** Ten is still one
-   author's idea of a working life. Remaining candidates: home security. (Commute
+8. **More families still welcome — `pet_care` (R45, `v3`), `home_security` (R47,
+   `v4`).** Eleven is still one author's idea of a working life. No named candidate
+   left; a new one should come from a domain none of the eleven touches. (Commute
    disruption was dropped in R45: `driving` already asks which route is blocked.)
+
+O. **LLM runs on `v4` (new, R47).** As N was for v3: seed each run's v4 cache from v3
+   after checking the 400 old-family views are identical; 40 `home_security` dev
+   moments per run need calls (22 runs, free, local); then a v4 table and claims gated
+   like v3's.
 
 N. **LLM runs on `v3` — DONE in R46.** 22 runs, old-family decisions checked equal
    to v2's one by one, table and claims gated (`tests/test_results_v3.py`).
@@ -2617,6 +2624,58 @@ normalises line breaks, so rewrapping the README cannot break or fake it. 683 te
 
 ---
 
+## Round 47 — an eleventh family, `home_security`, in dataset v4
+
+**Ending state: `shipped`.** Queue item 8. Before-number: ten families; v1-v3 fixed.
+
+**Check first.** `tests/test_dataset_v4.py`, written before the family and failing at
+collection until it existed: v4 reproducible and sized 440/264; every old-family moment
+identical to v3's; order-balanced cells for all eleven; unigram and bigram at 50% on
+ten seeds; positional against its null over 20 seeds; pairs differ only in the decider
+as a policy sees them; a 40-word zone pool sharing no word with a frame; both zones on
+both sides; motion zone first in 30-70% of bodies; frame lengths balanced; skyline
+solves, heuristic does not; no single word reaches the pair-blind bar.
+`test_dataset_v3.py` is scoped to v3's ten families (it had asserted the scenario list
+*was* ten long).
+
+**Shipped.** `HomeSecurityScenario`: a camera sees motion at one zone while the user is
+at work; the decider says which zone a booked visitor is and is not going to. Speak
+iff the motion is where nobody is expected. Skyline reads the motion zone from the body.
+
+**Review (subagent, not §D-independent) — two HIGH findings, both fixed before any run.**
+(1) *Morphology leak.* The first draft named a visitor only in the non-privileged
+clause, six of eight with an -er noun; "motion clause has an -er word → quiet" read
+**90% dev / 83% test**, frame-determined so it transferred. Frames rewritten: both
+clauses name the same visitor in the same verb form. Gate widened from length to six
+clause features (`clause_length_probe.FEATURES`): each must read chance over 20 seeds
+and ≤60% on held-out. (2) *A check that could not fail.* `length_exploit` took the first
+body zone as the marker; with body order balanced its sign was random against the
+label — padding every privileged clause by 10 chars left it at 53.1%. It now locates
+the marker as the skyline does; a test pads the frames and requires >90%. My first
+draft's account ("a one-frame lean moves it too little") was wrong and is gone.
+Also fixed: time-of-day frames that did not fit a workday, the clock time in the body,
+"motion in the doorstep"; the both-sides and body-order tests now cover test too.
+
+**Found on the way.** With the marker located properly, v3's `pet_care` reads 70% dev /
+67% test on "shorter longest word" (other features 50-60%). v3 is published with runs,
+so recorded in DATASET.md and gated, not changed. v4's shipped overall positional reads
+52.5% vs a null median of 52.4% on one seed; over seeds it is under the null (51.7% vs
+53.1% on ten), and the v4 test compares over 20 seeds — stated in DATASET.md. After the second review's frame-4 fix it reads 52.3%, and v4
+is held to v3's single-seed check *and* the 20-seed one. Second review (same agent):
+no real leak; frame 4 "halted in" could be read backwards → "excluded from"; held-out
+feature check made two-sided; a letter-*e* rule at 70% dev / 83% test was the one hit
+of 111 features — stated and pinned, not tuned away.
+
+**Class-vs-instance again (#56).** The R45 length gate named a class (clause features
+a reader can compare) and tested one instance (characters). The -er rule was the next
+instance. Recorded against #56.
+
+**Not done.** No LLM runs on v4 (queued as O).
+
+**Loop:** nothing.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -2634,7 +2693,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **folded into [#39](https://github.com/max-friedman/agentic-coding-loop/issues/39)** as the counter-argument section, since a naive fix to the first finding licenses exactly this error. Not filed separately. |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
-| A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). R45 adds one: "equal skeletons" held clause *token* count equal and left *character* length free — a pet_care length rule read 90%. |
+| A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). R45 adds one: "equal skeletons" held clause *token* count equal and left *character* length free — a pet_care length rule read 90%. R47 adds another: the R45 length gate tested characters and missed an *-er* suffix rule at 90%. |
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
 | A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — three instances in one project. Check LOOP.md's measurement guidance first. |
