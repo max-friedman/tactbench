@@ -37,7 +37,8 @@ def test_every_committed_split_is_listed():
 @pytest.mark.parametrize(("version", "split"), SPLITS)
 def test_every_pair_is_a_role_permutation_of_one_moment(version, split):
     """CLAUDE.md rule 3: two sides, identical UserState, byte-identical body, same
-    family, opposite labels."""
+    family, opposite labels -- and deciders that are the same words rearranged, with
+    the same source, age and metadata (a permutation, not a rewrite)."""
     pairs = _pairs(load(version, split))
     assert pairs
     for key, pair in pairs.items():
@@ -47,6 +48,10 @@ def test_every_pair_is_a_role_permutation_of_one_moment(version, split):
         assert a.signals[:-1] == b.signals[:-1], key
         assert a.family == b.family, key
         assert pair[0].label.should_surface != pair[1].label.should_surface, key
+        da, db = a.signals[-1], b.signals[-1]
+        assert da.content != db.content, key
+        assert sorted(da.content.split()) == sorted(db.content.split()), key
+        assert (da.source, da.age_s, da.meta) == (db.source, db.age_s, db.meta), key
 
 
 @pytest.mark.parametrize(("version", "split"), SPLITS)
@@ -54,7 +59,7 @@ def test_labels_are_balanced_tagged_and_carry_intents(version, split):
     items = load(version, split)
     speak = [i for i in items if i.label.should_surface]
     assert len(speak) * 2 == len(items)
-    assert all("near_miss" in i.moment.slices for i in items if not i.label.should_surface)
+    assert all(("near_miss" in i.moment.slices) != i.label.should_surface for i in items)
     assert all(i.label.acceptable_intents for i in speak)
 
 

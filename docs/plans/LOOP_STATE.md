@@ -3341,7 +3341,18 @@ skyline on `v2para`.
 - *Ending states and stop conditions:* all `shipped`, and none fired.
 - *Ambiguity:* none new. Review independence (#29) as before.
 
-**Review:** none beyond the gate. The new test is red on the defect and green after.
+**Review:** subagent, not §D-independent (owner instruction). It found no defect, and
+it confirmed the paraphrase frames change no skyline decision on v1-v5 (0 moments) and
+match no clause there. Fixed from it:
+- The pair test asserted shared body and state, but not the permutation itself. It now
+  also requires the two deciders to be the same words rearranged, with the same source,
+  age and metadata. That holds on all 11 splits.
+- The near-miss tag is now checked in both directions.
+- R33's `hidden_labels_probe.py` blanks the paraphrase frames too, so "public frames
+  only" stays exact.
+
+Also noted: the viewer scores the skyline live, so `serve --version v2para` now shows
+it at 0.0, not 96.0. That is not a published figure.
 
 **Loop:** audit three rounds late (comment on #60); invariants' evidence narrower than
 their wording, twice.
