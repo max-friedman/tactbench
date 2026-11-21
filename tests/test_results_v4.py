@@ -258,3 +258,81 @@ class TestTheReadmeV4Claims:
         ds = runs["llm:naive:qwen2.5-0.5b"]
         assert len(ds) == 40 and round(unparsed_rate(ds) * 40) == 14
         assert "**14** of its 40 `home_security` answers" in self._block()
+
+
+class TestTheReadmeV4AddedClaims:
+    """Every figure in the README's Round 50 block, recomputed from the added runs."""
+
+    @staticmethod
+    def _block() -> str:
+        text = (Path(__file__).parent.parent / "README.md").read_text()
+        start, end = "<!-- v4-added-claims:start -->", "<!-- v4-added-claims:end -->"
+        return " ".join(text.split(start)[1].split(end)[0].split())
+
+    @staticmethod
+    def _cards():
+        return {c.policy: c for c, _, _ in scorecards("v4") if c.policy in ADDED}
+
+    def test_six_runs_twenty_eight_in_all(self):
+        assert len(ADDED) == 6 and len(RUNS) == 28
+        assert "add **6** runs, making **28** on v4" in self._block()
+
+    def test_the_rubric_runs_that_go_quiet(self):
+        cards = self._cards()
+        assert cards["llm:rubric:phi-4-mini"].surfaced == 2
+        assert cards["llm:rubric:mistral-7b"].surfaced == 1
+        assert cards["llm:rubric:phi-4-mini"].n == 440
+        assert "**2** and **1** of 440 moments" in self._block()
+
+    def test_the_one_above_silence_is_silence_plus_two(self):
+        cards = self._cards()
+        above = [p for p, c in cards.items() if c.ics_normalized > 0]
+        assert above == ["llm:rubric:phi-4-mini"]
+        c = cards["llm:rubric:phi-4-mini"]
+        assert round(c.ics_normalized, 1) == 0.7 and c.precision_at_interrupt == 1.0
+        assert max(c.ics_normalized for c in cards.values()) < 1.0
+        block = self._block()
+        assert "Phi-4-mini's **+0.7**" in block and "correctly both times" in block
+
+    def test_hard_violations(self):
+        cards = self._cards()
+        naive = [c.hard_violations for p, c in cards.items() if ":naive:" in p]
+        assert min(naive) == 20 and max(naive) == 40
+        assert cards["llm:rubric:granite-3.3-2b"].hard_violations == 25
+        assert {p for p, c in cards.items() if c.hard_violations} == {
+            *(p for p in cards if ":naive:" in p),
+            "llm:rubric:granite-3.3-2b",
+        }
+        block = self._block()
+        assert "(**20** to **40**)" in block and "rubric (**25**)" in block
+
+    def test_home_security_pairs(self):
+        items = [i for i in load("v4", "dev") if i.moment.family == "home_security"]
+        label = {i.moment.id: i.label.should_surface for i in items}
+        sides: dict[str, list[str]] = {}
+        for i in items:
+            sides.setdefault(pair_key(i.moment.id), []).append(i.moment.id)
+        best, split, backwards = {}, 0, 0
+        for name in ADDED:
+            ds = {d.moment_id: d for d in RUNS[name]}
+            best[name] = sum(all(ds[m].surface == label[m] for m in p) for p in sides.values())
+            moved = [p for p in sides.values() if ds[p[0]].surface != ds[p[1]].surface]
+            split += len(moved)
+            backwards += sum(ds[p[0]].surface != label[p[0]] for p in moved)
+        top = max(best.values())
+        assert top == 1 and [n for n, v in best.items() if v == top] == ["llm:naive:phi-4-mini"]
+        assert len(sides) == 20 and split == 7 and backwards == 6
+        block = self._block()
+        assert "the best gets **1** of 20 pairs" in block and "(Phi-4-mini, naive)" in block
+        assert "**7** pairs get different answers" in block and "**6** of those" in block
+
+    def test_mistral_ran_without_a_system_turn(self):
+        import importlib.util
+
+        path = Path(__file__).parent.parent / "experiments" / "run_local_llms.py"
+        spec = importlib.util.spec_from_file_location("run_local_llms", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assert "mistral-7b" in module.NO_SYSTEM_ROLE
+        assert "Mistral-7B ran with `--no-system-role`" in self._block()

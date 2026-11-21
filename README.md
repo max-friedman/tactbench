@@ -582,7 +582,8 @@ of its 40 `pet_care` answers are unreadable.
 The same 22 runs on `v4` (Round 47: v3 plus `home_security`, 440 dev moments), Round
 48. The ten old families are byte-identical to v3's, so those 400 decisions were
 reused from the v3 runs (a test checks every one is unchanged) and only the 40
-`home_security` moments were sent to a model.
+`home_security` moments were sent to a model. The claims just below are about those
+22 runs; three models first run on v4 (Round 50) are in the table and follow it.
 
 <!-- v4-claims:start -->
 **No run gets the new family's decider right, and where it moves an answer it mostly
@@ -615,23 +616,42 @@ from **2.8%** to **5.7%** unparsed, so its v4 score is inconclusive: **14** of i
 | `llm:naive:gemma-2-2b` | 536.0 | +7.6 | −21.8 | 0.545 | 0.136 | 0.436 | 0 | 55/440 | 4.1% | 0.0% |
 | `llm:naive:llama-3.2-3b` | 557.0 | +4.0 | −26.6 | 0.477 | 0.095 | 0.293 | 0 | 44/440 | 0.9% | 0.0% |
 | `llm:rubric:llama-3.1-8b` | 566.0 | +2.4 | −28.6 | 0.579 | 0.050 | 0.310 | 0 | 19/440 | 2.3% | 0.0% |
+| `llm:rubric:phi-4-mini` | 576.0 | +0.7 | −30.9 | 1.000 | 0.009 | 0.289 | 0 | 2/440 | 0.9% | 0.0% |
 | `llm:naive:qwen2.5-1.5b` | 580.0 | +0.0 | −31.8 | — | 0.000 | 0.500 | 0 | 0/440 | 0.0% | 0.0% |
 | `llm:rubric:llama-3.2-3b` | 580.0 | +0.0 | −31.8 | — | 0.000 | 0.300 | 0 | 0/440 | 0.0% | 0.0% |
 | `llm:rubric:qwen2.5-1.5b` | 580.0 | +0.0 | −31.8 | — | 0.000 | 0.109 | 0 | 0/440 | 0.0% | 0.0% |
 | `llm:rubric:qwen2.5-3b` | 580.0 | +0.0 | −31.8 | — | 0.000 | 0.451 | 0 | 0/440 | 0.0% | 0.0% |
+| `llm:rubric:mistral-7b` | 581.0 | −0.2 | −32.0 | 0.000 | 0.000 | 0.457 | 0 | 1/440 | 0.0% | 0.0% |
 | `llm:naive:qwen2.5-3b` | 627.0 | −8.1 | −42.5 | 0.511 | 0.623 | 0.402 | 20 | 268/440 | 5.9% | 6.4% |
+| `llm:naive:mistral-7b` | 641.0 | −10.5 | −45.7 | 0.491 | 0.505 | 0.365 | 20 | 226/440 | 1.8% | 0.0% |
 | `llm:naive:qwen2.5-7b` | 660.0 | −13.8 | −50.0 | 0.534 | 0.214 | 0.181 | 19 | 88/440 | 3.2% | 0.0% |
 | `llm:naive:gemma-3-4b` | 680.0 | −17.2 | −54.5 | 0.496 | 0.573 | 0.351 | 18 | 254/440 | 3.2% | 0.0% |
 | `llm:naive:llama-3.1-8b` | 692.0 | −19.3 | −57.3 | 0.517 | 0.541 | 0.284 | 20 | 230/440 | 9.1% | 0.0% |
+| `llm:rubric:granite-3.3-2b` | 717.0 | −23.6 | −63.0 | 0.520 | 0.595 | 0.396 | 25 | 252/440 | 6.8% | 0.0% |
 | `llm:naive:phi-3.5-mini` | 760.0 | −31.0 | −72.7 | 0.501 | 0.905 | 0.415 | 20 | 397/440 | 0.5% | 0.0% |
 | `llm:rubric:phi-3.5-mini` | 760.0 | −31.0 | −72.7 | 0.500 | 0.909 | 0.448 | 20 | 400/440 | 0.0% | 0.0% |
+| `llm:naive:phi-4-mini` | 840.0 | −44.8 | −90.9 | 0.491 | 0.786 | 0.369 | 22 | 352/440 | 2.7% | 0.0% |
 | `llm:rubric:smollm2-1.7b` | 1038.0 | −79.0 | −135.9 | 0.502 | 0.986 | 0.446 | 36 | 432/440 | 2.3% | 0.0% |
+| `llm:naive:granite-3.3-2b` | 1072.0 | −84.8 | −143.6 | 0.499 | 0.905 | 0.407 | 40 | 399/440 | 2.3% | 0.0% |
 | `llm:naive:qwen2.5-0.5b` | 1099.0 | −89.5 | −149.8 | 0.499 | 0.941 | 0.380 | 40 | 415/440 | 0.5% | 5.7% |
 | `llm:rubric:qwen2.5-0.5b` | 1099.0 | −89.5 | −149.8 | 0.501 | 1.000 | 0.454 | 40 | 439/440 | 0.5% | 0.0% |
 | `llm:naive:llama-3.2-1b` | 1100.0 | −89.7 | −150.0 | 0.500 | 1.000 | 0.142 | 40 | 440/440 | 0.0% | 0.0% |
 | `llm:naive:smollm2-1.7b` | 1100.0 | −89.7 | −150.0 | 0.500 | 1.000 | 0.450 | 40 | 440/440 | 0.0% | 0.0% |
 | `llm:rubric:llama-3.2-1b` | 1100.0 | −89.7 | −150.0 | 0.500 | 1.000 | 0.010 | 40 | 440/440 | 0.0% | 0.0% |
 <!-- llm-results-v4:end -->
+
+<!-- v4-added-claims:start -->
+**Three more models, Round 50: none beats silence by more than a rounding error.**
+Granite-3.3-2B, Phi-4-mini and Mistral-7B add **6** runs, making **28** on v4. With the
+rubric prompt, Phi-4-mini and Mistral-7B all but stop speaking — **2** and **1** of 440
+moments. Phi-4-mini's **+0.7** is the only one of the six above silence: it speaks twice,
+correctly both times, and is otherwise silence, not a seventh run that judges. Every
+naive run commits hard violations (**20** to **40**), and so does Granite with the
+rubric (**25**). On `home_security` the best gets **1** of 20 pairs right on both sides
+(Phi-4-mini, naive); across the six, **7** pairs get different answers on their two
+sides and **6** of those are backwards. Mistral-7B ran with `--no-system-role`, because
+its chat format drops a system turn without an error (see *Running an LLM*).
+<!-- v4-added-claims:end -->
 
 `pairs` is the share of matched pairs answered correctly on **both** sides. The two
 sides share a body and need opposite answers, so a policy that does not read the

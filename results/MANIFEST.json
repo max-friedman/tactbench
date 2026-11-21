@@ -187,6 +187,24 @@
       }
     }
   },
+  "mistral-7b": {
+    "bytes": 4372812000,
+    "file": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+    "hf_repo": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
+    "n_ctx": 2048,
+    "quantization": "Q4_K_M",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+    "system_role": false,
+    "temperature": 0,
+    "threads": 4,
+    "wall_seconds_by_version": {
+      "v4": {
+        "naive": 4043.1,
+        "rubric": 4335.4
+      }
+    }
+  },
   "phi-3.5-mini": {
     "bytes": 2393232672,
     "file": "Phi-3.5-mini-instruct-Q4_K_M.gguf",

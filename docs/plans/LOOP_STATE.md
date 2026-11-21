@@ -13,7 +13,9 @@ findings** below.
 
 ## Current status
 
-- **Round:** 49 complete (§A `holds`) — a character n-gram model reads chance on
+- **Round:** 50 complete — three more open-weight models on `v4` (28 runs); none beats
+  silence by more than +0.7; a chat template that silently drops the system turn is now
+  caught by a preflight. R49 (§A `holds`): a character n-gram model reads chance on
   held-out test, gated. R48: all 22 LLM runs on `v4`; on `home_security`
   17 of 22 are constant and the best reads 1 of 20 pairs. R47: dataset `v4`: v3 plus an eleventh family,
   `home_security`. R46: all 22 LLM runs on `v3`; on `pet_care` 18 of
@@ -28,7 +30,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **809 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **838 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2801,6 +2803,40 @@ LOW: the first learner's readings were never committed. They are recorded only h
 **What it does not show.** A character n-gram model is one more probe, not all of them.
 The standing invariant is still "a clean audit bounds only the shortcuts you thought to
 test".
+
+**Loop:** nothing.
+
+---
+
+## Round 50 — three more open-weight models, and a system turn that vanished
+
+**Ending state: merged.** Item: widen the v4 measurement (priority 1). **Before:** 11
+models, 22 runs on `v4/dev`. **After:** 14 models, 28 runs; every figure in the new
+`<!-- v4-added-claims -->` block is gated by `TestTheReadmeV4AddedClaims`.
+
+**Checks first.** The test changes were committed before any run (`test_every_v3_run_was_repeated_on_v4`
+failed red until the runs existed): `ADDED_MODELS` declares the three new models so
+none joins unannounced; the R48 claims are scoped to the 22 carried runs; the
+manifest both-variants check covers every results version.
+
+**Finding: a chat template that drops the system turn without an error.** Under
+llama-cpp-python's guessed `mistral-instruct` format, Mistral-7B's prompt token count
+was the same with and without a system message — the instructions never reached it,
+and the run would still have produced well-formed, scoreable answers. Gemma 2 fails
+loudly on a system turn; this fails silently. The runner now sends a secret word in
+the system turn before each run and exits if the model cannot repeat it; Mistral-7B
+runs on `--no-system-role`. Verified the guard: with Mistral removed from
+`NO_SYSTEM_ROLE` the preflight returns False. The eleven earlier models were re-checked
+by hand (secret word, or token count rising) and all received the system turn, so no
+published run is affected.
+
+**Result.** None of the six new runs beats silence by more than +0.7. Two rubric runs
+(Phi-4-mini, Mistral-7B) collapse to near-silence, speaking 2 and 1 times of 440; the
++0.7 is two correct answers on top of silence. Every naive run has 20-40 hard
+violations. On `home_security`: best 1 of 20 pairs; 7 split pairs, 6 backwards — the
+R48 pattern, now on 28 runs.
+
+**Review:** subagent, not §D-independent (owner authorised merging in-session).
 
 **Loop:** nothing.
 
