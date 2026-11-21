@@ -4,6 +4,7 @@ Round 59, whose page also never said which dataset version it showed."""
 
 from __future__ import annotations
 
+import json
 import threading
 import urllib.request
 from functools import partial
@@ -16,8 +17,9 @@ from tactbench.policies.builtin import registry
 from tactbench.runner import evaluate, normalized, pair_blind_ics, silence_ics
 from tactbench.web.server import PAGE, _Handler, build_payload
 
-VERSIONS = ["v1", "v2", "v3", "v4", "v5"]
-CASES = [(v, s) for v in VERSIONS for s in ("dev", "test")]
+#: Every dataset on disk and its splits. v2para (R42) is a reworded dev slice only.
+CASES = [(v, s) for v in ("v1", "v2", "v3", "v4", "v5") for s in ("dev", "test")]
+CASES.append(("v2para", "dev"))
 
 
 @pytest.fixture(scope="module", params=CASES, ids=lambda c: f"{c[0]}-{c[1]}")
@@ -42,13 +44,11 @@ def _serve_once(payload) -> str:
         server.shutdown()
 
 
-def test_every_version_is_covered():
-    assert (
-        sorted(
-            p.name for p in DATA_ROOT.iterdir() if p.name.startswith("v") and p.name[1:].isdigit()
-        )
-        == VERSIONS
-    )
+def test_every_dataset_on_disk_is_covered():
+    on_disk = {
+        (d.name, f.stem) for d in DATA_ROOT.iterdir() if d.is_dir() for f in d.glob("*.jsonl")
+    }
+    assert on_disk == set(CASES)
 
 
 def test_the_payload_names_its_version_and_split(case):
@@ -56,18 +56,30 @@ def test_the_payload_names_its_version_and_split(case):
     assert payload["version"] == version and payload["split"] == split
 
 
-def test_every_family_has_moments_on_the_page(case):
+def test_the_payload_carries_every_family(case):
+    """The payload, not the page: no element renders ``family`` yet (the id's prefix
+    shows it)."""
     version, split, payload = case
     families = {i.moment.family for i in load(version, split)}
     shown = {m["family"] for m in payload["moments"]}
     assert shown == families and len(payload["moments"]) == payload["n"]
 
 
-def test_the_page_says_which_version_it_shows(case):
+def test_the_served_header_names_the_dataset(case):
+    """The exact line a person reads, recomputed from ``eval``'s own numbers, in the
+    served page; and the page's script sets the header from that field and nothing
+    else."""
     version, split, payload = case
+    items = load(version, split)
+    expected = (
+        f"dataset {version} · {len(items)} moments · {split} split · "
+        f"silence ICS {silence_ics(items):.1f} · pair-blind ICS {pair_blind_ics(items):.1f}"
+    )
+    assert payload["header"] == expected
     html = _serve_once(payload)
-    assert "DATA.version" in PAGE
-    assert f'"version": "{version}"' in html
+    assert json.dumps(expected) in html
+    assert "document.getElementById('meta').textContent = DATA.header;" in PAGE
+    assert PAGE.count("getElementById('meta')") == 1
 
 
 def test_the_board_matches_eval(case):
