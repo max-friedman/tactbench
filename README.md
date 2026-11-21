@@ -729,6 +729,15 @@ loses to silence on both versions.
 | `llm:naive:qwen2.5-0.5b` | 1145.0 | −78.9 | −138.5 | 0.498 | 0.929 | 0.378 | 40 | 448/480 | 0.4% | 6.7% |
 <!-- llm-results-v5:end -->
 
+#### On held-out `v1/test` — phrasings no dev moment uses
+
+All 28 runs on v1's held-out split (Round 69): 108 moments whose deciders use frames
+5-7, which appear nowhere in dev. Until this round no model had been run on a held-out
+split.
+
+<!-- llm-results-v1-test:start -->
+<!-- llm-results-v1-test:end -->
+
 `pairs` is the share of matched pairs answered correctly on **both** sides. The two
 sides share a body and need opposite answers, so a policy that does not read the
 deciding signal scores 0% there however its ICS looks — a constant policy scores
