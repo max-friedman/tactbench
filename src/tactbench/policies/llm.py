@@ -312,33 +312,42 @@ class LLMPolicy(Policy):
     #: Drawn so a model cannot pass by guessing a constant from public source.
     PREFLIGHT_WORDS = ("ZEBRA", "TULIP", "COPPER", "GLACIER", "VIOLIN", "LANTERN", "SAFFRON")
 
+    #: Appended to the preflight's system turn in its second call (Round 53).
+    PREFLIGHT_PADDING = (
+        "This instruction is deliberately longer than it needs to be, so that the "
+        "prompt grows when it is delivered and stays the same length when it is not."
+    )
+
     def system_turn_reaches_the_model(self) -> bool:
         """Does the local server deliver a system turn at all?
 
         Round 50: llama-cpp-python's ``mistral-instruct`` format discards it without
         an error, so the model answers -- parseably -- a prompt it never saw.
 
-        Round 53: the check is structural. The same user turn is sent with and without
-        a system turn; a system turn that reaches the model adds prompt tokens, and a
-        dropped one cannot. Asking the model to repeat a word from the system turn,
-        R51's only check, also tests whether a small model can do that: Llama-3.2-1B
-        received the turn (59 prompt tokens against 41) and still answered "P" and
-        "LED". That test remains only for servers that report no token usage.
+        Round 53: the check is structural. The same user turn is sent twice, under a
+        short system turn and under the same turn with padding appended. If the
+        system turn reaches the model the prompt grows; if the template drops it, both
+        prompts are the same length. Both calls carry a system turn because some
+        templates insert their own default when none is sent (Granite 3.3: 64 prompt
+        tokens with no system turn, 37 with ours), so "with against without" refused
+        a model that receives it. R51's test -- repeat a word sent only in the system
+        turn -- also tests whether a small model can: Llama-3.2-1B receives the turn
+        and repeated the word 3 times in 7. It remains only for servers that report
+        no token usage.
         """
         if self.provider != "local":
             raise ValueError("the system-turn preflight is for --provider local")
         secret = random.SystemRandom().choice(self.PREFLIGHT_WORDS)
         question = {"role": "user", "content": "What is the secret word?"}
-        system = {
-            "role": "system",
-            "content": f"The secret word is {secret}. When asked, reply with only the secret word.",
-        }
-        with_system = self._preflight_call([system, question])
-        without = self._preflight_call([question])
-        tokens = [r.get("usage", {}).get("prompt_tokens") for r in (with_system, without)]
+        text = f"The secret word is {secret}. When asked, reply with only the secret word."
+        short = self._preflight_call([{"role": "system", "content": text}, question])
+        padded = self._preflight_call(
+            [{"role": "system", "content": f"{text} {self.PREFLIGHT_PADDING}"}, question]
+        )
+        tokens = [r.get("usage", {}).get("prompt_tokens") for r in (short, padded)]
         if all(isinstance(n, int) for n in tokens):
-            return tokens[0] > tokens[1]
-        reply = with_system["choices"][0]["message"]["content"] or ""
+            return tokens[1] > tokens[0]
+        reply = short["choices"][0]["message"]["content"] or ""
         return secret.lower() in reply.lower()
 
     def _preflight_call(self, messages: list[dict[str, str]]) -> dict:

@@ -213,6 +213,9 @@ class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
     #: (Llama-3.2-1B answered "P" and "LED"), and a server that reports no usage.
     weak = False
     reports_usage = True
+    #: A template that inserts its own long system prompt when none is sent
+    #: (Granite 3.3: 64 prompt tokens with no system turn, 37 with ours).
+    default_system = False
 
     def do_POST(self):  # noqa: N802 - stdlib name
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
@@ -222,6 +225,8 @@ class _FakeOpenAI(http.server.BaseHTTPRequestHandler):
             visible = messages
         else:
             visible = [m for m in messages if m["role"] != "system"]
+        if _FakeOpenAI.default_system and not any(m["role"] == "system" for m in visible):
+            visible = [{"role": "system", "content": "default " * 40}, *visible]
         secret = re.search(r"secret word is (\w+)", " ".join(m["content"] for m in visible))
         if any("secret word" in m["content"] for m in messages):
             _FakeOpenAI.preflight.append(call)
@@ -252,6 +257,7 @@ def fake_server():
     _FakeOpenAI.drops_system = False
     _FakeOpenAI.weak = False
     _FakeOpenAI.reports_usage = True
+    _FakeOpenAI.default_system = False
     srv = http.server.HTTPServer(("127.0.0.1", 0), _FakeOpenAI)
     t = threading.Thread(target=srv.serve_forever, daemon=True)
     t.start()
@@ -408,11 +414,11 @@ class TestSystemTurnPreflight:
         _FakeOpenAI.drops_system = True
         assert policy.system_turn_reaches_the_model() is False
         # the secret travels only in the system turn, never in the user turn; the
-        # comparison call sends the same user turn alone (R53)
+        # comparison call pads that system turn and keeps the user turn (R53)
         for call in _FakeOpenAI.preflight:
-            *system, user = call["body"]["messages"]
+            system, user = call["body"]["messages"]
             assert user == {"role": "user", "content": "What is the secret word?"}
-            assert all(m["role"] == "system" and "secret word is" in m["content"] for m in system)
+            assert system["role"] == "system" and "secret word is" in system["content"]
 
     def test_the_cli_refuses_a_server_that_drops_it(self, fake_server, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
@@ -427,7 +433,7 @@ class TestSystemTurnPreflight:
         monkeypatch.chdir(tmp_path)
         result = self._invoke(fake_server)
         assert result.exit_code == 0, result.output
-        # two preflight calls (with and without the system turn, R53), one run
+        # two preflight calls (short and padded system turn, R53), one run
         assert len(_FakeOpenAI.preflight) == 2 and len(_FakeOpenAI.seen) == 2
 
     def test_without_a_system_role_there_is_nothing_to_check(
@@ -500,15 +506,22 @@ class TestSystemTurnPreflight:
         words = {
             re.search(r"secret word is (\w+)", c["body"]["messages"][0]["content"]).group(1)
             for c in _FakeOpenAI.preflight
-            if len(c["body"]["messages"]) == 2
         }
         assert len(words) > 1 and words <= set(LLMPolicy.PREFLIGHT_WORDS)
 
     def test_a_weak_model_that_receives_the_system_turn_passes(self, fake_server):
-        """R53: Llama-3.2-1B received the system turn (59 prompt tokens against 41
-        without) but repeated the word in 4 of 7 tries, so the run stopped on a false
-        diagnosis. The check is structural now: the system turn must add tokens."""
+        """R53: Llama-3.2-1B received the system turn but repeated the word in 3 of 7
+        tries, so the v5 run stopped on a false diagnosis. The check is structural
+        now: lengthening the system turn must lengthen the prompt."""
         _FakeOpenAI.weak = True
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        assert policy.system_turn_reaches_the_model() is True
+
+    def test_a_template_with_a_default_system_prompt_passes(self, fake_server):
+        """R53: comparing against no system turn at all refused Granite, whose template
+        inserts a longer default when none is sent. Both calls now carry a system
+        turn; only its length differs."""
+        _FakeOpenAI.default_system = True
         policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
         assert policy.system_turn_reaches_the_model() is True
 
@@ -538,3 +551,48 @@ class TestSystemTurnPreflight:
         text = script.read_text()
         assert ".system_turn_reaches_the_model()" in text
         assert "def system_turn_reaches_the_model" not in text
+
+
+class TestTheSystemTurnTable:
+    """``results/SYSTEM_TURN.md`` (Round 53), written by
+    ``experiments/system_turn_check.py`` against the real servers: every local model is
+    in it, every model whose runs use a system turn passes the preflight, and the ones
+    that do not are on ``--no-system-role``."""
+
+    @staticmethod
+    def _rows() -> dict[str, list[str]]:
+        text = (Path(__file__).parents[1] / "results" / "SYSTEM_TURN.md").read_text()
+        rows = {}
+        for line in text.splitlines():
+            if line.startswith("| `"):
+                cells = [c.strip() for c in line.strip("|").split("|")]
+                rows[cells[0].strip("`")] = cells[1:]
+        return rows
+
+    @staticmethod
+    def _runner():
+        import importlib.util
+
+        path = Path(__file__).parents[1] / "experiments" / "run_local_llms.py"
+        spec = importlib.util.spec_from_file_location("run_local_llms", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_every_local_model_is_recorded(self):
+        assert set(self._rows()) == set(self._runner().MODELS)
+
+    def test_every_system_turn_model_passes_and_the_rest_use_the_user_turn(self):
+        runner = self._runner()
+        for name, (short, padded, _none, passes, _rep, used) in self._rows().items():
+            if name in runner.NO_SYSTEM_ROLE:
+                assert used.startswith("user turn"), name
+                assert passes != "yes", name  # why it is on --no-system-role
+            else:
+                assert used == "system turn" and passes == "yes", name
+                assert int(padded) > int(short), name
+
+    def test_mistral_drops_it_silently(self):
+        short, padded, _none, passes, _rep, _used = self._rows()["mistral-7b"]
+        assert short == padded and passes == "**no**"

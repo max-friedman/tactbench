@@ -2,9 +2,9 @@
 
 For every model in ``run_local_llms.MODELS``, start its server and record:
 
-- the prompt token count of one user turn with and without a system turn -- the
-  structural check ``LLMPolicy.system_turn_reaches_the_model`` makes (R53); a
-  template that drops the system turn cannot raise the count;
+- prompt token counts of one user turn under a short system turn, the same turn
+  padded, and no system turn; the preflight (``LLMPolicy.system_turn_reaches_the_model``,
+  R53) requires the padded count to exceed the short one, and whether it passed;
 - whether the model repeated a secret word sent only in the system turn, for each of
   the seven preflight words -- R51's check, which also tests whether a small model
   can do it.
@@ -55,15 +55,17 @@ def check(name: str, path: Path, server_python: str, threads: int) -> str:
             text = reply["choices"][0]["message"]["content"] or ""
             repeated += word.lower() in text.lower()
         without = policy._preflight_call([question])["usage"]["prompt_tokens"]
-        reaches = with_system > without
+        padded = {"role": "system", "content": system["content"] + " " + policy.PREFLIGHT_PADDING}
+        longer = policy._preflight_call([padded, question])["usage"]["prompt_tokens"]
+        reaches = policy.system_turn_reaches_the_model()
         used = "user turn (`--no-system-role`)" if name in runner.NO_SYSTEM_ROLE else "system turn"
         return (
-            f"| `{name}` | {with_system} | {without} | {'yes' if reaches else '**no**'} "
+            f"| `{name}` | {with_system} | {longer} | {without} | {'yes' if reaches else '**no**'} "
             f"| {repeated}/{len(LLMPolicy.PREFLIGHT_WORDS)} | {used} |"
         )
     except Exception as err:  # noqa: BLE001 - recorded, e.g. Gemma 2's HTTP 500
         used = "user turn (`--no-system-role`)" if name in runner.NO_SYSTEM_ROLE else "system turn"
-        return f"| `{name}` | — | — | error: {type(err).__name__} | — | {used} |"
+        return f"| `{name}` | — | — | — | error: {type(err).__name__} | — | {used} |"
     finally:
         proc.kill()
         proc.wait()
@@ -82,14 +84,18 @@ def main() -> None:
     OUT.write_text(
         "# Does the system turn reach each model? (Round 53)\n\n"
         "Written by `experiments/system_turn_check.py` against llama-cpp-python's server. "
-        "*Tokens* are the prompt token counts of the same user turn with and without a "
-        "system turn; a template that drops the system turn cannot raise the count. "
+        "*Tokens* are prompt token counts of the same user turn under the preflight's "
+        "system turn, under that turn with padding appended, and under no system turn. "
+        "The preflight (`LLMPolicy.system_turn_reaches_the_model`) requires the padded "
+        "count to exceed the short one; a template that drops the system turn gives two "
+        "equal counts. The no-system count is shown because some templates insert a "
+        "default system prompt, which made comparing against it refuse Granite. "
         "*Repeated* is how many of the seven preflight words the model repeated when "
         "the word was sent only in the system turn -- R51's check, which a small model "
         "can fail with the turn delivered. *Runs use* is how published runs deliver the "
         "system prompt.\n\n"
-        "| model | tokens with system | tokens without | system turn reaches it "
-        "| repeated | runs use |\n|---|---|---|---|---|---|\n" + "\n".join(rows) + "\n"
+        "| model | tokens, system turn | padded | no system turn | preflight passes "
+        "| repeated | runs use |\n|---|---|---|---|---|---|---|\n" + "\n".join(rows) + "\n"
     )
 
 
