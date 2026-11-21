@@ -662,6 +662,16 @@ sides and **6** of those are backwards. Mistral-7B ran with `--no-system-role`, 
 its chat format drops a system turn without an error (see *Running an LLM*).
 <!-- v4-added-claims:end -->
 
+#### On dataset v5 — a twelfth family
+
+All 28 runs on `v5` (Round 52: v4 plus `water_notice`, 480 dev moments), Round 53. The
+eleven old families are byte-identical to v4's, so those 440 decisions were reused
+from the v4 runs (a test checks every one is unchanged) and only the 40
+`water_notice` moments were sent to a model.
+
+<!-- llm-results-v5:start -->
+<!-- llm-results-v5:end -->
+
 `pairs` is the share of matched pairs answered correctly on **both** sides. The two
 sides share a body and need opposite answers, so a policy that does not read the
 deciding signal scores 0% there however its ICS looks — a constant policy scores
