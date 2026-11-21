@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 48 complete (`shipped`) — all 22 LLM runs on `v4`; on `home_security`
+- **Round:** 49 complete (§A `holds`) — a character n-gram model reads chance on
+  held-out test, gated. R48: all 22 LLM runs on `v4`; on `home_security`
   17 of 22 are constant and the best reads 1 of 20 pairs. R47: dataset `v4`: v3 plus an eleventh family,
   `home_security`. R46: all 22 LLM runs on `v3`; on `pet_care` 18 of
   22 are constant and the best reads 3 of 20 pairs. R45: dataset `v3`: v2 plus a tenth family,
@@ -27,7 +28,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **808 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **809 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2716,6 +2717,95 @@ stated and gated. (3) "Moves more than on v3" now gated against v2→v3's 0 reve
 
 ---
 
+## Round 49 — §A audit: does a character n-gram model beat silence?
+
+**Ending state: §A verdict `holds`.** The pre-registration below was committed alone,
+before any measurement (3e6c2fd).
+
+**Claim, verbatim (README, *Shortcut resistance*):** "**A surface model no longer beats
+silence.**" The probes behind it are word unigrams, word bigrams, position-tagged
+words, a dict lookup, and (R45/R47) six clause features. None sees text below the word,
+and R47's leak was exactly that: an *-er* suffix rule read 90% before it was fixed. So
+the untried surface model chosen here is **character n-grams (3-5, within and across
+word boundaries) under L2 logistic regression**.
+
+**Probe.** `experiments/char_ngram_audit.py`, independent of the code under test: it
+imports nothing from `tactbench`, reads the committed JSONL, and builds features from
+signal `content` strings only. Pair ids and labels are used to group and to score,
+never as features. Fit on `dev`, scored on held-out `test` (frames 5-7, phrasings
+absent from dev). Run on v2, v3 and v4.
+
+**Falsified if, on any of v2/v3/v4 `test`:** overall accuracy **≥ 60%** (264 items on
+v4; chance sd about 3.1 points), **or** pairs-both-right **≥ 37.5%** (coin 25%, sd
+about 3.8 points on 132 pairs). Secondary, reported but not the verdict: test ICS
+against silence, scored afterwards by the project's scorer, since the probe must not
+import it.
+
+**Verdict: `holds`.** v4, the gated configuration: dev fit 93.2%, held-out test
+accuracy **51.5%**, pairs-both-right **12.1%**, test ICS −50.9 against silence. Over
+shuffle seeds 0-4 on v2, v3 and v4 (15 fits): accuracy 48.3-53.3%, pairs-both-right
+9.2-16.7%, best ICS −17.6 against silence, never above it. Both falsifiers are clear by
+at least 6.7 and 20.8 points.
+
+**The probe changed after its first reading, in one direction: stronger.** As
+pre-registered, the learner was 3-5-gram SGD logistic regression. It fit only 54-57% of
+dev and gave near-constant test answers, so it could not have found anything. Its test
+readings (48.6-50.4%) were not taken as a verdict. Two changes followed:
+- n widened to 3-8, since a role swap such as `avoiding the garage` / `weeding the porch`
+  leaves nearly the same 3-5-gram multiset on both sides, and the span that tells them
+  apart (`ing the g`) is longer;
+- the learner became an averaged perceptron, which fits any separable training set.
+
+Every intermediate reading was under both thresholds, so the change could not have
+moved the verdict toward `holds`. The thresholds did not change.
+
+**Positive control, added because a clean reading from a probe that cannot see is the
+R47 mistake.** `ish` is glued to the last word of every stay-quiet moment's last
+signal, on dev and test. The probe finds it on held-out frames at **99.2%** (v4) and
+100% (v2, v3). The gate requires ≥90% on the control and ≥85% dev fit, or reports
+`unmeasurable as stated`. Both thresholds were mutated, and the gate went red each time.
+
+**Wired in** (§A step 6): `test_the_char_ngram_audit_holds`, v4 only (~20 s). v2 and v3
+are frozen, and v4 contains all their families. The test also asserts that the probe
+imports nothing from `tactbench`. ICS was scored afterwards by the project's scorer in
+a scratch script; it is not part of the gate.
+
+**Review (subagent, not §D-independent) — no HIGH; two MEDIUM, both fixed.** I
+reproduced the reviewer's numbers before acting on them.
+(1) *The control did not show sub-word power.* `ish` on the **last** word often hit a
+recurring entity, and the reviewer measured word unigrams on it at 86%. It now goes on
+a **middle** word of three or more letters. The char probe reads it at 96.7-99.1% and
+word unigrams at 53-55%. The gate now also requires word unigrams to stay under 60% on
+the control, or the reading is `unmeasurable`.
+(2) *The pairs falsifier is mis-specified for a pair-aware probe.* The reviewer's
+strongest learner trains on the difference between a pair's two deciders and answers
+the sides oppositely. So it gets about 50% pairs-both-right with no reading at all, not
+a coin's 25%.
+- My reproduction over 15 fits: pairs-both-right **33.3-39.2%**, which **crosses the
+  literal pre-registered 37.5% in 7 of 15**.
+- Its right-side choice is 48.4-57.7%. It is above 50% on every v2 and v3 seed, but no
+  single fit is significant (p ≥ 0.2 at 71-94 split pairs).
+- It never beats silence; the closest is −1.0, on v2 seed 1.
+
+**I did not rewrite the threshold.** Read literally, the pre-registration is tripped
+by this variant. I keep the verdict at `holds` because the claim is about beating
+silence, which no variant does, and because the variant's side-choice reads chance.
+That is a judgement, and it is written down here rather than hidden.
+
+Pair-choice accuracy is now reported for every probe. The pair-aware variant is in the
+probe and gated at a side-choice below **65%** (`MAX_PAIR_CHOICE`). That bound was
+added after the review and is labelled so in the code. The fit and control floors (85%
+and 90%) were also set after the first strong reading, not pre-registered.
+LOW: the first learner's readings were never committed. They are recorded only here.
+
+**What it does not show.** A character n-gram model is one more probe, not all of them.
+The standing invariant is still "a clean audit bounds only the shortcuts you thought to
+test".
+
+**Loop:** nothing.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -2737,6 +2827,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
 | A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — three instances in one project. Check LOOP.md's measurement guidance first. |
+| A pre-registered falsifier names its null | R49: an §A audit pre-registered "pairs-both-right ≥ 37.5%" against a coin's 25%. Review found a pair-aware probe gets about 50% at chance, so the literal falsifier fired on 7 of 15 fits that read nothing. The fix: state which null a threshold is calibrated against, and which probes it can judge. | **candidate** — one instance. Check §A step 2 ("state the number that would falsify it") first; this may refine it, not add to it. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
@@ -2771,6 +2862,13 @@ dataset or the policy is wrong, not the assertion.
   5 of 9 at its worst over eight seeds. This limits the *bound*, not the gate —
   `TestProseFrameStructure` catches every frame-shape defect on all nine families
   without a dataset or a seed.
+- **A character 3-8-gram model fit on dev reads chance on held-out test** (R49 §A):
+  accuracy < 60%, pairs-both-right < 37.5%. Its pair-aware variant picks the right
+  side of < 65% of pairs. The probe must still fit dev (≥ 85%) and find a planted
+  mid-word suffix (≥ 90%), and word unigrams must miss that suffix (< 60%). Otherwise
+  the reading counts as unmeasured, not clean. `test_the_char_ngram_audit_holds`.
+  **Judge pair-aware probes by side choice (chance 50%), never by pairs-both-right
+  against a coin's 25%.**
 - **A clean audit bounds only the shortcuts you thought to test.** A probe scoring
   at chance means *that probe* found nothing — not that the dataset forces a
   judgment. R11: ten rounds of 50.0% were a bag of words being unable to see
