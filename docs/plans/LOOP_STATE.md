@@ -13,9 +13,10 @@ findings** below.
 
 ## Current status
 
-- **Loop audit due:** R57 (fifth round after R52's audit). A round at or past it runs
+- **Loop audit due:** R62 (fifth round after R57's audit). A round at or past it runs
   the audit or writes `deferred: <reason>` on its Loop line (proposed upstream, #60).
-- **Round:** 56 complete — two method findings sent upstream: the audit-cadence
+- **Round:** 57 complete — loop audit (due); the null finding filed upstream (#61).
+  R56: two method findings sent upstream: the audit-cadence
   resubmission (#60) and R55's instance on #56. No code changed. R55: marker-aware order checks for all five random-marker
   families (queue Q); v2-v5 already read exactly 50%, v1 dev is R36's known imbalance. R54: all 28 LLM runs on `v5`; on `water_notice` 18 of 28 are
   constant, the best reads 5 of 20 pairs (a coin's expectation; not measurably better), and no verdict changes.
@@ -3115,6 +3116,43 @@ status lines are docs only.
 
 ---
 
+## Round 57 — loop audit; a falsifier must state its null
+
+**Ending state: `shipped`.** The audit was due twice over: R57 by the marker, and R55–R56
+had two non-`nothing` Loop lines in a row. The round's item was the oldest
+well-evidenced candidate, "a threshold count needs its null". **Before:** it was a
+candidate since R37, with a companion row (R49's falsifier) left unfiled pending a check
+against §2 and §A step 2. **After:** both checked and filed together as #61. §2 and §A
+ask for "the number that would falsify it", never for what that number reads under
+chance or at what sample size. No existing issue covers it. Five instances: R22, R25,
+R37, R49 and R52. The proposal includes R52's post-hoc widening of the seed window as
+evidence *against* stopping at "name a null", and as the reason sample size is part of
+the clause.
+
+**Loop audit (§C), R52–R56.**
+- *Disproportionate effort?* No step. The LLM runs were long but produced the round's
+  result.
+- *Skipped or impossible steps?* One, local. R56's `git push -q … | tail` swallowed a
+  refusal. The branch, reset with `checkout -B … origin/main`, tracked `main`, and a
+  bare push refuses a name mismatch. So the PR showed the previous head, and a CI waiter
+  polled a commit GitHub never had for ten minutes. A stop hook caught it. Fix, adopted
+  here: set the branch's upstream right after the reset, and never quiet a push's output.
+  Not a protocol issue.
+- *Unread state-file sections?* None found. The method-findings table was the source of
+  both filings.
+- *Ending states outside §D?* None since R52's correction.
+- *Stop conditions late or missing?* None fired. The owner's standing instruction is to
+  continue.
+- *Ambiguous instructions?* None new. Review independence (#29) still applies to every
+  round: each is reviewed by an in-session subagent on the owner's instruction.
+
+**Review:** none needed for docs-only changes. The issue text follows the §C checklist.
+
+**Loop:** audit run on time (due marker read); null finding filed (#61); a local push
+slip, fixed locally.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -3137,8 +3175,8 @@ already covered or out of scope, and filing them would have wasted triage.
 | The audit cadence is never prompted | R28 ran the only loop audit until R52; §C's every-fifth-round and two-non-`nothing` triggers fired at R32-R33, R33, R36-R37, R38, R43 and R48 and no round noticed. Nothing in the round steps checks the cadence. | **filed — [issue #60](https://github.com/max-friedman/agentic-coding-loop/issues/60)** (R56), as a resubmission of the rejected #21 (another project, same cause) with the blast-radius section #21 lacked: a due marker plus an explicit defer. Locally, `**Loop audit due:**` in Current status, as #21's project did. |
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |
 | No ending state for "shipped, then overturned by its review" | R22 shipped and its review requested changes; R27 was first written `refuted` for a measuring round whose plan succeeded. Both entries had to qualify their ending state in prose. | **candidate** — two instances, low cost each. |
-| A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — four instances in one project (R52: with a null, a 20-seed window failed — 50% against 25% — while 60 seeds read 30% against 31%; the count needs its sample size too). Check LOOP.md's measurement guidance first. |
-| A pre-registered falsifier names its null | R49: an §A audit pre-registered "pairs-both-right ≥ 37.5%" against a coin's 25%. Review found a pair-aware probe gets about 50% at chance, so the literal falsifier fired on 7 of 15 fits that read nothing. The fix: state which null a threshold is calibrated against, and which probes it can judge. | **candidate** — one instance. Check §A step 2 ("state the number that would falsify it") first; this may refine it, not add to it. |
+| A threshold count needs its null (R42 variant: a stability figure needs a discrimination figure beside it) — **filed with the row below as [issue #61](https://github.com/max-friedman/agentic-coding-loop/issues/61) (R57)** | R37 reported "cells above 60%: 97 → 45 of 180" as an improvement; a label-swap null gives 101 → 77, so most of both counts was chance. R22 and R25 published per-family "seeds above 60%" counts with no null either. | **candidate** — four instances in one project (R52: with a null, a 20-seed window failed — 50% against 25% — while 60 seeds read 30% against 31%; the count needs its sample size too). Check LOOP.md's measurement guidance first. |
+| A pre-registered falsifier names its null — **filed with the row above as [#61](https://github.com/max-friedman/agentic-coding-loop/issues/61)** | R49: an §A audit pre-registered "pairs-both-right ≥ 37.5%" against a coin's 25%. Review found a pair-aware probe gets about 50% at chance, so the literal falsifier fired on 7 of 15 fits that read nothing. The fix: state which null a threshold is calibrated against, and which probes it can judge. | **candidate** — one instance. Check §A step 2 ("state the number that would falsify it") first; this may refine it, not add to it. |
 | An experiment's knob must move one thing | R27 reused a parameter that already drove the coin flips to also select the comprehended set, then attributed all the measured variance to the set. Every number reproduced; the explanation was wrong, and only review separated the sources. R26 had the same confound one level down: changing an id moved two hash-derived quantities, and the docs credited one. | **candidate** — two instances in one project, adjacent rounds. Check §A's pre-registration text first; this may be a variant of "state what would prove you wrong" applied to the instrument rather than the claim. |
 | A failed call scored as an answer is a perfect baseline | R23: 504 HTTP 500s scored as silence produced a run indistinguishable from the bar. Any eval loop that maps errors to a default action has this. | **candidate** — narrower; may belong in project docs, not the loop. |
 | Session-mandated branch names vs the loop's branch convention | R23 pushed to `loop/round-23`, then to the mandated branch; the stray branch could not be deleted. | **candidate** — needs a second instance. |
