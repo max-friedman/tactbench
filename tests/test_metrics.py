@@ -29,6 +29,7 @@ from tactbench.audit import (
     verbatim_overlap,
 )
 from tactbench.dataset.generate import (
+    ALL_FRAMES,
     FRAMES,
     HELD_OUT_FRAMES,
     MIN_PAIRS_FOR_BALANCED_ORDER,
@@ -1248,9 +1249,9 @@ class TestFrameDisjointness:
         text = " ".join(skeleton(clause)).lower()
         return {self._stem(w) for w in re.findall(r"[a-z]+", text) if w not in self.STOP}
 
-    @pytest.mark.parametrize("family", sorted(FRAMES))
+    @pytest.mark.parametrize("family", sorted(ALL_FRAMES))
     def test_every_frame_is_lexically_disjoint_from_every_other(self, family):
-        frames = FRAMES[family]
+        frames = ALL_FRAMES[family]
         assert len(frames) == 8, f"{family} has {len(frames)} frames, expected 8"
         vocab = [self._content(a) | self._content(b) for a, b in frames]
         for i, j in itertools.combinations(range(len(frames)), 2):
@@ -1262,7 +1263,7 @@ class TestFrameDisjointness:
 
     def test_held_out_frames_exist_and_are_reserved(self):
         assert HELD_OUT_FRAMES == frozenset({5, 6, 7})
-        for family, frames in FRAMES.items():
+        for family, frames in ALL_FRAMES.items():
             assert max(HELD_OUT_FRAMES) < len(frames), family
 
 
@@ -1358,12 +1359,16 @@ class TestSignalJoinIsFree:
             out.extend(f"{a}_{b}" for a, b in zip(toks, toks[1:], strict=False))
         return out
 
-    @pytest.mark.parametrize("family", sorted(FRAMES))
+    @pytest.mark.parametrize("family", sorted(ALL_FRAMES))
     def test_join_buys_the_probe_nothing(self, family):
         # 30 rather than MIN_PAIRS_FOR_BALANCED_ORDER: at the 16-pair minimum this
         # check still never false-positives, but it catches the clause-initial
         # mutation in only 24 of 30 seeds. 30 pairs takes it to 29 of 30 for ~0.1s.
-        items = [i for i in generate(n_pairs_per_scenario=30) if i.moment.family == family]
+        items = [
+            i
+            for i in generate(n_pairs_per_scenario=30, families=len(ALL_FRAMES))
+            if i.moment.family == family
+        ]
         joined = lexical_leakage(items, features=item_bigrams, group=_frame_key)
         separate = lexical_leakage(items, features=self._separated_bigrams, group=_frame_key)
 
@@ -1491,9 +1496,9 @@ class TestProseFrameStructure:
         head = clause.split(WHO)[0].split()
         return head[-1].lower() if head else None
 
-    @pytest.mark.parametrize("family", sorted(FRAMES))
+    @pytest.mark.parametrize("family", sorted(ALL_FRAMES))
     def test_the_filler_is_never_clause_initial(self, family):
-        for n, clauses in enumerate(FRAMES[family]):
+        for n, clauses in enumerate(ALL_FRAMES[family]):
             for clause in clauses:
                 assert clause.count(WHO) == 1, f"{family} frame {n}: {clause!r}"
                 assert self._before_slot(clause) is not None, (
@@ -1502,9 +1507,9 @@ class TestProseFrameStructure:
                     "frames, so that bigram transfers through a held-out frame."
                 )
 
-    @pytest.mark.parametrize("family", sorted(FRAMES))
+    @pytest.mark.parametrize("family", sorted(ALL_FRAMES))
     def test_no_clause_opens_with_a_stopword(self, family):
-        for n, clauses in enumerate(FRAMES[family]):
+        for n, clauses in enumerate(ALL_FRAMES[family]):
             for clause in clauses:
                 first = skeleton(clause)[0].lower().strip(".,")
                 assert first not in self.STOP, (
@@ -1513,17 +1518,17 @@ class TestProseFrameStructure:
                     "against it, and a token every frame shares transfers."
                 )
 
-    @pytest.mark.parametrize("family", sorted(FRAMES))
+    @pytest.mark.parametrize("family", sorted(ALL_FRAMES))
     def test_both_clauses_have_equal_skeletons(self, family):
-        for n, (a, b) in enumerate(FRAMES[family]):
+        for n, (a, b) in enumerate(ALL_FRAMES[family]):
             assert len(skeleton(a)) == len(skeleton(b)), (
                 f"{family} frame {n}: {len(skeleton(a))} vs {len(skeleton(b))} tokens. "
                 "Unequal clauses shift the marker's position with the clause it occupies."
             )
 
-    @pytest.mark.parametrize("family", sorted(FRAMES))
+    @pytest.mark.parametrize("family", sorted(ALL_FRAMES))
     def test_the_token_before_the_slot_is_shared_across_a_frames_clauses(self, family):
-        for n, (a, b) in enumerate(FRAMES[family]):
+        for n, (a, b) in enumerate(ALL_FRAMES[family]):
             assert self._before_slot(a) == self._before_slot(b), (
                 f"{family} frame {n}: {self._before_slot(a)!r} vs "
                 f"{self._before_slot(b)!r}. A differing token before the slot makes the "
@@ -1569,7 +1574,7 @@ class TestOrderBalancePrecondition:
     #: privileged clause is.
     @staticmethod
     def _privileged_first(item: Item) -> bool:
-        frames = FRAMES[item.moment.family]
+        frames = ALL_FRAMES[item.moment.family]
         privileged_template = frames[frame_of(item.moment) % len(frames)][0]
         first_clause = item.moment.signals[-1].content.split(". ")[0].rstrip(".")
         return SkylinePolicy._filler_in(first_clause, privileged_template) is not None

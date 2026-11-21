@@ -363,14 +363,17 @@ directions:
 > chance"* — **stay quiet**. Same contact, same repetition, same hour. Repetition
 > alone must never be enough to break DND at 3am.
 
-**Two versions.** `v1` (20 pairs per family; 252 dev / 108 test) is what every
+**Three versions.** `v1` (20 pairs per family; 252 dev / 108 test) is what every
 figure in this README is measured on. `v2` (Round 37) is the same generator at 32
 pairs per family (360 dev / 216 test). At 20 pairs, clause order is unbalanced
 within frames and a position-aware probe exploits it — overall it beats a
 label-shuffled null on 9 of 20 seeds; at 32 it does not on any, and `driving`'s
 fixed 63.3% becomes exactly 50.0%. Every LLM run has been redone on `v2`; the ordering, silence
 and pairs conclusions replicate, with three small exceptions listed under *On dataset
-v2*. Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator-at-32-pairs-round-37).
+v2*. Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator-at-32-pairs-round-37). `v3` (Round 45) is v2 plus a tenth family,
+`pet_care` (400 dev / 240 test); its first nine families are identical to v2's, and no
+LLM has been run on it yet
+([details](docs/DATASET.md#dataset-v3--a-tenth-family-pet_care-round-45)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
 
@@ -629,7 +632,7 @@ otherwise would defeat the purpose of building a benchmark:
   counted as ties rather than misses.
 - **Moments are synthetic and template-generated.** Eight frames per family is
   still eight, and the scenarios remain a small hand-authored set — nine families
-  is nine effective degrees of freedom, whatever the item count. The deciders
+  (ten in `v3`) is nine (ten) effective degrees of freedom, whatever the item count. The deciders
   themselves are no longer uniform: Round 16 restored prose phrasing
   (*"Behind the screen is your prescription. Through the till is Elena's
   prescription."*) while holding every family at the 50% chance floor on the
@@ -650,8 +653,8 @@ otherwise would defeat the purpose of building a benchmark:
   the most expensive error the model prices. That concentration is deliberate, and
   it means the headline is sensitive to how that one family is written. It is no
   longer *exploitable* (see above), but it is still load-bearing.
-- **All nine families are one author's idea of a working life** — knowledge work,
-  a car, a pharmacy, school pickup. Interruption norms are culturally specific and
+- **All ten families are one author's idea of a working life** — knowledge work,
+  a car, a pharmacy, school pickup, a pet. Interruption norms are culturally specific and
   this captures one culture's.
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
@@ -688,8 +691,9 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    frontier models are not.
 2. Human-labeled subset with reported agreement — the labeling tool and κ are built
    (Round 31); the labels themselves need people.
-3. More scenario families — nine is still one author's idea of a working life, and
-   family count, not phrasing, is now the ceiling on dataset diversity.
+3. More scenario families — ten (`v3`, Round 45) is still one author's idea of a
+   working life, and family count, not phrasing, is the ceiling on dataset diversity.
+   v3 has no LLM runs yet.
 4. Held-out test split behind a submission script — **blocked on custody**, not
    code (Round 33). Hiding the label file or the seed hides nothing; keeping the
    held-out *frames* private does (see limitations). It needs someone to write fresh

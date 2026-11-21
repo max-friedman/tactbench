@@ -5,6 +5,15 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 45)
+
+- **Dataset `v3`**: v2 plus a tenth family, `pet_care` (400 dev / 240 test). Built with
+  `tactbench build --version v3 --pairs 32 --families 10`; `generate(families=)`.
+  The family is appended (`LATER_SCENARIOS`, `LATER_FRAMES`), so v1 and v2 are
+  unchanged and v3's first nine families equal v2's — asserted in
+  `tests/test_dataset_v3.py`. The skyline resolves the new family; no LLM has been
+  run on v3.
+
 ### Added (Round 44)
 
 - **mypy** over `src/tactbench` (`[tool.mypy]` in `pyproject.toml`,
