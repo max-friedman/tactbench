@@ -108,7 +108,8 @@ board.innerHTML =
 function fmt(x) { return x === null ? '—' : x.toFixed(3); }
 
 document.getElementById('meta').textContent =
-  DATA.n + ' moments · ' + DATA.split + ' split · silence ICS ' +
+  'dataset ' + DATA.version + ' · ' + DATA.n + ' moments · ' + DATA.split +
+  ' split · silence ICS ' +
   DATA.silence.toFixed(1) + ' · pair-blind ICS ' + DATA.pair_blind.toFixed(1);
 
 const policySel = document.getElementById('policy');
@@ -180,8 +181,9 @@ render();
 """
 
 
-def build_payload(items: list[Item], split: str) -> dict:
-    """Score every policy once and flatten it into what the page needs."""
+def build_payload(items: list[Item], split: str, version: str) -> dict:
+    """Score every policy once and flatten it into what the page needs. ``version``
+    is required so the page can say which dataset it shows (R59: it never did)."""
     silence = silence_ics(items)
     bar = pair_blind_ics(items)
     cards: list[Scorecard] = []
@@ -221,6 +223,7 @@ def build_payload(items: list[Item], split: str) -> dict:
     moments = [
         {
             "id": it.moment.id,
+            "family": it.moment.family,
             "state": it.moment.user_state.activity.value,
             "dnd": it.moment.user_state.dnd,
             "hour": it.moment.user_state.local_hour,
@@ -242,6 +245,7 @@ def build_payload(items: list[Item], split: str) -> dict:
         "pair_blind": bar,
         "n": len(items),
         "split": split,
+        "version": version,
     }
 
 
@@ -270,10 +274,10 @@ class _Handler(BaseHTTPRequestHandler):
 
 def serve(version: str = "v1", split: str = "dev", port: int = 8000) -> None:
     items = load(version, split)
-    payload = build_payload(items, split)
+    payload = build_payload(items, split, version)
     handler = partial(_Handler, payload=payload)
     url = f"http://127.0.0.1:{port}/"
-    print(f"TactBench viewer — {len(items)} moments on {split} → {url}")
+    print(f"TactBench viewer — {len(items)} moments on {version}/{split} → {url}")
     print("Ctrl-C to stop.")
     webbrowser.open(url)
     try:
