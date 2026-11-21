@@ -61,7 +61,7 @@ def _family_dev(seed: int, family: str) -> list:
 
 
 def test_v4_is_v3_plus_one_appended_family():
-    assert len(ALL_SCENARIOS) == FAMILIES
+    assert len(ALL_SCENARIOS) >= FAMILIES  # v5 (R52) appends; test_dataset_v5 pins the total
     assert [s.family for s in ALL_SCENARIOS[:FAMILIES]][-1:] == NEW
     assert set(NEW) <= set(LATER_FRAMES)
 

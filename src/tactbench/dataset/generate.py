@@ -77,6 +77,16 @@ ZONES = [
     "laundry", "mudroom",
 ]  # fmt: skip
 
+#: Districts for ``water_notice`` (Round 52). Single words, so a district never
+#: shares a token with a frame; wide for the same reason as PETS and ZONES.
+DISTRICTS = [
+    "Ashby", "Bexley", "Carlow", "Denton", "Elstow", "Farley", "Garston", "Harlow",
+    "Ilford", "Kenley", "Langley", "Marlow", "Norbury", "Oakham", "Penrith", "Radley",
+    "Selby", "Thornby", "Upton", "Ventnor", "Walton", "Alston", "Brixton", "Crawley",
+    "Dunmore", "Eastleigh", "Felton", "Glossop", "Hexham", "Ketton", "Ludlow", "Morley",
+    "Newby", "Otley", "Pershore", "Ripley", "Stanway", "Tilbury", "Wetherby", "Yeovil",
+]  # fmt: skip
+
 COLLEAGUES = [
     "Priya Raman",
     "Marco Silva",
@@ -336,6 +346,27 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
         ("Decorators banned from the {who}", "Decorators invited inside the {who}"),
         ("Roofers bypassing the {who}", "Roofers repairing the {who}"),
         ("Electricians disallowed from the {who}", "Electricians admitted to the {who}"),
+    ],
+    "water_notice": [
+        # Privileged: where the user lives now; the other clause is a former address.
+        # Chosen by search (R52) over 29 candidates that meet the structural rules
+        # (equal skeletons, a shared token before the slot, no stopword opening,
+        # vocabulary disjoint across frames) and read clearly as home-now vs former
+        # home, so that for every clause feature the probes gate (chars, -er, -s,
+        # -ing, -ed, longest word) and for vowel and consonant counts, the privileged
+        # clause wins as often as it loses on dev frames (0-4) and on held-out frames
+        # (5-7) separately. A first set balanced the gated six only, and "speak iff
+        # the notice district's clause has more vowels" read 80% dev / 83% test. The
+        # R52 reviews dropped five ambiguous frames ("Unpacked boxes", "Boiler
+        # drained", "Sofa collected", "Electricity meter read", "Spare room vacated").
+        ("Currently renting in {who}", "Previously renting in {who}"),
+        ("Presently housed in {who}", "Formerly housed in {who}"),
+        ("Home address lists {who}", "Old address lists {who}"),
+        ("Keys received in {who}", "Keys returned in {who}"),
+        ("Nameplate fixed on a door in {who}", "Nameplate unscrewed from a door in {who}"),
+        ("Broadband installed in {who}", "Broadband cancelled in {who}"),
+        ("Doorbell camera mounted in {who}", "Doorbell camera unmounted in {who}"),
+        ("Moving van unloaded in {who}", "Moving van loaded in {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
@@ -1119,6 +1150,58 @@ class HomeSecurityScenario(Scenario):
         )
 
 
+class WaterNoticeScenario(Scenario):
+    """A water company posts a boil-water notice for one of two districts in the
+    evening, while the user is out with friends. The decider is which district is home
+    now and which is a former address -- both districts appear in the shared body and
+    on both sides, and swap roles. Round 52, dataset v5 only."""
+
+    family = "water_notice"
+    intent = "boil_water_alert"
+    positive_value = 3
+    window_s = 3600
+    positive_slices = ["time_critical", "health_risk"]
+    near_slices = ["not_affected", "health_risk"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.SOCIAL,
+            device="phone",
+            last_interaction_s=rng.randint(60, 1800),
+            local_hour=rng.randint(17, 21),
+        )
+
+    def body(self, rng):
+        self._notice, self._safe = rng.sample(DISTRICTS, 2)
+        a, b = self._notice, self._safe
+        # The notice district is named first in two phrasings and second in two (R45).
+        phrasing = rng.choice(
+            [
+                f"Water company: boil-water notice for {a}. Tap water in {b} is safe.",
+                f"Water alert — {b} is unaffected, but a boil-water notice covers {a}.",
+                f"Boil-water notice issued for {a} an hour ago. No change in {b}.",
+                f"Water update: no change in {b}; boil-water notice issued for {a}.",
+            ]
+        )
+        return [
+            Signal(source=Source.APP_EVENT, age_s=300, content=phrasing, meta={"app": "utilities"})
+        ]
+
+    decider_source = Source.EMAIL
+    decider_age_s = 2592000
+
+    def fillers(self, rng):
+        return self._notice, self._safe
+
+    def why(self):
+        return (
+            "The notice covers the district the user lives in now; tap water at home is "
+            "unsafe to drink tonight, and that is worth knowing before they get back.",
+            "The notice covers a former address, and home is in the district that is "
+            "safe. Nothing tonight needs breaking off a social evening for.",
+        )
+
+
 SCENARIOS: list[Scenario] = [
     TravelScenario(),
     DeadlineScenario(),
@@ -1134,7 +1217,11 @@ SCENARIOS: list[Scenario] = [
 #: Families added after v2, in order. Appended -- never inserted -- so a dataset built
 #: with ``families=len(SCENARIOS)`` (v1, v2) consumes the generator's random stream
 #: exactly as before, and every moment of the first nine families is unchanged in v3.
-LATER_SCENARIOS: list[Scenario] = [PetCareScenario(), HomeSecurityScenario()]
+LATER_SCENARIOS: list[Scenario] = [
+    PetCareScenario(),
+    HomeSecurityScenario(),
+    WaterNoticeScenario(),
+]
 ALL_SCENARIOS: list[Scenario] = [*SCENARIOS, *LATER_SCENARIOS]
 
 
@@ -1156,7 +1243,7 @@ def generate(
     rather than leaving it to be rediscovered.
 
     ``families`` takes the first that many of :data:`ALL_SCENARIOS`; the default is
-    the original nine, which v1 and v2 use. v3 uses ten, v4 eleven.
+    the original nine, which v1 and v2 use. v3 uses ten, v4 eleven, v5 twelve.
     """
     rng = random.Random(seed)
     items: list[Item] = []

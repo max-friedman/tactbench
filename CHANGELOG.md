@@ -5,6 +5,15 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 52)
+
+- **Dataset `v5`**: v4 plus a twelfth family, `water_notice` (480 dev / 288 test).
+  Built with `tactbench build --version v5 --pairs 32 --families 12`. v1-v4 are
+  unchanged and v5's first eleven families equal v4's — asserted in
+  `tests/test_dataset_v5.py`. Frames chosen by search to balance eight clause
+  features; unigram and bigram 50.0%; the R49 character n-gram audit holds on v5. No
+  LLM has been run on v5.
+
 ### Added (Round 51)
 
 - **`tactbench llm --provider local` checks the system turn reaches the model** before
