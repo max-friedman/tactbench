@@ -366,10 +366,16 @@ every pair — a rule "speak iff the notice district is in the first clause" the
 100% — and the positional test still passed. Order is guarded instead by a
 marker-aware check: within each label, the notice district leads the decider exactly
 half the time (and a mutation test forces the order and requires 100%). `pet_care` and
-`home_security` have the same kind of marker. Since Round 55 the same check
-(`tests/test_marker_order.py`) covers all three families on every version that carries
-them: the marker leads in exactly half of each label, so the order rule reads 50.0% on
-dev and test, and forcing the order for any one family makes it read 100%.
+`home_security` have the same kind of marker, and so do `travel` (the gate boarding
+moved away from) and `commerce` (the item whose return window closes). Since Round 55 the
+same check (`tests/test_marker_order.py`) covers all five, on every version that carries
+them, and is tied to the skyline's list of body-read markers so a new one cannot be
+missed. On the committed builds the marker leads in exactly half of each label, so the
+order rule reads 50.0%; forcing the order for any one family in a fresh build makes it
+read 100%. The exception is v1 dev for `travel` and `commerce`, which fails it for the
+same reason v1 fails cell balance (Round 36): 20 pairs over 8 frames. It is a strict
+xfail. The check is the privileged-first fraction read through the marker, so it holds
+only for builds whose pair count is a multiple of 16, as the committed v2-v5 builds' 32 is.
 
 The token-positional reading itself: on the shipped seed the family reads 57.5%
 positional against a label-swap null of 57.5%. Over the first 20 seeds 10 read above
