@@ -97,7 +97,7 @@ board.innerHTML =
     const bcls = r.vs_pair_blind > 0 ? 'good' : 'bad';
     const bsign = r.vs_pair_blind > 0 ? '+' : '';
     const v = r.violations ? '<span class="bad">' + r.violations + '</span>' : '0';
-    return '<tr><td><b>' + r.policy + '</b></td><td>' + r.ics.toFixed(1) +
+    return '<tr><td><b>' + esc(r.policy) + '</b></td><td>' + r.ics.toFixed(1) +
       '</td><td class="' + cls + '">' + sign + r.normalized.toFixed(1) +
       '</td><td class="' + bcls + '">' + bsign + r.vs_pair_blind.toFixed(1) +
       '</td><td>' + fmt(r.precision) + '</td><td>' + fmt(r.recall) +
@@ -148,13 +148,13 @@ function render() {
     const want = m.should ? 'should have spoken' : 'should have stayed quiet';
     const cls = d.hard ? 'bad' : (bad ? 'warn' : 'good');
     return '<div class="card' + (bad ? ' err' : '') + '">' +
-      '<div class="row"><span class="id">' + m.id + '</span>' +
-      '<span class="id">' + m.state +
+      '<div class="row"><span class="id">' + esc(m.id) + '</span>' +
+      '<span class="id">' + esc(m.state) +
       (m.dnd ? ' · DND' : '') + ' · ' + m.hour + ':00' +
-      m.slices.map(function (s) { return '<span class="badge">' + s + '</span>'; }).join('') +
+      m.slices.map(function (s) { return '<span class="badge">' + esc(s) + '</span>'; }).join('') +
       '</span></div>' +
       m.signals.map(function (s) {
-        return '<div class="sig"><b>' + s.source + '</b><br>' + esc(s.content) + '</div>';
+        return '<div class="sig"><b>' + esc(s.source) + '</b><br>' + esc(s.content) + '</div>';
       }).join('') +
       '<div class="verdict"><span class="' + cls + '">' + said + '</span>' +
       ' · ' + want + ' · cost ' + d.cost.toFixed(1) +
@@ -164,9 +164,11 @@ function render() {
   }).join('') || '<p class="sub">Nothing matches those filters.</p>';
 }
 
+// Every text field goes through this before innerHTML (R60: five did not, and planted
+// markup in a policy name or moment id ran). Quotes too, so attribute use is safe.
 function esc(s) {
-  return s.replace(/[&<>]/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c];
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
 }
 
@@ -257,6 +259,17 @@ def header(version: str, split: str, n: int, silence: float, bar: float) -> str:
     )
 
 
+def embed(payload: dict) -> str:
+    """The payload as a JavaScript literal that cannot leave its <script> block.
+
+    Every ``<``, ``>`` and ``&`` becomes a JSON unicode escape. In JSON they can only
+    occur inside strings, so the value is unchanged. Rewriting only ``</`` (before R60)
+    left ``<!--<script>`` able to put the HTML parser in a state where the page's own
+    ``</script>`` no longer closes the block, which blanked the viewer."""
+    blob = json.dumps(payload)
+    return blob.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+
+
 class _Handler(BaseHTTPRequestHandler):
     def __init__(self, *args, payload: dict, **kwargs):
         self._payload = payload
@@ -266,10 +279,10 @@ class _Handler(BaseHTTPRequestHandler):
         if self.path not in ("/", "/index.html"):
             self.send_error(404)
             return
-        # json.dumps escapes nothing HTML-significant by default, so close the
-        # one tag that could terminate the surrounding <script> block early.
-        blob = json.dumps(self._payload).replace("</", "<\\/")
-        body = PAGE.replace("__DATA__", blob).encode()
+        body = PAGE.replace("__DATA__", embed(self._payload)).encode()
+        self._send(body)
+
+    def _send(self, body: bytes) -> None:
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))

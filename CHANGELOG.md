@@ -5,6 +5,17 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Fixed (Round 60)
+
+- **The viewer escapes every text field.** Policy names, moment ids, states, slices and
+  signal sources went into `innerHTML` raw, so markup planted in the payload ran in five
+  of seven fields (two, `id` and `slices`, reachable from a dataset file).
+  `experiments/viewer_injection_probe.py` shows it in a browser; a static allowlist
+  check, with a mutation test per known bypass, gates the page script.
+- **No field can end the viewer's script block.** The payload was embedded with only
+  `</` rewritten; a field containing `<!--<script>` blanked the board. Every `<`, `>`, `&`
+  is now a JSON escape.
+
 ### Fixed (Round 59)
 
 - **The viewer names its dataset version** (`dataset v5 · 480 moments · …`); it never
