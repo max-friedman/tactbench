@@ -667,12 +667,59 @@ its chat format drops a system turn without an error (see *Running an LLM*).
 
 #### On dataset v5 — a twelfth family
 
-All 28 runs on `v5` (Round 52: v4 plus `water_notice`, 480 dev moments), Round 53. The
+All 28 runs on `v5` (Round 52: v4 plus `water_notice`, 480 dev moments), Round 54. The
 eleven old families are byte-identical to v4's, so those 440 decisions were reused
 from the v4 runs (a test checks every one is unchanged) and only the 40
 `water_notice` moments were sent to a model.
 
+<!-- v5-claims:start -->
+**No run reads the new family's decider better than a coin.** On `water_notice`,
+**18** of the 28 runs give all 40 moments the same answer (**10** never speak, **8**
+always do). The best gets **5** of its 20 pairs right on both sides (Mistral-7B, naive
+prompt), which is what a coin gets on average. Across the 28 runs, **27** pairs get
+different answers on their two sides: **14** right on both sides and **13** backwards,
+an even split. On `home_security` the same split was mostly backwards; here it is what a
+run ignoring the decider would produce. Twenty pairs per run can tell only strong
+effects from chance. Adding the family changes no verdict: the same **7** runs beat
+silence on v4 and v5, and the same two are inconclusive. Qwen2.5-0.5B with the naive
+prompt goes from **5.7%** to **6.7%** unparsed, because **7** of its 40 `water_notice`
+answers are unreadable. Qwen2.5-3B naive goes from **6.4%** to **5.8%**. Of the 378
+pairs of runs, **3** are reversed by ICS and **1** is tied on one version and ordered on
+the other. Every one involves Qwen2.5-0.5B naive, which is inconclusive and loses to
+silence on both versions.
+<!-- v5-claims:end -->
+
 <!-- llm-results-v5:start -->
+| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:gemma-3-4b` | 560.0 | +12.5 | −16.7 | 0.541 | 0.221 | 0.271 | 0 | 98/480 | 5.8% | 0.0% |
+| `llm:rubric:qwen2.5-7b` | 584.0 | +8.8 | −21.7 | 0.533 | 0.133 | 0.207 | 0 | 60/480 | 1.7% | 0.0% |
+| `llm:rubric:gemma-2-2b` | 595.0 | +7.0 | −24.0 | 0.483 | 0.117 | 0.454 | 0 | 58/480 | 1.7% | 0.0% |
+| `llm:naive:gemma-2-2b` | 596.0 | +6.9 | −24.2 | 0.545 | 0.125 | 0.437 | 0 | 55/480 | 3.8% | 0.0% |
+| `llm:naive:llama-3.2-3b` | 597.0 | +6.7 | −24.4 | 0.494 | 0.163 | 0.294 | 0 | 79/480 | 1.7% | 0.0% |
+| `llm:rubric:llama-3.1-8b` | 628.0 | +1.9 | −30.8 | 0.550 | 0.046 | 0.311 | 0 | 20/480 | 2.1% | 0.0% |
+| `llm:rubric:phi-4-mini` | 636.0 | +0.6 | −32.5 | 1.000 | 0.008 | 0.280 | 0 | 2/480 | 0.8% | 0.0% |
+| `llm:naive:qwen2.5-1.5b` | 640.0 | +0.0 | −33.3 | — | 0.000 | 0.500 | 0 | 0/480 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-3b` | 640.0 | +0.0 | −33.3 | — | 0.000 | 0.300 | 0 | 0/480 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-1.5b` | 640.0 | +0.0 | −33.3 | — | 0.000 | 0.099 | 0 | 0/480 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-3b` | 640.0 | +0.0 | −33.3 | — | 0.000 | 0.451 | 0 | 0/480 | 0.0% | 0.0% |
+| `llm:rubric:mistral-7b` | 641.0 | −0.2 | −33.5 | 0.000 | 0.000 | 0.456 | 0 | 1/480 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-3b` | 667.0 | −4.2 | −39.0 | 0.510 | 0.654 | 0.406 | 20 | 308/480 | 5.4% | 5.8% |
+| `llm:naive:mistral-7b` | 688.0 | −7.5 | −43.3 | 0.498 | 0.492 | 0.356 | 20 | 237/480 | 3.8% | 0.0% |
+| `llm:naive:qwen2.5-7b` | 720.0 | −12.5 | −50.0 | 0.534 | 0.196 | 0.184 | 19 | 88/480 | 2.9% | 0.0% |
+| `llm:naive:gemma-3-4b` | 739.0 | −15.5 | −54.0 | 0.494 | 0.537 | 0.352 | 18 | 261/480 | 2.9% | 0.0% |
+| `llm:naive:llama-3.1-8b` | 744.0 | −16.3 | −55.0 | 0.512 | 0.546 | 0.289 | 20 | 256/480 | 9.6% | 0.0% |
+| `llm:rubric:granite-3.3-2b` | 769.0 | −20.2 | −60.2 | 0.523 | 0.562 | 0.392 | 25 | 258/480 | 7.5% | 0.0% |
+| `llm:naive:phi-3.5-mini` | 800.0 | −25.0 | −66.7 | 0.501 | 0.912 | 0.410 | 20 | 437/480 | 0.4% | 0.0% |
+| `llm:rubric:phi-3.5-mini` | 800.0 | −25.0 | −66.7 | 0.500 | 0.917 | 0.448 | 20 | 440/480 | 0.0% | 0.0% |
+| `llm:naive:phi-4-mini` | 880.0 | −37.5 | −83.3 | 0.492 | 0.804 | 0.366 | 22 | 392/480 | 2.5% | 0.0% |
+| `llm:rubric:smollm2-1.7b` | 1076.0 | −68.1 | −124.2 | 0.503 | 0.988 | 0.444 | 36 | 471/480 | 2.5% | 0.0% |
+| `llm:naive:granite-3.3-2b` | 1114.0 | −74.1 | −132.1 | 0.499 | 0.904 | 0.406 | 40 | 435/480 | 2.1% | 0.0% |
+| `llm:rubric:qwen2.5-0.5b` | 1139.0 | −78.0 | −137.3 | 0.501 | 1.000 | 0.452 | 40 | 479/480 | 0.4% | 0.0% |
+| `llm:naive:llama-3.2-1b` | 1140.0 | −78.1 | −137.5 | 0.500 | 1.000 | 0.130 | 40 | 480/480 | 0.0% | 0.0% |
+| `llm:naive:smollm2-1.7b` | 1140.0 | −78.1 | −137.5 | 0.500 | 1.000 | 0.450 | 40 | 480/480 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-1b` | 1140.0 | −78.1 | −137.5 | 0.500 | 1.000 | 0.009 | 40 | 480/480 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-0.5b` | 1145.0 | −78.9 | −138.5 | 0.498 | 0.929 | 0.378 | 40 | 448/480 | 0.4% | 6.7% |
 <!-- llm-results-v5:end -->
 
 `pairs` is the share of matched pairs answered correctly on **both** sides. The two

@@ -1,4 +1,4 @@
-"""The v5 LLM table, gated as v4's is. Round 53.
+"""The v5 LLM table, gated as v4's is. Round 54.
 
 v5 is v4 plus ``water_notice`` (Round 52). Its eleven old families are byte-identical
 to v4's, so each run's v5 cache was seeded from its v4 cache and only the 40 new dev
@@ -8,12 +8,18 @@ v5 decision on an old-family moment must equal the same run's v4 decision.
 
 from __future__ import annotations
 
+from itertools import combinations
+from pathlib import Path
+
 import pytest
 from test_results import _readme_rows
 
+from tactbench.cli import MAX_UNPARSED
 from tactbench.dataset.loader import load
-from tactbench.results import load_results, scorecards
+from tactbench.policies.llm import unparsed_rate
+from tactbench.results import load_results, pairs_both_right, scorecards
 from tactbench.runner import normalized, pair_blind_ics
+from tactbench.schema import pair_key
 
 RUNS = load_results("v5")
 MODELS = sorted({name.split(":", 2)[2] for name in RUNS})
@@ -85,3 +91,97 @@ def test_every_v5_readme_figure_equals_a_fresh_rescore():
             if abs(float(quoted) - float(actual)) > tol + 1e-9:  # float edge, e.g. 0.1545
                 stale.append(f"{card.policy}.{label}: README {quoted}, actual {actual:.3f}")
     assert not stale, "README v5 LLM table is stale; run `tactbench results --version v5`"
+
+
+class TestTheReadmeV5Claims:
+    """Every figure in the README's v5 claims block, recomputed."""
+
+    @staticmethod
+    def _block() -> str:
+        text = (Path(__file__).parent.parent / "README.md").read_text()
+        block = text.split("<!-- v5-claims:start -->")[1].split("<!-- v5-claims:end -->")[0]
+        return " ".join(block.split())
+
+    @staticmethod
+    def _new_family():
+        items = [i for i in load("v5", "dev") if i.moment.family == "water_notice"]
+        ids = {i.moment.id for i in items}
+        return items, {n: [d for d in ds if d.moment_id in ids] for n, ds in RUNS.items()}
+
+    @staticmethod
+    def _cards(version):
+        return {c.policy: (c, u) for c, u, _ in scorecards(version)}
+
+    def test_constant_runs_on_the_new_family(self):
+        _, runs = self._new_family()
+        constant = [ds for ds in runs.values() if len({d.surface for d in ds}) == 1]
+        silent = sum(not ds[0].surface for ds in constant)
+        assert len(runs) == 28 and len(constant) == 18 and silent == 10
+        block = self._block()
+        assert "**18** of the 28 runs" in block
+        assert "(**10** never speak, **8** always do)" in block
+
+    def test_best_new_family_pairs_equals_the_coin(self):
+        items, runs = self._new_family()
+        n_pairs = len(items) // 2
+        scores = {n: round(pairs_both_right(items, ds) * n_pairs) for n, ds in runs.items()}
+        top = max(scores.values())
+        assert n_pairs == 20 and top == 5 == round(n_pairs * 0.25)
+        assert [n for n, v in scores.items() if v == top] == ["llm:naive:mistral-7b"]
+        block = self._block()
+        assert "**5** of its 20 pairs" in block and "Mistral-7B, naive" in block
+
+    def test_answers_the_decider_moves_split_evenly(self):
+        items, runs = self._new_family()
+        label = {i.moment.id: i.label.should_surface for i in items}
+        sides: dict[str, list[str]] = {}
+        for i in items:
+            sides.setdefault(pair_key(i.moment.id), []).append(i.moment.id)
+        split = wrong = 0
+        for decisions in runs.values():
+            ds = {d.moment_id: d for d in decisions}
+            moved = [p for p in sides.values() if ds[p[0]].surface != ds[p[1]].surface]
+            split += len(moved)
+            wrong += sum(ds[p[0]].surface != label[p[0]] for p in moved)
+        assert (split, wrong) == (27, 13)
+        block = self._block()
+        assert "**27** pairs get different answers" in block
+        assert "**14** right on both sides and **13** backwards" in block
+
+    def test_no_verdict_changes(self):
+        c4, c5 = self._cards("v4"), self._cards("v5")
+        assert set(c4) == set(c5)
+        above4 = {p for p, (c, _) in c4.items() if c.ics_normalized > 0}
+        above5 = {p for p, (c, _) in c5.items() if c.ics_normalized > 0}
+        inc4 = {p for p, (_, u) in c4.items() if u > MAX_UNPARSED}
+        inc5 = {p for p, (_, u) in c5.items() if u > MAX_UNPARSED}
+        assert above4 == above5 and len(above5) == 7
+        assert inc4 == inc5 == {"llm:naive:qwen2.5-0.5b", "llm:naive:qwen2.5-3b"}
+        block = self._block()
+        assert "the same **7** runs beat silence" in block
+        for policy in sorted(inc5):
+            assert f"**{c4[policy][1]:.1%}** to **{c5[policy][1]:.1%}**" in block, policy
+
+    def test_the_unreadable_new_family_answers(self):
+        _, runs = self._new_family()
+        ds = runs["llm:naive:qwen2.5-0.5b"]
+        assert len(ds) == 40 and round(unparsed_rate(ds) * 40) == 7
+        assert "**7** of its 40 `water_notice` answers are unreadable" in self._block()
+
+    def test_ordering_against_v4(self):
+        c4, c5 = self._cards("v4"), self._cards("v5")
+        changes = []
+        for x, y in combinations(sorted(c5), 2):
+            s4 = (c4[x][0].ics > c4[y][0].ics) - (c4[x][0].ics < c4[y][0].ics)
+            s5 = (c5[x][0].ics > c5[y][0].ics) - (c5[x][0].ics < c5[y][0].ics)
+            if s4 != s5:
+                changes.append((x, y, s4 * s5 < 0))
+        assert len(list(combinations(c5, 2))) == 378
+        assert sum(r for *_, r in changes) == 3 and sum(not r for *_, r in changes) == 1
+        culprit = "llm:naive:qwen2.5-0.5b"
+        assert all(culprit in (x, y) for x, y, _ in changes)
+        for version in (c4, c5):
+            assert version[culprit][0].ics_normalized < 0 and version[culprit][1] > MAX_UNPARSED
+        block = self._block()
+        assert "**3** are reversed" in block and "**1** is tied" in block
+        assert "Every one involves Qwen2.5-0.5B naive" in block
