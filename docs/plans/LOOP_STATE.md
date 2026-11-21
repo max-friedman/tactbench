@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 67 complete — item S closed (two present-tense claims pinned); loop audit
+- **Round:** 68 complete — the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1196 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1206 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -340,6 +340,11 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
+
+T. **LLM runs on a held-out split** (new, R68). README limitation: "no model has been
+   run on the held-out split". R68 made the runner able to; the runs themselves are
+   long (about 10 s a call: v1 test is 108 moments x 28 runs, about 8 h). Then gate the
+   table and state, measured, whether dev's ordering and verdicts hold on test.
 
 S. **The 75 README figures still unpinned** (new, R65; `experiments/readme_figure_sweep.py`
    lists them). By group, at R65's line numbers:
@@ -3513,6 +3518,29 @@ both are pinned in `tests/test_readme_prose.py`.
 **Review:** none beyond the gate.
 
 **Loop:** audit on time; #56 gains an instance (filed).
+
+---
+
+## Round 68 — the local runner could not produce a held-out run
+
+**Ending state: `shipped`.** It prepares queue item T. **Before:** the README lists "no
+model has been run on the held-out split" as a limitation. The CLI accepts `--split`,
+and so does `results.load_results`, but `experiments/run_local_llms.py` hard-coded
+`-dev` in two places: the CLI cache it copies from, and the results directory it
+writes to. So no held-out result could be produced by the committed tool.
+
+**After:** `runner_paths(name, variant, version, split)` builds both names. The runner
+takes `--split` and passes it to the CLI. Held-out timings go in the manifest under
+`"<version>-<split>"`, and dev's keys are unchanged. `tests/test_runner_paths.py`
+holds the names to the CLI's cache rule and to `policy_name`/`results_dir`, across
+versions, splits and a `--no-system-role` model. It was red (9 of 10) before the
+function existed.
+
+**Not done here:** the runs, which take about 8 hours of local inference (item T).
+
+**Review:** none beyond the gate. The names are held to the two readers by tests.
+
+**Loop:** nothing new.
 
 ---
 

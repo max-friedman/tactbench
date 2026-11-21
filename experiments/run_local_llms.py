@@ -8,8 +8,9 @@ OpenAI-compatible server on this machine. No API key, no spend.
 ``--server-python`` is an interpreter with ``llama-cpp-python[server]`` installed
 (kept out of this project's dependencies; it compiles C++). For each model in
 ``MODELS`` whose file is present, this starts a server, runs both prompt variants
-over ``<version>/dev`` (``--version``, default v1), stops the server by the PID it
-started, and copies the decisions to ``results/<version>-dev/``.
+over ``<version>/<split>`` (``--version``, default v1; ``--split``, default dev, or
+``test`` for the held-out split since Round 68), stops the server by the PID it
+started, and copies the decisions to ``results/<version>-<split>/``.
 ``results/MANIFEST.json`` records what produced each file:
 the weights' sha256, the quantization, the runtime version, the context size and
 the wall time -- everything needed to rerun it, because a local result is only as
@@ -105,11 +106,27 @@ def wait_ready(proc: subprocess.Popen, timeout: float = 300) -> None:
     raise TimeoutError("server never became ready")
 
 
+def runner_paths(name: str, variant: str, version: str, split: str) -> tuple[Path, Path]:
+    """(the CLI's per-decision cache this run writes, the committed results file).
+
+    The one place these names are built (Round 68: both hard-coded ``-dev`` before, so
+    no held-out run could be produced). ``tests/test_runner_paths.py`` holds them to the
+    CLI's cache name and to ``results.load_results``."""
+    suffix = "-nosys" if name in NO_SYSTEM_ROLE else ""
+    tag = "" if version == "v1" else f"-{version}"  # matches the CLI's cache name
+    cache = ROOT / "runs" / f"llm_{variant}_{name}{suffix}{tag}-{split}.jsonl"
+    return cache, RESULTS_ROOT / f"{version}-{split}" / f"llm_{variant}_{name}-{split}.jsonl"
+
+
 def run_model(
-    name: str, path: Path, server_python: str, threads: int, version: str = "v1"
+    name: str,
+    path: Path,
+    server_python: str,
+    threads: int,
+    version: str = "v1",
+    split: str = "dev",
 ) -> dict[str, float | None]:
-    results = RESULTS_ROOT / f"{version}-dev"
-    results.mkdir(parents=True, exist_ok=True)
+    (RESULTS_ROOT / f"{version}-{split}").mkdir(parents=True, exist_ok=True)
     log = open(RESULTS_ROOT / f".server-{name}.log", "w")  # noqa: SIM115
     proc = subprocess.Popen(
         [server_python, "-m", "llama_cpp.server", "--model", str(path),
@@ -129,9 +146,7 @@ def run_model(
                 " Add it to NO_SYSTEM_ROLE so the prompt goes in the user turn."
             )
         for variant in VARIANTS:
-            suffix = "-nosys" if name in NO_SYSTEM_ROLE else ""
-            tag = "" if version == "v1" else f"-{version}"  # matches the CLI's cache name
-            src = ROOT / "runs" / f"llm_{variant}_{name}{suffix}{tag}-dev.jsonl"
+            src, dest = runner_paths(name, variant, version, split)
             # A run killed part-way resumes from the CLI's per-decision cache. Its
             # wall time would then cover only the remainder, so it is not recorded.
             resumed = src.exists() and src.stat().st_size > 0
@@ -139,12 +154,12 @@ def run_model(
             subprocess.run(
                 ["uv", "run", "tactbench", "llm", "--provider", "local", "--model", name,
                  "--variant", variant, "--base-url", f"http://127.0.0.1:{PORT}/v1",
-                 "--version", version,
+                 "--version", version, "--split", split,
                  *(["--no-system-role"] if name in NO_SYSTEM_ROLE else [])],
                 cwd=ROOT, check=True,
             )  # fmt: skip
             timings[variant] = None if resumed else round(time.time() - t0, 1)
-            shutil.copy(src, results / f"llm_{variant}_{name}-dev.jsonl")
+            shutil.copy(src, dest)
     finally:
         proc.terminate()  # by the PID we started, never by name
         try:
@@ -165,8 +180,9 @@ def main() -> None:
     ap.add_argument(
         "--version",
         default="v1",
-        help="dataset version (v1-v4); the Round 50 models are published on v4 only",
+        help="dataset version (v1-v5)",
     )
+    ap.add_argument("--split", default="dev", help="dev, or test (held out; Round 68)")
     args = ap.parse_args()
 
     manifest = json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {}
@@ -182,7 +198,7 @@ def main() -> None:
         if not path.exists():
             print(f"skip {name}: {path} not present", file=sys.stderr)
             continue
-        timings = run_model(name, path, args.server_python, args.threads, args.version)
+        timings = run_model(name, path, args.server_python, args.threads, args.version, args.split)
         entry = manifest.get(name, {})
         digest = sha256(path)
         if entry.get("sha256") not in (None, digest):
@@ -201,11 +217,13 @@ def main() -> None:
                 "threads": args.threads,
             }
         )
-        # v1's timings stay where they were; other versions are recorded beside them.
-        if args.version == "v1":
+        # v1 dev's timings stay where they were; other runs are recorded beside them,
+        # keyed by version on dev (as before R68) and by version-split otherwise.
+        if (args.version, args.split) == ("v1", "dev"):
             entry["wall_seconds"] = timings
         else:
-            entry.setdefault("wall_seconds_by_version", {})[args.version] = timings
+            key = args.version if args.split == "dev" else f"{args.version}-{args.split}"
+            entry.setdefault("wall_seconds_by_version", {})[key] = timings
         manifest[name] = entry
         MANIFEST.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
