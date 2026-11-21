@@ -124,7 +124,8 @@ def run_model(
         local = LLMPolicy(provider="local", model=name, base_url=f"http://127.0.0.1:{PORT}/v1")
         if name not in NO_SYSTEM_ROLE and not local.system_turn_reaches_the_model():
             raise SystemExit(
-                f"{name}: the server drops the system turn (secret-word preflight failed)."
+                f"{name}: the server drops the system turn (the system-turn preflight"
+                " failed; see results/SYSTEM_TURN.md)."
                 " Add it to NO_SYSTEM_ROLE so the prompt goes in the user turn."
             )
         for variant in VARIANTS:

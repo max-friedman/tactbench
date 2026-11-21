@@ -530,6 +530,36 @@ class TestSystemTurnPreflight:
         policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
         assert policy.system_turn_reaches_the_model() is False
 
+    @pytest.mark.parametrize("usage", [None, {}, {"prompt_tokens": 0}, {"prompt_tokens": "9"}, []])
+    def test_unusable_usage_falls_back_to_the_secret_word(self, usage, fake_server, monkeypatch):
+        """R53 review: ``usage: null`` raised an uncaught AttributeError, and placeholder
+        zeros refused every model without reaching the fallback."""
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        real = policy._preflight_call
+
+        def with_usage(messages):
+            reply = real(messages)
+            reply["usage"] = usage
+            return reply
+
+        monkeypatch.setattr(policy, "_preflight_call", with_usage)
+        assert policy.system_turn_reaches_the_model() is True
+        _FakeOpenAI.drops_system = True
+        assert policy.system_turn_reaches_the_model() is False
+
+    def test_a_one_token_wobble_is_not_growth(self, fake_server, monkeypatch):
+        policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
+        counts = iter([40, 41])
+
+        def fixed(messages):
+            return {
+                "choices": [{"message": {"content": ""}}],
+                "usage": {"prompt_tokens": next(counts)},
+            }
+
+        monkeypatch.setattr(policy, "_preflight_call", fixed)
+        assert policy.system_turn_reaches_the_model() is False
+
     def test_without_usage_it_falls_back_to_the_secret_word(self, fake_server):
         _FakeOpenAI.reports_usage = False
         policy = LLMPolicy(provider="local", model="m", base_url=fake_server)
@@ -591,7 +621,9 @@ class TestTheSystemTurnTable:
                 assert passes != "yes", name  # why it is on --no-system-role
             else:
                 assert used == "system turn" and passes == "yes", name
-                assert int(padded) > int(short), name
+            if short != "—":  # every measured row: the column agrees with the counts
+                growth = len(LLMPolicy.PREFLIGHT_PADDING.split()) // 4
+                assert (passes == "yes") == (int(padded) - int(short) >= growth), name
 
     def test_mistral_drops_it_silently(self):
         short, padded, _none, passes, _rep, _used = self._rows()["mistral-7b"]

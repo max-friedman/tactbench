@@ -344,11 +344,20 @@ class LLMPolicy(Policy):
         padded = self._preflight_call(
             [{"role": "system", "content": f"{text} {self.PREFLIGHT_PADDING}"}, question]
         )
-        tokens = [r.get("usage", {}).get("prompt_tokens") for r in (short, padded)]
-        if all(isinstance(n, int) for n in tokens):
-            return tokens[1] > tokens[0]
-        reply = short["choices"][0]["message"]["content"] or ""
-        return secret.lower() in reply.lower()
+        before, after = self._prompt_tokens(short), self._prompt_tokens(padded)
+        if before is not None and after is not None:
+            # The padding is ~25 words; any tokenizer gives it well over a quarter of
+            # that. A one-token wobble (a cache, a rounding estimate) is not growth.
+            return after - before >= len(self.PREFLIGHT_PADDING.split()) // 4
+        reply = short["choices"][0]["message"].get("content") or ""
+        return secret.lower() in str(reply).lower()
+
+    @staticmethod
+    def _prompt_tokens(reply: dict) -> int | None:
+        """A usable ``usage.prompt_tokens``, or None (missing, null, placeholder 0)."""
+        usage = reply.get("usage")
+        n = usage.get("prompt_tokens") if isinstance(usage, dict) else None
+        return n if isinstance(n, int) and not isinstance(n, bool) and n > 0 else None
 
     def _preflight_call(self, messages: list[dict[str, str]]) -> dict:
         body = {"model": self.model, "temperature": 0, "max_tokens": 12, "messages": messages}
@@ -358,8 +367,12 @@ class LLMPolicy(Policy):
             headers={"Content-Type": "application/json"},
         )
         with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
-            reply: dict = json.loads(resp.read())
-        reply["choices"][0]["message"]  # a malformed reply fails here, as it did before
+            reply = json.loads(resp.read())
+        choices = reply.get("choices") if isinstance(reply, dict) else None
+        if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
+            raise ValueError(f"not a chat completion: {str(reply)[:200]}")
+        if not isinstance(choices[0].get("message"), dict):
+            raise ValueError(f"not a chat completion: {str(reply)[:200]}")
         return reply
 
     def _complete(self, prompt: str) -> str:

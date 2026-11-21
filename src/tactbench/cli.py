@@ -268,10 +268,11 @@ def llm_cmd(
             raise typer.Exit(1) from None
         if not delivered:
             console.print(
-                "[red]The server does not deliver a system turn to the model[/red]: it "
-                "could not repeat a word sent only there, so every answer would be to a "
-                "prompt it never saw. Re-run with --no-system-role to put the same "
-                "system prompt at the top of the user turn."
+                "[red]The server does not deliver a system turn to the model[/red]: "
+                "lengthening the system turn did not lengthen the prompt (or, on a server "
+                "that reports no token usage, the model could not repeat a word sent only "
+                "there), so every answer would be to a prompt it never saw. Re-run with "
+                "--no-system-role to put the same system prompt at the top of the user turn."
             )
             raise typer.Exit(1)
 
