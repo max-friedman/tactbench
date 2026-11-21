@@ -157,6 +157,8 @@ In order. Each is a self-contained increment.
    string matchers already read chance (unigram and bigram 50.0% on v1 and v2). What
    it can buy is realism, and a measurement: do a model's decisions survive the same
    moment reworded? Build it as that experiment.
+   **Status (R42):** built — `data/v2para`, 22 runs. Decisions barely flip, but no
+   model reads the decider (≤4 of 36 pairs), so robustness of reading it is unmeasured.
 4. **Held-out test labels** — hidden behind a submission script so the leaderboard
    resists overfitting. **Round 33:** hiding the label file or the seed does nothing —
    `tactbench build` recovers every test label and a parser of the public templates
