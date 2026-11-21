@@ -210,7 +210,7 @@ last round whose commit changed the file.
 |---|---|---|
 | `dataset/generate.py` | R52 | 12 families (`v5`); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v5 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
 | `metrics.py` | R8 | ICS, base-rate weighting, hard violations raw; ICS constants still unvalidated by humans (NEEDS-MAX 2) |
-| `policies/builtin.py` | R1 | heuristic near chance and does not solve any version (`test_heuristic_does_not_solve_the_dataset`, per version) |
+| `policies/builtin.py` | R1 | heuristic near chance; does not solve v1 (`test_metrics.py`) or each family added in v3-v5 (`test_the_heuristic_does_not_solve_the_new_family`); **v2 has no direct heuristic test** (its families are v1's, rebuilt at 32 pairs) |
 | `policies/skyline.py` | R52 | resolver built from the frame templates; markers read from the body for five families (`_MARKERS[...] is None`); solves v1-v5 |
 | `audit.py` | R40 | unigram + bigram gated, positional reported with a label-swap null column (R40). Gated probes seed-stable to 0.0% (R22); positional is not |
 | char n-gram audit | R49 | `experiments/char_ngram_audit.py`, gated on v4 (`test_the_char_ngram_audit_holds`); holds on v5 but not gated there |
@@ -3175,7 +3175,8 @@ files. New rows: char n-gram audit, marker order, labelling. One new gap: the vi
 tests run on `v1` only, queued as R.
 
 **Checks first.** Each row's "last touched" is the last commit to that file, not
-recalled. `tactbench audit --version v5` was re-run: every family reads 50.0% on unigram
+recalled. The first draft of this map itself overclaimed the heuristic row ("every
+version"); grepping the tests corrected it before commit. `tactbench audit --version v5` was re-run: every family reads 50.0% on unigram
 and bigram, positional 53.1% overall.
 
 **Review:** docs only; no figure is new except the re-run audit, which matches
