@@ -542,21 +542,28 @@ decision on the original moment. *Independence* is the number of flips expected 
 the two decisions were unrelated at the observed speak rates.
 
 <!-- paraphrase-claims:start -->
-- **Decisions are stable under rewording.** 8 of the 22 runs are constant on both
-  sets, so they cannot flip and say nothing. Of the 12 runs whose independence level
-  is at least 5 flips, every one flips fewer moments than that — 78 flips against 264
-  expected in total, the closest being Llama-3.1-8B with the rubric at 6 against 7.7.
-  No run's ICS moves by more than 13 on the 72 moments.
-- **That stability is not understanding.** No run gets more than 4 of the 36 pairs
-  right on both sides, on either wording; a coin gets about 9. The decisions survive
-  rewording because they barely depend on the deciding signal in the first place —
-  they follow the shared body and user state, which the rewording does not touch. A
-  model that read the decider in one wording and not the other would show up here as
-  pairs lost; there are too few pairs won for that to be measured.
+- **Most decisions do not change, but "robust" would overstate it.** 8 of the 22
+  runs are constant on both sets, so they cannot flip and say nothing. Of the 12 runs
+  whose independence level is at least 5 flips, every one flips fewer moments than
+  that — 78 flips against 264 expected in total, the closest being Llama-3.1-8B with
+  the rubric at 6 against 7.7. Below independence is a weak bar, though: any policy
+  driven by the unchanged body and state clears it. Llama-3.1-8B's naive run changes
+  22 of its 72 decisions under rewording, which is a model reacting to wording. Two
+  near-constant runs, Qwen2.5-0.5B naive and SmolLM2-1.7B with the rubric, flip
+  exactly as often as independence predicts (1 and 2 moments). No run's ICS moves by
+  more than 13 on the 72 moments.
+- **The decisions that do survive mostly ignore the decider.** Every run gives both
+  sides of at least 27 of the 36 pairs the same answer, on either wording — the
+  deciding signal did not move the decision there — and no run gets more than 4 of
+  the 36 pairs right on both sides; a coin gets about 9. Stability that comes from
+  not reading the reworded sentence says nothing about understanding it.
 <!-- paraphrase-claims:end -->
 
 So the robustness question is not yet answerable with these models: it needs one that
-reads the decider. The reworded set and the script are in place for when one is run.
+reads the decider. Two of the nine new frames also read badly — travel's counterpart
+("Printed on paper by A28") makes the gate the printer, and quiet_hours' ("Hours of
+driving from is Emerson") is ungrammatical — so some flips in those families may be
+reactions to garbled text rather than to rewording. The reworded set and the script are in place for when one is run.
 
 Not yet on PyPI — the name is reserved and publishing waits until frontier LLM
 baselines land, so the first release has the result that makes it worth installing.

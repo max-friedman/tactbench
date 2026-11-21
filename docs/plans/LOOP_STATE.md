@@ -21,7 +21,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **563 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **568 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -254,6 +254,11 @@ L. **Paraphrase robustness — DONE in R42.** Original entry: Reword a sample
    measure how often each model's decision changes. Needs new frames written as
    permutations (CLAUDE.md rule 3), the audit at chance on them, and LLM calls on
    the reworded sample only (cheap: a few hundred moments per model).
+M. **Two paraphrase frames read badly (R42 review).** travel's counterpart "Printed on
+   paper by {who}" makes the gate the printer; quiet_hours' "Hours of driving from is
+   {who}" is ungrammatical. Fix the frames (keeping the prose-frame properties), rebuild
+   `v2para`, re-run the 22 runs on those 16 moments (cache resumes the rest), re-gate.
+   Low value while no model reads the decider; do it before a model that does is run.
 I. **Re-run the 22 LLM runs on `v2` — DONE in R39.** Original entry: `experiments/run_local_llms.py`
    with `--version v2` support; ~1.4x v1's compute (360 dev moments), free. Then a
    `v2` LLM table and `v2` built-in table in the README, gated like v1's. Background
@@ -2446,6 +2451,17 @@ the shared body and state, which rewording does not touch. So robustness of *dec
 reading* is not measurable with these models. README section and limitation; every
 figure gated in `tests/test_results_v2para.py` (one mutated figure: `fails`). 563
 tests.
+
+**Review (subagent, not §D-independent) — 6 findings, all acted on.** No computation
+bug. (1) "Decisions are stable" overclaimed: below-independence is a weak bar, and
+Llama-3.1-8B naive flips 22 of 72 — now named. (2) The threshold of 5 hid two runs at
+exactly independence — now named, and the threshold itself gated. (3) "Ignores the
+decider" rested on low pairs-both-right, which reading it backwards also produces;
+`results.same_answer_pairs` added — every run answers at least 27 of 36 pairs alike,
+gated. (4) Two new frames read badly (travel's counterpart, quiet_hours'
+ungrammatical one) — disclosed in README, queued as M, not re-run. (5) Model name,
+limitation figure and set size were ungated — gated. (6) The decider-only test now
+covers the committed set. Mutations of each new gated figure: `fails`. 568 tests.
 
 **Watch for.** Low flips alone would have read as "robust". The pairs column is what
 stops that; any future perturbation experiment needs a discrimination column beside

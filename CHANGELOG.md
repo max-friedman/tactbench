@@ -13,8 +13,9 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 - `results.paraphrase_robustness` and `experiments/paraphrase_robustness.py`: flips
   against the independence level, pairs-both-right and ICS on both wordings. The
   12 informative runs flip 78 moments against 264 expected under independence, but
-  no run gets more than 4 of 36 pairs both right on either wording — the decisions
-  are stable because they do not depend on the decider. Gated in
+  no run gets more than 4 of 36 pairs both right on either wording, and every run
+  answers at least 27 of 36 pairs alike on both sides (`results.same_answer_pairs`):
+  the stable decisions mostly do not depend on the decider. Gated in
   `tests/test_results_v2para.py`.
 
 ### Changed (Round 40)

@@ -46,8 +46,10 @@ def test_paraphrase_frames_are_new_wording(family):
 
 
 def test_reword_changes_only_the_decider():
-    for item in load("v2", "dev")[:60]:
-        new = reword(item)
+    originals = {i.moment.id: i for i in load("v2", "dev")}
+    for new in load("v2para", "dev"):
+        item = originals[new.moment.id]
+        assert reword(item).model_dump() == new.model_dump()
         assert new.moment.id == item.moment.id and new.label == item.label
         assert new.moment.user_state == item.moment.user_state
         assert new.moment.signals[:-1] == item.moment.signals[:-1]

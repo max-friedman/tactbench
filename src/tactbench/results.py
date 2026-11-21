@@ -120,6 +120,8 @@ class Robustness:
     ics_reworded: float
     pairs_original: float
     pairs_reworded: float
+    same_original: int
+    same_reworded: int
 
     @property
     def constant(self) -> bool:
@@ -127,16 +129,32 @@ class Robustness:
         return {self.spoke_original, self.spoke_reworded} <= {0, self.n}
 
 
+def same_answer_pairs(decisions: dict[str, Decision]) -> int:
+    """Pairs whose two sides got the same speak/stay-quiet decision.
+
+    Both sides share a body and user state and need opposite answers, so a pair
+    answered the same on both sides is one where the decider did not move the
+    decision. This is what separates "ignores the decider" from "reads it backwards",
+    which pairs-both-right alone cannot.
+    """
+    sides: dict[str, set[bool]] = {}
+    for moment_id, d in decisions.items():
+        sides.setdefault(pair_key(moment_id), set()).add(d.surface)
+    return sum(len(v) == 1 for v in sides.values())
+
+
 def paraphrase_robustness(reworded: str = "v2para", original: str = "v2") -> list[Robustness]:
     """Compare every committed run on ``reworded`` with the same model on ``original``.
 
     Moments are matched by id: the reworded set keeps each original id. ``independent``
     is the flips expected if the two decisions were unrelated at the observed speak
-    rates, ``n * (p_o (1 - p_p) + p_p (1 - p_o))``. Round 42.
+    rates, ``n * (p_o (1 - p_p) + p_p (1 - p_o))``. ``same_*`` counts pairs answered
+    alike on both sides (``same_answer_pairs``). Round 42.
     """
     para = load(reworded, "dev")
     ids = [i.moment.id for i in para]
-    orig_items = [i for i in load(original, "dev") if i.moment.id in set(ids)]
+    wanted = set(ids)
+    orig_items = [i for i in load(original, "dev") if i.moment.id in wanted]
     orig_runs = load_results(original)
     rows = []
     for name, decisions in sorted(load_results(reworded).items()):
@@ -158,6 +176,8 @@ def paraphrase_robustness(reworded: str = "v2para", original: str = "v2") -> lis
                 ics_reworded=score(para, list(new.values()), name).ics,
                 pairs_original=pairs_both_right(orig_items, list(old.values())),
                 pairs_reworded=pairs_both_right(para, list(new.values())),
+                same_original=same_answer_pairs(old),
+                same_reworded=same_answer_pairs(new),
             )
         )
     return rows

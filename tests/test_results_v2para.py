@@ -49,9 +49,24 @@ def _claims() -> str:
     return " ".join(m.group(1).split())
 
 
+THRESHOLD = 5
+
+
+def _readme() -> str:
+    return " ".join((ROOT / "README.md").read_text().split())
+
+
 class TestTheReadmeParaphraseClaims:
     ROWS = paraphrase_robustness()
-    INFORMATIVE = [r for r in ROWS if not r.constant and r.independent >= 5]
+    BY_NAME = {r.policy: r for r in ROWS}
+    INFORMATIVE = [r for r in ROWS if not r.constant and r.independent >= THRESHOLD]
+
+    def test_the_set_size(self):
+        n = len(load("v2para", "dev"))
+        assert f"36 pairs, {n} moments" in _readme() and n == 72
+
+    def test_the_threshold_is_the_one_stated(self):
+        assert f"independence level is at least {THRESHOLD} flips" in _claims()
 
     def test_constant_runs(self):
         constant = sum(r.constant for r in self.ROWS)
@@ -70,7 +85,29 @@ class TestTheReadmeParaphraseClaims:
     def test_the_closest_run(self):
         closest = max(self.INFORMATIVE, key=lambda r: r.flips / r.independent)
         assert closest.policy == "llm:rubric:llama-3.1-8b"
-        assert f"at {closest.flips} against {closest.independent:.1f}" in _claims()
+        assert (
+            f"Llama-3.1-8B with the rubric at {closest.flips} against "
+            f"{closest.independent:.1f}" in _claims()
+        )
+
+    def test_the_most_wording_sensitive_run(self):
+        most = max(self.ROWS, key=lambda r: r.flips)
+        assert most.policy == "llm:naive:llama-3.1-8b"
+        assert f"naive run changes {most.flips} of its {most.n} decisions" in _claims()
+
+    def test_the_runs_left_out_by_the_threshold(self):
+        dropped = [r for r in self.ROWS if not r.constant and r.independent < THRESHOLD]
+        assert sorted(r.policy for r in dropped) == [
+            "llm:naive:qwen2.5-0.5b",
+            "llm:rubric:smollm2-1.7b",
+        ]
+        flips = " and ".join(str(r.flips) for r in dropped)
+        assert all(round(r.independent) == r.flips for r in dropped)
+        assert f"as independence predicts ({flips} moments)" in _claims()
+
+    def test_same_answer_floor(self):
+        floor = min(min(r.same_original, r.same_reworded) for r in self.ROWS)
+        assert f"at least {floor} of the 36 pairs the same answer" in _claims()
 
     def test_largest_ics_move(self):
         move = max(abs(r.ics_original - r.ics_reworded) for r in self.ROWS)
@@ -81,3 +118,4 @@ class TestTheReadmeParaphraseClaims:
         best = max(max(r.pairs_original, r.pairs_reworded) for r in self.ROWS)
         assert f"more than {round(best * n_pairs)} of the {n_pairs} pairs" in _claims()
         assert f"a coin gets about {round(n_pairs / 4)}" in _claims()
+        assert f"(at most {round(best * n_pairs)} of {n_pairs} pairs)" in _readme()
