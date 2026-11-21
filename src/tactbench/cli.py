@@ -253,6 +253,18 @@ def llm_cmd(
         f"{len(cached)} cached, [yellow]{len(todo)} to query[/yellow]"
     )
 
+    # Round 51: a template can drop the system turn silently (Mistral under
+    # llama-cpp-python), so check it reaches the model before asking anything.
+    if todo and policy.provider == "local" and policy.system_role:
+        if not policy.system_turn_reaches_the_model():
+            console.print(
+                "[red]The server does not deliver a system turn to the model[/red]: it "
+                "could not repeat a word sent only there, so every answer would be to a "
+                "prompt it never saw. Re-run with --no-system-role to put the same "
+                "system prompt at the top of the user turn."
+            )
+            raise typer.Exit(1)
+
     if todo:
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         with cache_path.open("a") as f, console.status("querying...") as status:

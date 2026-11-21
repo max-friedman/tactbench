@@ -307,6 +307,41 @@ class LLMPolicy(Policy):
             ]
         return [{"role": "user", "content": f"{self.system}\n\n{prompt}"}]
 
+    #: Round 51 preflight: the word travels only in the system turn.
+    PREFLIGHT_SECRET = "ZEBRA"
+
+    def system_turn_reaches_the_model(self) -> bool:
+        """Does the local server deliver a system turn at all?
+
+        Round 50: llama-cpp-python's ``mistral-instruct`` format discards it without
+        an error, so the model answers -- parseably -- a prompt it never saw. A
+        secret word is put only in the system turn and asked for in the user turn; a
+        template that drops the system turn cannot answer.
+        """
+        if self.provider != "local":
+            raise ValueError("the system-turn preflight is for --provider local")
+        body = {
+            "model": self.model,
+            "temperature": 0,
+            "max_tokens": 12,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": f"The secret word is {self.PREFLIGHT_SECRET}. "
+                    "When asked, reply with only the secret word.",
+                },
+                {"role": "user", "content": "What is the secret word?"},
+            ],
+        }
+        req = urllib.request.Request(
+            f"{self.base_url}/chat/completions",
+            data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
+            reply = json.loads(resp.read())["choices"][0]["message"]["content"] or ""
+        return self.PREFLIGHT_SECRET.lower() in reply.lower()
+
     def _complete(self, prompt: str) -> str:
         self._require_key()
         if self.provider == "local":

@@ -430,10 +430,11 @@ The model name is required — it becomes part of the result. Some chat template
 unchanged, at the top of the user turn instead. Others drop it *silently*: under
 llama-cpp-python's `mistral-instruct` format, Mistral 7B received the same token
 count with and without a system turn, so it would have answered without the
-instructions and still produced a well-formed result (Round 50). `experiments/run_local_llms.py`
-now puts a secret word in the system turn before every run and refuses to start
-if the model cannot repeat it (models on `--no-system-role` skip the check). `tactbench llm` itself does
-not run this check, so verify a new template before trusting a run. The ten earlier
+instructions and still produced a well-formed result (Round 50). `tactbench llm
+--provider local` now puts a secret word in the system turn before it asks about any
+moment, and exits if the model cannot repeat it (Round 51; `--no-system-role` runs
+skip the check, and a fully cached run asks nothing). Against the real servers it
+refuses Mistral 7B and passes Qwen2.5-0.5B. The ten earlier
 models that use a system turn were re-checked by hand — the secret word, or the
 prompt token count rising with a system turn — and all received it; that check left
 no committed log. A run whose calls fail is not a

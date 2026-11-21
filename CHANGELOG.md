@@ -5,6 +5,14 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 51)
+
+- **`tactbench llm --provider local` checks the system turn reaches the model** before
+  asking about any moment, and exits with the `--no-system-role` fix named if it
+  doesn't. `LLMPolicy.system_turn_reaches_the_model()` is the one implementation;
+  `experiments/run_local_llms.py` calls it. Tested against a fake server that drops
+  the system turn.
+
 ### Added (Round 50)
 
 - **Three more models on `v4`**: Granite-3.3-2B, Phi-4-mini and Mistral-7B, 6 runs

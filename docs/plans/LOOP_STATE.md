@@ -13,7 +13,8 @@ findings** below.
 
 ## Current status
 
-- **Round:** 50 complete — three more open-weight models on `v4` (28 runs); none beats
+- **Round:** 51 complete — `tactbench llm --provider local` refuses a server that
+  drops the system turn (tested against a fake and against real Mistral). R50: three more open-weight models on `v4` (28 runs); none beats
   silence by more than +0.7; a chat template that silently drops the system turn is now
   caught by a preflight. R49 (§A `holds`): a character n-gram model reads chance on
   held-out test, gated. R48: all 22 LLM runs on `v4`; on `home_security`
@@ -30,7 +31,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **838 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **845 passed, 1 xfailed** (the R36 strict xfail, on `v1`), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -2843,10 +2844,36 @@ sentences now say "of the 22" inline (the table has 28 rows and seven above zero
 overclaimed and were reworded; the stale "22 runs" and "Eleven open-weight models" lines
 were updated; the Mistral manifest's `system_role: false` is gated.
 
-**Left open (queue candidates):** the preflight lives only in
+**Left open (queue candidates; the first two closed in R51):** the preflight lives only in
 `experiments/run_local_llms.py` — `tactbench llm --provider local` has none, and the
 preflight itself is untested (it needs a mock server); the hand re-check of the ten
 earlier system-turn models left no committed log.
+
+**Loop:** nothing.
+
+---
+
+## Round 51 — the system-turn preflight moves into the CLI, and gets tests
+
+**Ending state: merged.** Item: the gap Round 50's review left open. **Before:** the
+preflight lived only in `experiments/run_local_llms.py`; `tactbench llm --provider
+local` checked nothing, and no test exercised the check. **After:**
+`LLMPolicy.system_turn_reaches_the_model()` is the one implementation. The CLI calls
+it before asking about any moment and exits 1 with the `--no-system-role` fix named;
+the runner script calls the same method. Seven tests in `TestSystemTurnPreflight` use
+a fake server that can drop the system turn. Five failed red before the
+implementation; the two that passed red assert nothing is asked
+(`--no-system-role`, fully cached).
+
+Two `test_policy_view` tests spy on `decide` with no server; they now stub the
+preflight to pass, which is what they are about (what a policy sees, not the server).
+
+**Real servers:** the CLI refuses Mistral-7B (exit 1, no moment asked) and runs
+Qwen2.5-0.5B.
+
+**Left open:** the hand re-check of the ten earlier system-turn models still has no
+committed log. A model that declines to reveal a "secret" would be refused with the
+wrong diagnosis; none has.
 
 **Loop:** nothing.
 
