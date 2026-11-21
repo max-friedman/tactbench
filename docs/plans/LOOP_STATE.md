@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 65 complete — README prose figures swept by mutation: 85 of 145 unpinned,
+- **Round:** 66 complete — the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
   R62: invariants checked on every committed split; the skyline
@@ -50,7 +50,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1190 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1194 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -346,9 +346,10 @@ S. **The 75 README figures still unpinned** (new, R65; `experiments/readme_figur
      268-277). Fix: label each as that round's recorded figure, as R64 did for 87%.
    - Pinned elsewhere: the char n-gram paragraph (246-258), whose tests the sweep skips.
    - Definitions: a coin's 25%, the 5% unparsed bar, 50% chance floors. These need no pin.
-   - **Current data, unpinned:** driving 63.3% → 50.0% (390), "359 of 360" (512), the
-     R27 sweep move "+10.1 to +38.7" (104, partly history), the skyline's ICS 0.0 on
-     unseen seeds (905), and the v1 LLM paragraph's "252 moments" (754). Pin these.
+   - **Current data — DONE in R66:** driving 63.3% → 50.0%, "359 of 360", Phi-3.5's
+     "all 252 moments", the skyline's ICS 0.0 on unseen seeds; each mutation-tested.
+     "+10.1 to +38.7" already reads as R26 history, and its current +38.7 is pinned in
+     the sweep table. **Left: the history labels.**
 
 Q. **Marker-aware order checks for `pet_care` and `home_security` — DONE in R55**,
    extended by its review to `travel` and `commerce`: `tests/test_marker_order.py`, all
@@ -3457,6 +3458,27 @@ The pin was red until the list was completed. METRICS.md's table already had bot
 **Review:** none beyond the gate; each pin recomputes its figure.
 
 **Loop:** nothing new beyond R64's local note. The sweep is the measurement R64 lacked.
+
+---
+
+## Round 66 — the last current-data README figures, pinned
+
+**Ending state: `shipped`.** Queue item S, its current-data half. **Before:** four statements
+about today's data were unpinned (R65's sweep):
+- `driving`'s positional reading of 63.3% on v1 and 50.0% on v2;
+- Qwen2.5-0.5B with the rubric speaking on 359 of 360 v2 moments;
+- Phi-3.5 making the same decision on all 252 v1 moments under both prompts;
+- the public-template parser scoring ICS 0.0 on held-out frames from unseen seeds.
+
+**Measured first:** all four hold exactly. **After:** each has a pin in
+`tests/test_readme_prose.py` that recomputes it. Bumping each figure in the README turns
+exactly its pin red (4 of 4).
+
+**Left in S:** labelling the R9-R13 history figures as recorded, not current.
+
+**Review:** none beyond the gate. Each pin is mutation-checked.
+
+**Loop:** nothing new.
 
 ---
 
