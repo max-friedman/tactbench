@@ -322,6 +322,56 @@ carries an ordinary word of exclusion or absence (*barred*, *skipping*, *cancell
 *excluded*). A reader that locates the motion zone's clause and knows those words
 solves the family — that is reading the decider, which is the task.
 
+### Dataset v5 — a twelfth family, `water_notice` (Round 52)
+
+`data/v5` is `tactbench build --version v5 --pairs 32 --families 12`: v4 plus one new
+family (480 dev / 288 test), from a domain none of the eleven touches — a public
+utility notice. The user is out for the evening; the water company posts a boil-water
+notice for one district and says another is unaffected. The decider, an old email,
+says which district is home now and which is a former address — *"Boiler serviced in
+Upton. Boiler drained in Selby."* Speak when the notice covers home; stay quiet when
+it covers the old address. Both districts appear in the shared body and on both sides,
+and swap roles. Districts come from a pool of 40 single words, none of which appears
+in a frame or in another family's pool.
+
+Held to everything v4's new family is (`tests/test_dataset_v5.py`): every moment of
+the first eleven families equals its v4 counterpart; unigram and bigram at 50% on ten
+seeds; order-balanced cells; both districts on both sides and the notice district
+named first in about half of bodies; the six clause features at chance over 20 seeds
+and on the held-out split; the skyline solves it and the heuristic does not.
+
+**Frames were chosen by search, and the first choice leaked on vowels.** The structural
+rules (equal skeletons, a shared token before the slot, no stopword opening, vocabulary
+disjoint across frames) and the six gated clause features leave few hand-written sets,
+so the frames were picked by searching candidate sets for ones where the privileged
+clause wins each feature as often as it loses, on dev and held-out frames separately.
+A first set met all of that; a scan of 139 cheap clause features (every letter, common
+letter pairs, affixes, lengths) then found "speak iff the notice district's clause has
+more vowels" reading **80% dev / 83% test**. Vowel and consonant counts were added to
+the search, and frames that do not clearly mean home-now against a former home were
+dropped. The shipped set has no rule at or beyond 70% (or 30%) on both splits.
+
+That scan is not an independent check: the search also ranked candidate sets by letter
+balance. The character 3-8-gram probe (Round 49) did not inform the search; on v5 it
+fits dev at 89.2% and reads 52.1% on held-out test (`water_notice` 50.0%), and its
+verdict holds.
+
+**Positional readings, and why the family's check runs over 60 seeds.** On the shipped
+seed the family reads 67.5% positional against a label-swap null of 57.5%. Over the
+first 20 seeds, 12 read above 60% against 28% of null draws — and over 200 seeds the
+rate is 35% against 34%, with equal medians (57.5%). The first 20 seeds are the
+highest of ten blocks of 20 (2 to 12 above). The family's test therefore compares over
+60 seeds, with the same thresholds; that choice was made after the 20-seed reading
+failed. Overall, the shipped seed reads 53.5% against 51.7%, and the 20-seed medians
+51.6% against 52.1%; v5 keeps the seed-robust comparison and the single-seed 60% bound,
+not v4's single-seed comparison with the null. Positional is reported, not gated.
+
+What the family does not resist, as for `home_security`: the former-address clause
+always carries an ordinary word of ending or reversal (*previously*, *collected*,
+*old*, *unscrewed*, *drained*, *cancelled*, *packed*, *unmounted*). A reader that
+locates the notice district's clause and knows those words solves the family — that is
+reading the decider. No LLM has been run on v5.
+
 ### Token permutations and the bigram probe
 
 All nine are token permutations: both sides contain the same words, arranged

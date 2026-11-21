@@ -57,6 +57,7 @@ _SKIPPED_PET = re.compile(
 
 # "motion at the garage" / "movement at the garage"
 _MOTION_ZONE = re.compile(r"(?:motion|movement) at the (\w+)", re.I)
+_BOIL_DISTRICT = re.compile(r"boil-water notice (?:issued )?(?:for|covers) (\w+)", re.I)
 
 
 #: The value that means *speak* when it occupies a frame's privileged role.
@@ -75,6 +76,7 @@ _MARKERS = {
     "travel": None,
     "pet_care": None,
     "home_security": None,
+    "water_notice": None,
 }
 
 
@@ -136,6 +138,11 @@ class SkylinePolicy(Policy):
                 if not zone:
                     return False
                 marker = zone.group(1)
+            elif moment.family == "water_notice":
+                district = _BOIL_DISTRICT.search(text)
+                if not district:
+                    return False
+                marker = district.group(1)
             elif moment.family == "pet_care":
                 skipped = _SKIPPED_PET.search(text)
                 if not skipped:
@@ -178,6 +185,7 @@ class SkylinePolicy(Policy):
             "childcare": "pickup_conflict",
             "finance": "payment_shortfall",
             "home_security": "intrusion_alert",
+            "water_notice": "boil_water_alert",
         }
         return Decision(
             moment_id=moment.id,

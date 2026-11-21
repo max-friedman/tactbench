@@ -397,6 +397,11 @@ v2*. Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator
 first ten families are identical to v3's, and the 28 runs on it are under *On
 dataset v4*
 ([details](docs/DATASET.md#dataset-v4--an-eleventh-family-home_security-round-47)).
+`v5` (Round 52) is v4 plus a twelfth family, `water_notice`, from a domain none of
+the eleven touches: a boil-water notice for one of two districts, where the decider
+says which is home now (480 dev / 288 test). Its first eleven families are identical
+to v4's; no LLM has been run on it yet
+([details](docs/DATASET.md#dataset-v5--a-twelfth-family-water_notice-round-52)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
 
@@ -791,7 +796,7 @@ otherwise would defeat the purpose of building a benchmark:
   counted as ties rather than misses.
 - **Moments are synthetic and template-generated.** Eight frames per family is
   still eight, and the scenarios remain a small hand-authored set — nine families
-  (ten in `v3`, eleven in `v4`) is that many effective degrees of freedom, whatever the item count. The deciders
+  (ten in `v3`, eleven in `v4`, twelve in `v5`) is that many effective degrees of freedom, whatever the item count. The deciders
   themselves are no longer uniform: Round 16 restored prose phrasing
   (*"Behind the screen is your prescription. Through the till is Elena's
   prescription."*) while holding every family at the 50% chance floor on the
@@ -850,7 +855,7 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    frontier models are not.
 2. Human-labeled subset with reported agreement — the labeling tool and κ are built
    (Round 31); the labels themselves need people.
-3. More scenario families — eleven (`v4`, Round 47) is still one author's idea of a
+3. More scenario families — twelve (`v5`, Round 52) is still one author's idea of a
    working life, and family count, not phrasing, is the ceiling on dataset diversity.
 4. Held-out test split behind a submission script — **blocked on custody**, not
    code (Round 33). Hiding the label file or the seed hides nothing; keeping the
