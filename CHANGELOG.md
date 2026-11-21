@@ -5,6 +5,12 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Fixed (Round 43)
+
+- Two paraphrase frames that read badly (travel's counterpart, quiet_hours'
+  ungrammatical one) rewritten; `v2para` rebuilt and the 16 affected moments re-run
+  for all 22 runs. The informative runs now flip 79 moments against 262 expected.
+
 ### Added (Round 42)
 
 - **A reworded slice of v2** (`data/v2para/dev.jsonl`, `dataset/paraphrase.py`): v2
@@ -12,7 +18,8 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
   facts, roles and ids. All 22 open-weight runs repeated on it (`results/v2para-dev/`).
 - `results.paraphrase_robustness` and `experiments/paraphrase_robustness.py`: flips
   against the independence level, pairs-both-right and ICS on both wordings. The
-  12 informative runs flip 78 moments against 264 expected under independence, but
+  12 informative runs flip 78 moments against 264 expected under independence (79
+  against 262 after Round 43's frame repair), but
   no run gets more than 4 of 36 pairs both right on either wording, and every run
   answers at least 27 of 36 pairs alike on both sides (`results.same_answer_pairs`):
   the stable decisions mostly do not depend on the decider. Gated in

@@ -20,8 +20,8 @@
         "rubric": 1714.4
       },
       "v2para": {
-        "naive": 328.6,
-        "rubric": 334.4
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -46,8 +46,8 @@
         "rubric": null
       },
       "v2para": {
-        "naive": 421.6,
-        "rubric": 381.2
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -72,8 +72,8 @@
         "rubric": 2948.7
       },
       "v2para": {
-        "naive": 612.4,
-        "rubric": 580.4
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -98,8 +98,8 @@
         "rubric": 817.4
       },
       "v2para": {
-        "naive": 103.3,
-        "rubric": 163.9
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -124,8 +124,8 @@
         "rubric": 1531.8
       },
       "v2para": {
-        "naive": 257.5,
-        "rubric": 277.4
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -150,8 +150,8 @@
         "rubric": null
       },
       "v2para": {
-        "naive": 1881.3,
-        "rubric": 1908.1
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -176,8 +176,8 @@
         "rubric": 905.1
       },
       "v2para": {
-        "naive": 129.5,
-        "rubric": 176.2
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -202,8 +202,8 @@
         "rubric": 876.4
       },
       "v2para": {
-        "naive": 168.7,
-        "rubric": 168.4
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -228,8 +228,8 @@
         "rubric": 1606.7
       },
       "v2para": {
-        "naive": 286.1,
-        "rubric": 293.9
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -254,8 +254,8 @@
         "rubric": 2807.2
       },
       "v2para": {
-        "naive": 504.6,
-        "rubric": 511.8
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -280,8 +280,8 @@
         "rubric": 1124.4
       },
       "v2para": {
-        "naive": 220.9,
-        "rubric": 217.8
+        "naive": null,
+        "rubric": null
       }
     }
   }
