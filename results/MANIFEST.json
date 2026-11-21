@@ -150,6 +150,10 @@
       "v4": {
         "naive": null,
         "rubric": null
+      },
+      "v5": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -288,6 +292,10 @@
       "v4": {
         "naive": null,
         "rubric": null
+      },
+      "v5": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -320,6 +328,10 @@
         "rubric": null
       },
       "v4": {
+        "naive": null,
+        "rubric": null
+      },
+      "v5": {
         "naive": null,
         "rubric": null
       }
@@ -422,6 +434,10 @@
         "rubric": null
       },
       "v4": {
+        "naive": null,
+        "rubric": null
+      },
+      "v5": {
         "naive": null,
         "rubric": null
       }
