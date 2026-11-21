@@ -13,9 +13,12 @@ findings** below.
 
 ## Current status
 
-- **Loop audit due:** R62 (fifth round after R57's audit). A round at or past it runs
-  the audit or writes `deferred: <reason>` on its Loop line (proposed upstream, #60).
-- **Round:** 61 complete — the heuristic invariant is tested on every committed split
+- **Loop audit due:** R67 (fifth round after R62's audit) — **or sooner**: a stop
+  condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
+  update this line when either happens (R62: R57-R58 did and nobody pulled it). A round
+  at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
+- **Round:** 62 complete — invariants checked on every committed split; the skyline
+  could not solve `v2para` and now does; loop audit. R61: the heuristic invariant is tested on every committed split
   (it held on all 11). R60: the viewer escapes every text field (planted markup ran
   in 5 of 7 before) and embeds its data so no field can end the script block. R59: the viewer is tested on every version and names the one
   it shows. R58: coverage map refreshed (stale since R34); viewer gap queued (R).
@@ -44,7 +47,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1147 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1181 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -214,7 +217,7 @@ last round whose commit changed the file.
 | `dataset/generate.py` | R52 | 12 families (`v5`); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v5 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
 | `metrics.py` | R8 | ICS, base-rate weighting, hard violations raw; ICS constants still unvalidated by humans (NEEDS-MAX 2) |
 | `policies/builtin.py` | R1 | heuristic near chance and does not solve, on every committed split (R61, `tests/test_heuristic_committed.py`): precision exactly 0.500 on all 11, ICS > 0. Before R61 only a fresh 10-pair v1 build and each new family were tested |
-| `policies/skyline.py` | R52 | resolver built from the frame templates; markers read from the body for five families (`_MARKERS[...] is None`); solves v1-v5 |
+| `policies/skyline.py` | R62 | resolver built from the frame templates **and the paraphrase frames** (R62); markers read from the body for five families; zero errors and zero hard violations on all 11 committed splits (`tests/test_invariants_committed.py`) |
 | `audit.py` | R40 | unigram + bigram gated, positional reported with a label-swap null column (R40). Gated probes seed-stable to 0.0% (R22); positional is not |
 | char n-gram audit | R49 | `experiments/char_ngram_audit.py`, gated on v4 (`test_the_char_ngram_audit_holds`); holds on v5 but not gated there |
 | clause order, random markers | R55 | `tests/test_marker_order.py`: all five body-read-marker families, every version; v1 dev strict xfail (R36) |
@@ -3304,6 +3307,47 @@ the skyline.
 
 ---
 
+## Round 62 — the skyline could not solve the reworded slice; loop audit
+
+**Ending state: `shipped`.** R61 found the heuristic invariant tested only on a fresh
+build. The obvious next question was which other standing invariants share that defect.
+**Before:** of the dataset's structural invariants, most are asserted in
+`test_metrics.py` on `generate(n_pairs_per_scenario=2..10)` (identical UserState,
+balanced labels, near-miss tags, acceptable intents, skyline self-consistency, task
+solvable), and v2-v5 repeat only some of them. Measured on all 11 committed splits:
+every structural property holds. The skyline holds on 10. **On `v2para` it never spoke:
+36 missed positives, ICS 96.0, equal to silence**, so the reworded slice R42 published
+22 LLM runs on had never been shown to be solvable. The skyline resolved deciders only
+against `generate`'s frames.
+
+**After:** the skyline also reads `paraphrase.PARAPHRASE_FRAMES`, and scores ICS 0.0 on
+`v2para` with zero errors. `tests/test_invariants_committed.py` asserts pair structure
+(two sides, identical state, byte-identical body, opposite labels), balance, tags,
+intents and the skyline on every `*.jsonl` under `data/`. It was red on `v2para` alone
+before the fix. Per CLAUDE.md rule 2, the fix is in the skyline, the task's
+ceiling, not in the assertion. No published figure moved: no README number quotes the
+skyline on `v2para`.
+
+**Loop audit (§C), R57–R61.**
+- *Did an audit fail to fire?* **Yes, by three rounds.** R57 and R58 both had
+  non-`nothing` Loop lines, so §C made an audit due at R59. The local due-marker named
+  only the fifth-round date (R62), and so it read as "nothing due". Recorded on #60 as
+  evidence that the marker must compute all three triggers. The marker line here now
+  says so.
+- *Is a state-file section unread?* The standing invariants named tests whose data was
+  not the committed data (R61, R62). The invariant text was true, but the evidence
+  behind it was narrower than the reader would assume. Both are fixed by testing on
+  committed splits.
+- *Ending states and stop conditions:* all `shipped`, and none fired.
+- *Ambiguity:* none new. Review independence (#29) as before.
+
+**Review:** none beyond the gate. The new test is red on the defect and green after.
+
+**Loop:** audit three rounds late (comment on #60); invariants' evidence narrower than
+their wording, twice.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -3390,6 +3434,9 @@ dataset or the policy is wrong, not the assertion.
   might serialize a moment, not one reader's view of it.
 - Skyline beats silence with **zero** hard violations (task stays solvable).
 - Skyline never disagrees with a gold label (labels stay self-consistent).
+  Both, plus pair structure and label balance, on **every committed split** since R62
+  (`tests/test_invariants_committed.py`); `test_metrics.py` checks them only on a
+  fresh build. R62 found the skyline at silence on `v2para` and fixed the skyline.
 - The heuristic stays near chance (**0.5 ± 0.15** precision) and never solves the set —
   on every committed split since R61 (`tests/test_heuristic_committed.py`; it reads
   exactly 0.500 on all 11), not only a fresh v1 build.
