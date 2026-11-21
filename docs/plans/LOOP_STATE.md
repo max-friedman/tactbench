@@ -2660,8 +2660,11 @@ Also fixed: time-of-day frames that did not fit a workday, the clock time in the
 67% test on "shorter longest word" (other features 50-60%). v3 is published with runs,
 so recorded in DATASET.md and gated, not changed. v4's shipped overall positional reads
 52.5% vs a null median of 52.4% on one seed; over seeds it is under the null (51.7% vs
-53.1% on ten), and the v4 test compares over 20 seeds — stated in DATASET.md. v3's
-single-seed check is unchanged.
+53.1% on ten), and the v4 test compares over 20 seeds — stated in DATASET.md. After the second review's frame-4 fix it reads 52.3%, and v4
+is held to v3's single-seed check *and* the 20-seed one. Second review (same agent):
+no real leak; frame 4 "halted in" could be read backwards → "excluded from"; held-out
+feature check made two-sided; a letter-*e* rule at 70% dev / 83% test was the one hit
+of 111 features — stated and pinned, not tuned away.
 
 **Class-vs-instance again (#56).** The R45 length gate named a class (clause features
 a reader can compare) and tested one instance (characters). The -er rule was the next

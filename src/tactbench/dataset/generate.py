@@ -332,7 +332,7 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
         ("Plumber cancelled for the {who}", "Plumber requested for the {who}"),
         ("Courier barred at the {who}", "Courier allowed at the {who}"),
         ("Cleaners skipping the {who}", "Cleaners tidying the {who}"),
-        ("Carpenter halted in the {who}", "Carpenter scheduled in the {who}"),
+        ("Carpenter excluded from the {who}", "Carpenter scheduled into the {who}"),
         ("Decorators banned from the {who}", "Decorators invited inside the {who}"),
         ("Roofers bypassing the {who}", "Roofers repairing the {who}"),
         ("Electricians disallowed from the {who}", "Electricians admitted to the {who}"),

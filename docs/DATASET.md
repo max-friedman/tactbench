@@ -305,13 +305,21 @@ skyline does, and a test pads the privileged clauses and requires the reading to
 past 90%. The same fix applies to `pet_care`'s check (whose readings are unchanged at
 50%).
 
-The shipped dev split's overall positional reading is 52.5% against a null median of
-52.4%, a 0.1-point excess on one seed; over seeds it sits under its null (51.7% against
-53.1% on ten), and that is what is gated.
+The overall positional probe is held both to v3's single-seed check (shipped dev 52.3%
+against a null median of 52.4%) and to the same comparison over 20 seeds. An earlier
+rebuild read 52.5% against 52.4% on one seed — noise, as the seed sweep showed.
+
+A second review tried 111 cheap clause features (every letter, letter pairs, affixes,
+prepositions, lengths). One rule cleared 60% on both splits: "speak iff the motion
+clause has fewer *e*'s" reads 70% dev / 83% test, frame-determined. One hit in 111 is
+about what chance gives, so it is stated here and pinned in a test rather than tuned
+away — tuning frames against every letter would fit the probe, not fix a cue. The
+same review caught frame 4's verb ("halted in the garage" can mean the carpenter is
+there), now "excluded from".
 
 What the family does not resist, and no family does: the privileged clause always
 carries an ordinary word of exclusion or absence (*barred*, *skipping*, *cancelled*,
-*bypassing*). A reader that locates the motion zone's clause and knows those words
+*excluded*). A reader that locates the motion zone's clause and knows those words
 solves the family — that is reading the decider, which is the task.
 
 ### Token permutations and the bigram probe

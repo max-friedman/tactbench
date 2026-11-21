@@ -124,14 +124,13 @@ def test_the_new_familys_positional_reading_matches_its_null_across_seeds(family
 
 
 def test_v4_overall_positional_is_under_its_null():
-    """The shipped dev split reads 52.5% against a null median of 52.4% -- a 0.1-point
-    excess on one seed, which is what v3's single-seed version of this check would
-    see. One seed is the wrong statistic for a gap that size (R45 learned the same for
-    pet_care's positional reading), so the null is compared over 20 seeds, where v4
-    reads 51.7% against 53.1% on the first ten. The shipped split must still be under
-    60%, and the shipped figure is stated in docs/DATASET.md, not hidden."""
+    """v3's single-seed check, plus the same comparison over 20 seeds. The R47 first
+    rebuild read 52.5% against a null of 52.4% on the shipped seed -- a 0.1-point gap
+    that is noise (51.7% against 53.1% over ten seeds) -- so the seed-robust form is
+    kept as well; the final frames read 52.3% against 52.4%, so both hold."""
     dev = load("v4", "dev")
     assert positional_leakage(dev).exploitable_accuracy < 0.60
+    assert positional_leakage(dev).exploitable_accuracy <= null_median(dev, positional_leakage)
     obs, null = [], []
     for seed in SEEDS:
         split = _split(generate(PAIRS, seed, families=FAMILIES), held=False)
@@ -140,12 +139,27 @@ def test_v4_overall_positional_is_under_its_null():
     assert statistics.median(obs) <= statistics.median(null)
 
 
-def test_the_shipped_overall_positional_figure_in_the_docs():
-    dev = load("v4", "dev")
-    assert round(positional_leakage(dev).exploitable_accuracy, 3) == 0.525
-    assert round(null_median(dev, positional_leakage), 3) == 0.524
+def test_the_letter_e_reading_stated_in_the_docs():
+    """R47 second review: of 111 cheap clause features (letters, letter pairs,
+    affixes, lengths), "speak iff the motion clause has fewer e's" was the one hit,
+    reading 70% dev / 83% test after the final frames -- about what that many
+    comparisons give by chance. Stated, not tuned away; this pins the figure."""
+
+    def fewer_e(item):
+        zone = _MOTION_ZONE.search(item.moment.signals[0].content).group(1)
+        clauses = [c.rstrip(".").split() for c in item.moment.signals[-1].content.split(". ")]
+        mine = next(c for c in clauses if c[-1] == zone)
+        other = next(c for c in clauses if c is not mine)
+        em, eo = (" ".join(c[:-1]).count("e") for c in (mine, other))
+        return 0.5 if em == eo else float((em < eo) == item.label.should_surface)
+
+    readings = []
+    for split in ("dev", "test"):
+        items = [i for i in load("v4", split) if i.moment.family == "home_security"]
+        readings.append(round(sum(map(fewer_e, items)) / len(items), 2))
+    assert readings == [0.70, 0.83]
     doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
-    assert "52.5% against a null median of 52.4%" in doc
+    assert "reads 70% dev / 83% test" in doc
 
 
 def test_pairs_differ_only_in_the_decider_as_a_policy_sees_them():
@@ -211,7 +225,9 @@ def test_no_clause_feature_reads_the_label(feature):
         for seed in SEEDS
     ]
     assert 0.45 <= statistics.median(readings) <= 0.55, (feature, sorted(readings))
-    assert feature_exploit(load("v4", "test"), "home_security", feature) <= 0.6, feature
+    # Two-sided: a feature reading strongly *inverted* is as much a label (R47 review).
+    held = feature_exploit(load("v4", "test"), "home_security", feature)
+    assert abs(held - 0.5) <= 0.1, (feature, held)
 
 
 def test_the_clause_feature_check_would_catch_a_lean(monkeypatch):
