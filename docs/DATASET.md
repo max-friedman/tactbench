@@ -366,8 +366,10 @@ every pair — a rule "speak iff the notice district is in the first clause" the
 100% — and the positional test still passed. Order is guarded instead by a
 marker-aware check: within each label, the notice district leads the decider exactly
 half the time (and a mutation test forces the order and requires 100%). `pet_care` and
-`home_security` have the same kind of marker; their order is guarded by the cell-balance
-test.
+`home_security` have the same kind of marker. Since Round 55 the same check
+(`tests/test_marker_order.py`) covers all three families on every version that carries
+them: the marker leads in exactly half of each label, so the order rule reads 50.0% on
+dev and test, and forcing the order for any one family makes it read 100%.
 
 The token-positional reading itself: on the shipped seed the family reads 57.5%
 positional against a label-swap null of 57.5%. Over the first 20 seeds 10 read above

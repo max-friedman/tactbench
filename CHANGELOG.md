@@ -5,6 +5,12 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 55)
+
+- **`tests/test_marker_order.py`**: the marker-aware clause-order check now covers
+  `pet_care` and `home_security` as well as `water_notice`, on every version that
+  carries them, each with a mutation test. All read exactly 50%; no data changed.
+
 ### Added (Round 54)
 
 - **LLM results on `v5`**: all 28 runs (14 open-weight models, naive and rubric), README
