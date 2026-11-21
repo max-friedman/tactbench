@@ -2836,7 +2836,17 @@ published run is affected.
 violations. On `home_security`: best 1 of 20 pairs; 7 split pairs, 6 backwards — the
 R48 pattern, now on 28 runs.
 
-**Review:** subagent, not §D-independent (owner authorised merging in-session).
+**Review:** subagent, not §D-independent (the owner told this session to keep working
+and merge). It recomputed every figure independently and all matched. Fixed from it: the R48
+sentences now say "of the 22" inline (the table has 28 rows and seven above zero);
+"none beats silence by more than a rounding error" and "not a seventh run that judges"
+overclaimed and were reworded; the stale "22 runs" and "Eleven open-weight models" lines
+were updated; the Mistral manifest's `system_role: false` is gated.
+
+**Left open (queue candidates):** the preflight lives only in
+`experiments/run_local_llms.py` — `tactbench llm --provider local` has none, and the
+preflight itself is untested (it needs a mock server); the hand re-check of the ten
+earlier system-turn models left no committed log.
 
 **Loop:** nothing.
 

@@ -186,7 +186,11 @@ def main() -> None:
     ap.add_argument("--server-python", required=True)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--only", action="append")
-    ap.add_argument("--version", default="v1", help="dataset version (v1, v2)")
+    ap.add_argument(
+        "--version",
+        default="v1",
+        help="dataset version (v1-v4); the Round 50 models are published on v4 only",
+    )
     args = ap.parse_args()
 
     manifest = json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {}

@@ -394,7 +394,7 @@ v2*. Details in [docs/DATASET.md](docs/DATASET.md#dataset-v2--the-same-generator
 22 runs on it are under *On dataset v3*
 ([details](docs/DATASET.md#dataset-v3--a-tenth-family-pet_care-round-45)). `v4`
 (Round 47) is v3 plus an eleventh family, `home_security` (440 dev / 264 test); its
-first ten families are identical to v3's, and the 22 runs on it are under *On
+first ten families are identical to v3's, and the 28 runs on it are under *On
 dataset v4*
 ([details](docs/DATASET.md#dataset-v4--an-eleventh-family-home_security-round-47)).
 
@@ -430,11 +430,13 @@ The model name is required — it becomes part of the result. Some chat template
 unchanged, at the top of the user turn instead. Others drop it *silently*: under
 llama-cpp-python's `mistral-instruct` format, Mistral 7B received the same token
 count with and without a system turn, so it would have answered without the
-instructions and still produced a well-formed result (Round 50). The local runner
+instructions and still produced a well-formed result (Round 50). `experiments/run_local_llms.py`
 now puts a secret word in the system turn before every run and refuses to start
-if the model cannot repeat it (models on `--no-system-role` skip the check). The
-eleven models published before it were re-checked by hand — the secret word, or
-the prompt token count rising with a system turn — and all received it. A run whose calls fail is not a
+if the model cannot repeat it (models on `--no-system-role` skip the check). `tactbench llm` itself does
+not run this check, so verify a new template before trusting a run. The ten earlier
+models that use a system turn were re-checked by hand — the secret word, or the
+prompt token count rising with a system turn — and all received it; that check left
+no committed log. A run whose calls fail is not a
 result: the server's error is scored as silence, so the CLI marks any run above 5%
 unparsed *inconclusive*, and a test refuses to publish one containing a failed call.
 
@@ -587,11 +589,11 @@ reused from the v3 runs (a test checks every one is unchanged) and only the 40
 
 <!-- v4-claims:start -->
 **No run gets the new family's decider right, and where it moves an answer it mostly
-moves it the wrong way.** On `home_security`, **17** of the 22 runs give all 40 moments
+moves it the wrong way.** On `home_security`, **17** of those 22 runs give all 40 moments
 the same answer, and a run that answers both sides of a pair alike cannot get that pair
-right. The best runs get **1** of their 20 pairs right on both sides (Llama-3.1-8B and
+right. The best of the 22 get **1** of their 20 pairs right on both sides (Llama-3.1-8B and
 Qwen2.5-0.5B, both naive prompt), against about **5** for a coin. Qwen2.5-0.5B's one pair
-is luck of the fallback: one side was unreadable and scored as silence. Across all
+is luck of the fallback: one side was unreadable and scored as silence. Across the 22
 runs, **15** pairs get different answers on their two sides, and **13** of those are
 backwards (wrong on both sides), against an even split for a run whose answers ignore
 the decider. Most come from Gemma-3-4B and Llama-3.1-8B with the naive prompt, **5**
@@ -600,7 +602,7 @@ runs that went quiet on `pet_care` say nothing on any `home_security` moment. Th
 ordering moves more than it did on v3: of the 231 pairs of runs, **5** are reversed by
 ICS (v3 against v2: **0**) and **1** is tied on one version and ordered on the other.
 Every one of those changes is between runs that lose to silence on both versions. The
-six runs that beat silence keep their order, and they are the same **six**, all with
+six of the 22 that beat silence keep their order, and they are the same **six**, all with
 zero hard violations. One more verdict changes. Qwen2.5-0.5B with the naive prompt goes
 from **2.8%** to **5.7%** unparsed, so its v4 score is inconclusive: **14** of its 40
 `home_security` answers are unreadable. Qwen2.5-3B naive stays inconclusive (**6.2%** to
@@ -641,11 +643,12 @@ from **2.8%** to **5.7%** unparsed, so its v4 score is inconclusive: **14** of i
 <!-- llm-results-v4:end -->
 
 <!-- v4-added-claims:start -->
-**Three more models, Round 50: none beats silence by more than a rounding error.**
+**Three more models, Round 50: one of six runs beats silence, by +0.7.**
 Granite-3.3-2B, Phi-4-mini and Mistral-7B add **6** runs, making **28** on v4. With the
 rubric prompt, Phi-4-mini and Mistral-7B all but stop speaking — **2** and **1** of 440
 moments. Phi-4-mini's **+0.7** is the only one of the six above silence: it speaks twice,
-correctly both times, and is otherwise silence, not a seventh run that judges. Every
+correctly both times, and is otherwise silence. Two utterances are too few to tell
+judgment from luck. Every
 naive run commits hard violations (**20** to **40**), and so does Granite with the
 rubric (**25**). On `home_security` the best gets **1** of 20 pairs right on both sides
 (Phi-4-mini, naive); across the six, **7** pairs get different answers on their two
@@ -814,8 +817,8 @@ otherwise would defeat the purpose of building a benchmark:
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
-- **No frontier LLM has been run.** Eleven open-weight models of 8B parameters and
-  under are measured; whether frontier models do better is the result the project
+- **No frontier LLM has been run.** Fourteen open-weight models of 8B parameters and
+  under are measured (three on v4 only); whether frontier models do better is the result the project
   exists to produce, and it costs money that has not been spent. The harness runs
   them unchanged.
 - **The pair-blind bar reads labels.** It is the optimum over policies that cannot

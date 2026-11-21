@@ -8,6 +8,7 @@ v4 decision on an old-family moment must equal the same run's v3 decision.
 
 from __future__ import annotations
 
+import json
 from itertools import combinations
 from pathlib import Path
 
@@ -134,7 +135,7 @@ class TestTheReadmeV4Claims:
         _, runs = self._new_family()
         constant = [n for n, ds in runs.items() if len({d.surface for d in ds}) == 1]
         assert len(runs) == 22 and len(constant) == 17
-        assert "**17** of the 22 runs" in self._block()
+        assert "**17** of those 22 runs" in self._block()
 
     def test_best_new_family_pairs_and_the_coin(self):
         items, runs = self._new_family()
@@ -290,8 +291,8 @@ class TestTheReadmeV4AddedClaims:
         assert above == ["llm:rubric:phi-4-mini"]
         c = cards["llm:rubric:phi-4-mini"]
         assert round(c.ics_normalized, 1) == 0.7 and c.precision_at_interrupt == 1.0
-        assert max(c.ics_normalized for c in cards.values()) < 1.0
         block = self._block()
+        assert "one of six runs beats silence, by +0.7" in block
         assert "Phi-4-mini's **+0.7**" in block and "correctly both times" in block
 
     def test_hard_violations(self):
@@ -321,7 +322,8 @@ class TestTheReadmeV4AddedClaims:
             backwards += sum(ds[p[0]].surface != label[p[0]] for p in moved)
         top = max(best.values())
         assert top == 1 and [n for n, v in best.items() if v == top] == ["llm:naive:phi-4-mini"]
-        assert len(sides) == 20 and split == 7 and backwards == 6
+        assert len(sides) == 20 and all(len(p) == 2 for p in sides.values())
+        assert split == 7 and backwards == 6
         block = self._block()
         assert "the best gets **1** of 20 pairs" in block and "(Phi-4-mini, naive)" in block
         assert "**7** pairs get different answers" in block and "**6** of those" in block
@@ -335,4 +337,8 @@ class TestTheReadmeV4AddedClaims:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         assert "mistral-7b" in module.NO_SYSTEM_ROLE
+        manifest = json.loads(
+            (Path(__file__).parent.parent / "results" / "MANIFEST.json").read_text()
+        )
+        assert manifest["mistral-7b"]["system_role"] is False
         assert "Mistral-7B ran with `--no-system-role`" in self._block()
