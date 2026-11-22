@@ -74,6 +74,8 @@ CANDIDATES: list[tuple[str, str]] = [
     ("Waitlisted at {who}", "Confirmed at {who}"),
     ("Seats in doubt at {who}", "Seats in place at {who}"),
     ("Table sought for the party at {who}", "Table waiting for the party at {who}"),
+    # Added after the R80 review.
+    ("Booking reference pending from {who}", "Booking reference received from {who}"),
     # A negation on the privileged side (the booking is not confirmed).
     ("Lacking a reserved slot at {who}", "Holding a reserved slot at {who}"),
     ("Unconfirmed so far at {who}", "Confirmed so far at {who}"),
@@ -103,26 +105,52 @@ CANDIDATES: list[tuple[str, str]] = [
     ("Guest list shows none of the party at {who}", "Guest list shows all of the party at {who}"),
     ("Seats held number zero at {who}", "Seats held number four at {who}"),
     ("Seat lacking at {who}", "Seat reserved at {who}"),
+    # Added after the R80 review, which replaced two frames.
+    ("Holding no table for the party at {who}", "Holding a table for the party at {who}"),
+    ("Booked table exists nowhere at {who}", "Booked table exists already at {who}"),
+    ("Seat count held is zero at {who}", "Seat count held is four at {who}"),
+    ("Places kept for the party number zero at {who}", "Places kept for the party number four at {who}"),
+    ("Reference code unissued by {who}", "Reference code issued by {who}"),
+    ("Booking reference absent from {who}", "Booking reference arrived from {who}"),
+    ("Confirmation code missing from {who}", "Confirmation code received from {who}"),
+    ("Name absent from the bookings book at {who}", "Name present in the bookings book at {who}"),
+    ("Room for the party unknown at {who}", "Room for the party assured at {who}"),
     # Both clauses negated.
     ("Never secured a table at {who}", "Never lacked a table at {who}"),
     ("Nothing confirmed at {who}", "Everything confirmed at {who}"),
     # A negation on the other side (the booking is confirmed).
     ("Needing a final confirmation at {who}", "Needing no further confirmation at {who}"),
     ("Subject to seat availability at {who}", "Subject to no conditions at {who}"),
-    ("Dependent on a cancellation at {who}", "Dependent on no cancellation at {who}"),
     ("Table promised conditionally at {who}", "Table promised unconditionally at {who}"),
-    ("Seating relies on a callback at {who}", "Seating relies on no callback at {who}"),
     ("Conditional booking at {who}", "Unconditional booking at {who}"),
-    ("Revocable hold at {who}", "Irrevocable hold at {who}"),
     ("Seating doubtful at {who}", "Seating undoubted at {who}"),
     ("Chance of losing the table is real at {who}", "Chance of losing the table is zero at {who}"),
     ("Seats might go to others at {who}", "Seats cannot go to others at {who}"),
     ("Table could be given away at {who}", "Table cannot be given away at {who}"),
+    # Added after the R80 review.
+    ("Party could be turned away at {who}", "Party cannot be turned away at {who}"),
+    ("Hostess may turn the party away at {who}", "Hostess cannot turn the party away at {who}"),
+    ("Seats might be refused at {who}", "Seats cannot be refused at {who}"),
+    (
+        "Seated only if someone cancels at {who}",
+        "Seated without anybody else cancelling at {who}",
+    ),
 ]
 
 #: Rejected before the search, with the reason. A careful human could read each one
 #: backwards, or it leans on an idiom, or it does not settle whether a table is held.
 EXCLUDED: dict[tuple[str, str], str] = {
+    ("Seating relies on a callback at {who}", "Seating relies on no callback at {who}"): (
+        "the R80 review's objection to 'dependent on no cancellation': relying on no "
+        "callback does not say a table is held"
+    ),
+    ("Revocable hold at {who}", "Irrevocable hold at {who}"): (
+        "R80 review: a revocable hold is still a held table, so both sides read as confirmed"
+    ),
+    ("Dependent on a cancellation at {who}", "Dependent on no cancellation at {who}"): (
+        "R80 review: 'dependent on no cancellation' reads as conditional (it holds as long "
+        "as nobody cancels) and does not say a table is held"
+    ),
     ("Party still unplaced at {who}", "Party already placed at {who}"): (
         "'placed' is unclear: seated, or ranked"
     ),
