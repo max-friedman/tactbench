@@ -101,7 +101,11 @@ class TestTheReadmeHeldOutClaims:
         assert set(dev) <= set(test) and len(both) == 22
         only = {p.split(":", 2)[2] for p in set(test) - both}
         assert only == {"mistral-7b", "phi-4-mini", "granite-3.3-2b"}
-        assert "22 runs have a row on both v1 splits" in self._block()
+        block = self._block()
+        assert "22 runs have a row on both v1 splits" in block
+        assert (
+            "(Mistral-7B, Phi-4-mini and Granite-3.3-2B were added after v1 dev was run)" in block
+        )
 
     def test_verdicts_against_silence(self):
         dev, test = self._cards("dev"), self._cards("test")
@@ -116,6 +120,15 @@ class TestTheReadmeHeldOutClaims:
             f"**{c_dev.ics_normalized:+.1f}** on dev and **{c_test.ics_normalized:+.1f}** on test"
         )
         assert quoted.replace("-", "−") in block
+        silence = test["llm:naive:qwen2.5-1.5b"][0]
+        assert silence.ics_normalized == 0 and silence.surfaced == 0
+        sil = {o.moment_id: o.cost for o in silence.outcomes}
+        best_gain = max(sil[o.moment_id] - o.cost for o in c_test.outcomes)
+        assert sil and c_test.ics + best_gain == silence.ics == 144.0
+        assert (
+            f"it scores {c_test.ics:.1f} against silence's {silence.ics:.1f}, and staying "
+            f"quiet on any one of its {best_gain:.1f}-point catches would tie it with silence"
+        ) in block
 
     def test_ordering_against_dev(self):
         dev, test = self._cards("dev"), self._cards("test")
@@ -135,7 +148,10 @@ class TestTheReadmeHeldOutClaims:
         ties = {p for p in others if test[p][0].ics_normalized == 0}
         assert len(ties) == 4 and others - ties == {"llm:naive:qwen2.5-3b"}
         block = self._block()
-        assert "**5** are reversed by ICS" in block and "**8** are tied" in block
+        assert "Of the 231 pairs of runs, **5** are reversed by ICS." in block
+        assert "Every one is Gemma-3-4B naive moving past another run" in block
+        assert "four that tie silence, and Qwen2.5-3B naive." in block
+        assert "Another **8** are tied on one split and ordered on the other." in block
 
     def test_the_best_row_is_the_same(self):
         dev, test = self._cards("dev"), self._cards("test")
@@ -143,7 +159,10 @@ class TestTheReadmeHeldOutClaims:
         best_test = min(test, key=lambda p: test[p][0].ics)
         assert best_dev == best_test == "llm:rubric:gemma-3-4b"
         d, t = dev[best_dev][0].ics_normalized, test[best_test][0].ics_normalized
-        assert f"**{d:+.1f}** on dev and **{t:+.1f}** on test" in self._block()
+        assert (
+            f"The best row is the same on both: Gemma-3-4B with the rubric, "
+            f"**{d:+.1f}** on dev and **{t:+.1f}** on test"
+        ) in self._block()
 
     def test_silence_bar_pairs_and_unparsed(self):
         test = self._cards("test")
@@ -158,7 +177,10 @@ class TestTheReadmeHeldOutClaims:
         block = self._block()
         assert f"**{len(above)}** of the 28 runs beat silence" in block and len(above) == 7
         assert f"**{best_bar:+.1f}** against the".replace("-", "−") in block
-        assert f"**{test[best_pairs][2]:.1%}**, from Llama-3.1-8B naive" in block
+        assert (
+            f"**{test[best_pairs][2]:.1%}**, from Llama-3.1-8B naive, a run that loses to silence"
+            in block
+        )
         assert f"highest unparsed rate is **{worst_unparsed:.1%}**" in block
 
     def test_hard_violations_above_silence(self):
@@ -170,7 +192,10 @@ class TestTheReadmeHeldOutClaims:
             if c.ics_normalized > 0 and c.hard_violations
         }
         assert dirty == {"llm:naive:gemma-3-4b": 4}
-        assert "On test Gemma-3-4B naive beats silence with **4**." in self._block()
+        assert (
+            "On test Gemma-3-4B naive beats silence with **4**, by the same thin margin."
+            in self._block()
+        )
 
 
 def test_the_held_out_frames_are_the_ones_the_readme_names():
@@ -178,4 +203,11 @@ def test_the_held_out_frames_are_the_ones_the_readme_names():
 
     text = (Path(__file__).parent.parent / "README.md").read_text()
     assert HELD_OUT_FRAMES == frozenset({5, 6, 7})
-    assert "deciders use frames\n5-7, which appear nowhere in dev" in text
+    assert "deciders use frames 5-7, which appear nowhere in dev" in " ".join(text.split())
+
+
+def test_the_held_out_section_intro():
+    text = " ".join((Path(__file__).parent.parent / "README.md").read_text().split())
+    n = len(load(VERSION, SPLIT))
+    assert n == 108 and len(RUNS) == 28
+    assert f"All {len(RUNS)} runs on v1's held-out split (Round 69): {n} moments" in text

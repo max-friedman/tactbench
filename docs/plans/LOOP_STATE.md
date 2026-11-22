@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1286 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1287 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -340,6 +340,12 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
+
+U. **Move the v1 dev commentary under the v1 dev table** (new, R69 review). The
+   "What it shows" bullets (252 moments, best pairs 10.3%, Gemma rubric +16.4) describe
+   v1 dev but sit after the v5 table, where a reader takes them as v5's (v5's best
+   pairs is 9.6%). Prose move only; the gating tests read by marker, so check none
+   depends on position.
 
 T. **LLM runs on a held-out split — DONE in R69 for v1.** v2-v5 test not run (each
    is hours of local inference; queue it again only if a question needs it). Original entry: README limitation: "no model has been
@@ -3572,7 +3578,16 @@ silence; the test found the fifth is Qwen2.5-3B naive (−6.0 → −9.0). Fixed
 
 **Not done:** v2-v5 held-out runs.
 
-**Review:** in-session subagent (not §D-independent; owner-authorized merge).
+**Review:** in-session subagent (not §D-independent; the owner authorized merging
+after review: "continue to work and merge"). No blockers. Fixed: the headline said
+"dev conclusions hold on phrasings the models have never seen" (zero-shot models saw
+neither split, and orderings did reverse), now "dev's verdicts against silence mostly
+hold"; the one flip rests on a 3.0-point margin that one decision erases, now stated
+and pinned; eight prose facts (231, 28, 108, the tie count, the reversal partner, the
+model list, the best-row name, "loses to silence") were computed but not checked
+against the text, now pinned and each mutation-killed; the verdict test now
+distinguishes tie from loss. Queued (U): the v1 dev commentary sits under the v5
+table, pre-existing.
 
 **Loop:** nothing new.
 

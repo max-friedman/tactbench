@@ -771,21 +771,24 @@ All 28 runs on v1's held-out split (Round 69): 108 moments whose deciders use fr
 split.
 
 <!-- v1-test-claims:start -->
-- **The dev conclusions hold on phrasings the models have never seen.** 22 runs
-  have a row on both v1 splits (Mistral-7B, Phi-4-mini and Granite-3.3-2B were added
-  after v1 dev was run). **21** of the 22 keep their verdict against silence. The
-  exception is Gemma-3-4B naive, **−6.5** on dev and **+2.1** on test. Of the 231
-  pairs of runs, **5** are reversed by ICS. Every one is Gemma-3-4B naive moving
-  past another run: four that tie silence, and Qwen2.5-3B naive. Another **8** are
-  tied on one split and ordered on the other. The best row is the same on both: Gemma-3-4B with the rubric, **+16.4** on dev and
-  **+18.1** on test.
+- **Dev's verdicts against silence mostly hold on phrasings dev does not use.** 22
+  runs have a row on both v1 splits (Mistral-7B, Phi-4-mini and Granite-3.3-2B were
+  added after v1 dev was run). **21** of the 22 keep their verdict against silence.
+  The exception is Gemma-3-4B naive, **−6.5** on dev and **+2.1** on test, and that
+  margin is thin: it scores 141.0 against silence's 144.0, and staying quiet on any
+  one of its 3.0-point catches would tie it with silence. Of the 231 pairs of runs,
+  **5** are reversed by ICS. Every one is Gemma-3-4B naive moving past another run:
+  four that tie silence, and Qwen2.5-3B naive. Another **8** are tied on one split
+  and ordered on the other. The best row is the same on both: Gemma-3-4B with the
+  rubric, **+16.4** on dev and **+18.1** on test.
 - **Some beat silence; none clears the pair-blind bar; none reads the decider.**
   **7** of the 28 runs beat silence, and the best is still **−15.7** against the
   pair-blind bar. The best `pairs` score is **14.8%**, from Llama-3.1-8B naive, a
   run that loses to silence; a coin gets about 25%. No run is inconclusive: the
   highest unparsed rate is **1.9%**.
-- **One dev pattern does not carry over.** On dev no run that beats silence has a
-  hard violation. On test Gemma-3-4B naive beats silence with **4**.
+- **One dev pattern does not carry over, narrowly.** On dev no run that beats
+  silence has a hard violation. On test Gemma-3-4B naive beats silence with **4**,
+  by the same thin margin.
 - **Read the agreement narrowly.** The held-out split asks whether reading the
   decider survives new phrasings. These models do not read it on dev, so they had
   little to lose. Matching dev is what decisions driven by what the two splits share
