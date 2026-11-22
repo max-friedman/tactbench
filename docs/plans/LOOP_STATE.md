@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 and R72 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 72 complete — all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 73 complete — letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1473 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1540 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -218,7 +218,7 @@ last round whose commit changed the file.
 
 | area | last touched | probe / status |
 |---|---|---|
-| `dataset/generate.py` | R71 | 13 families (`v6`); letter combinations ungated (`experiments/letter_bag_probe.py`, queue V); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v6 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
+| `dataset/generate.py` | R71 | 13 families (`v6`); letter combinations gated against an exact orientation null on every family and version (R73, `tests/test_letter_bag_null.py`; lowest `home_security` p=0.070); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v6 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
 | `metrics.py` | R8 | ICS, base-rate weighting, hard violations raw; ICS constants still unvalidated by humans (NEEDS-MAX 2) |
 | `policies/builtin.py` | R1 | heuristic near chance and does not solve, on every committed split (R61, `tests/test_heuristic_committed.py`): precision exactly 0.500 on all 11, ICS > 0. Before R61 only a fresh 10-pair v1 build and each new family were tested |
 | `policies/skyline.py` | R62 | resolver built from the frame templates **and the paraphrase frames** (R62); markers read from the body for five families; zero errors and zero hard violations on all 11 committed splits (`tests/test_invariants_committed.py`) |
@@ -345,7 +345,7 @@ W. **LLM runs on `v6` — DONE in R72.** Original entry (R71): 28 runs; old-fami
    cache, so only `street_cleaning`'s 40 dev moments are queried (about 1,120 calls).
    Check old-family decisions equal v5's, as R54 did against v4.
 
-V. **Gate letter-count combinations** (new, R71 review). The single-letter gate misses
+V. **Gate letter-count combinations — DONE in R73** (`tests/test_letter_bag_null.py`). Original entry (R71 review): The single-letter gate misses
    a weighted bag: `experiments/letter_bag_probe.py` reads held-out `street_cleaning`
    at 100.0% (three frames; 62.5% leaving one frame out) and v4 `home_security` at
    83.3% (87.5%, 7 of 8). Before gating, state the null: with three test frames a
@@ -3715,6 +3715,40 @@ tests, and the reused decisions are checked one by one.
   lesson CI caught.
 
 **Loop:** audit on time; nothing new beyond R71's #56 comment.
+
+---
+
+## Round 73 — letter-count combinations, against an exact null
+
+**Ending state: `shipped`.** Queue item V. **Before:** the only letter gate tested one
+letter at a time. R71's review found a dev-fit weighted letter bag reading held-out
+`street_cleaning` at 100% and v4 `home_security` at 83.3%. Neither had a null, and
+with three test frames a dev->test figure is three coin flips.
+
+**Null, pre-registered before measuring:** readings are fixed by the frames, so
+swapping which clause of a frame is privileged negates every letter difference in it
+and leaves the label alone. The 2**8 orientations of eight frames are therefore an
+exact, exhaustive null for the leave-one-frame-out reading. A family fails if p < 0.05.
+At 5% each, thirteen families give about 0.65 expected false alarms; this is stated in
+the test and in DATASET.md.
+
+**Built first:** `tests/test_letter_bag_null.py`, with a coverage test (every family,
+every version on disk) and a mutation test (a *z* in every privileged clause gives p
+0.016). Its docs pin was red until DATASET.md stated the result. The probe was
+generalised from three families to all thirteen. Commerce's multi-word fillers
+needed clauses matched against the frame templates rather than by dropping the last
+word. A first run showed 10 "frames" there, which an assertion caught.
+
+**Result:** all 64 family-version cells pass. The lowest is `home_security` at
+p=0.070 (87.5% leaving one frame out). `street_cleaning`'s 62.5% has p=0.430, so the
+R71 alarm reads as chance. DATASET.md's v6 section and Known weaknesses now say so;
+the R71 figures are kept.
+
+**Review:** none beyond the gate and the mutation test. The null is exhaustive and its
+power was shown by mutation.
+
+**Loop:** nothing new. That a threshold needs its null is already filed as #61, and
+this round is one more instance of applying it.
 
 ---
 
