@@ -721,7 +721,7 @@ someone might still want to know that the cloud copy is going. The user is at a 
 evening (false-positive cost 2.0) and the positive is priced at value 2. Labels are
 constructed (`raters: 0`).
 
-**No LLM has been run on v8.**
+All 28 LLM runs are on v8 (Round 77; README, *On dataset v8*).
 
 ### Token permutations and the bigram probe
 

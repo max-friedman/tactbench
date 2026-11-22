@@ -5,6 +5,13 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 77)
+
+- **LLM results on `v8`.** All 28 runs, with every reused old-family decision checked
+  equal to v7's. On `photo_backup` 19 runs are constant and the best reads 4 of 20 pairs
+  (4 right, 0 backwards, p=0.0625), below a coin's 5. The same 8 runs beat silence as on
+  v7; no run ordering reverses.
+
 ### Added (Round 76)
 
 - **Dataset `v8`: a fifteenth family, `photo_backup`** (600 dev / 360 test). A free

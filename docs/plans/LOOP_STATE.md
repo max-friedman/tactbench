@@ -13,11 +13,11 @@ findings** below.
 
 ## Current status
 
-- **Loop audit due:** R77 (fifth round after R72's audit) — **or sooner**: a stop
+- **Loop audit due:** R82 (fifth round after R77's audit) — **or sooner**: a stop
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
-  update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 and R72 ran on time). A round
+  update this line when either happens (R62: R57-R58 did and nobody pulled it; R67, R72 and R77 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 76 complete — dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 77 complete — all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1850 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1956 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -341,7 +341,7 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
-Y. **LLM runs on `v8`** (new, R76). As R75: seed v8 caches from v7's, write
+Y. **LLM runs on `v8` — DONE in R77.** Original entry (R76): As R75: seed v8 caches from v7's, write
    `tests/test_results_v8.py` and the README section first, then run. Only
    `photo_backup`'s 40 dev moments are queried.
 
@@ -3888,6 +3888,38 @@ a test holds it to the shipped frames. That fixes R74's unreproducible counts.
 
 **Loop:** nothing new beyond #56's pattern again. The search balanced every feature it
 was told about and was blind to polarity, the one it was not told about.
+
+---
+
+## Round 77 — the 28 LLM runs on dataset v8; and a loop audit
+
+**Ending state: `shipped`.** Queue item Y. **Before:** no model had been run on `v8`.
+**After:** all 28 runs. Caches were seeded from v7, so only `photo_backup`'s 40 dev
+moments were queried, and the 560 reused decisions are checked one by one. This time
+the reuse test was written with explicit line replacements and checked to read v7.
+
+**Result (`TestTheReadmeV8Claims`; 7 mutations, all caught; an eighth applied with the
+wrong pattern was retried and caught):**
+- On `photo_backup`, 19 of 28 runs are constant (8 silent, 11 always speak).
+- The best is SmolLM2-1.7B rubric with 4 of 20 pairs, 4 right and 0 backwards
+  (p=0.0625). That is the closest any run has come to the 5% line on a new family, and
+  it is still below a coin's 5. Across runs, 18 pairs are split: 11 right, 7 backwards.
+- The same 8 runs beat silence; 0 of 378 orderings reverse; 1 changes from tied to
+  ordered.
+
+**Loop audit (due; R73-R76).** Loop lines: R73 nothing; R74 a #39 instance; R75
+nothing; R76 a #56 instance. No two non-`nothing` lines in a row.
+- *Effort out of proportion?* Each new family costs about 40 minutes of building and
+  15 of review, then about 3 hours of model runs. The runs now change nothing: on four
+  new families in a row no model reads the decider. The queue is nearly all owner
+  items. Recorded for the owner as a stop signal, not a protocol finding.
+- *Skipped steps?* R74's branch reset (recorded in R75). R75, R77: no review beyond the
+  gate, with claims recomputed and mutation-checked.
+- *Ending states:* all `shipped`. *Stop conditions:* none fired. *Ambiguity:* none.
+- Upstream: R74's overclaim was commented on #39 (with the brief-framing angle), and
+  R76's unlisted-feature search on #56.
+
+**Loop:** audit on time; two upstream comments, on existing issues.
 
 ---
 
