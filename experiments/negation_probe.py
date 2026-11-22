@@ -9,18 +9,20 @@ the held-out frames tested nothing beyond the dev cue.
 
 Two readings:
 
-* :class:`NegationPolicy`, the reviewer's policy (photo_backup only; the heuristic
-  elsewhere). It finds the album named in a body clause with a deletion word, and speaks
-  iff that album's decider clause has a negation word. Everything it reads is a generic
-  English lexicon or capitalisation.
+* :class:`NegationPolicy`, the reviewer's policy (one family; the heuristic elsewhere).
+  For ``photo_backup`` it finds the album named in a body clause with a deletion word;
+  for ``dinner_booking`` (v9, R80) the restaurant named in a body clause with a word for
+  today. It speaks iff that name's decider clause has a negation word. Everything it
+  reads is a generic English lexicon or capitalisation.
 * :func:`frame_polarity`, for every family: per frame, whether the clause naming the
   marker is negated and the other is not (the rule is right on that frame), the reverse
   (wrong), or neither (a tie). The marker is located as the other clause probes locate
   it (``letter_bag_probe.clause_rows``), so this bounds what any policy that can find the
   marker's clause gets from polarity alone.
 
-``tests/test_dataset_v8.py`` gates the new family: right and wrong frames are equal on
-dev and on held-out frames separately, so the rule reads exactly 50% on both.
+``tests/test_dataset_v8.py`` and ``tests/test_dataset_v9.py`` gate each version's new
+family: right and wrong frames are equal on dev and on held-out frames separately, so
+the rule reads exactly 50% on both.
 
     uv run python experiments/negation_probe.py
 """
@@ -48,6 +50,10 @@ NEGATION = frozenset(
 PREFIXES = ("un", "non", "irr")
 #: Generic deletion words, for locating the album the body says is going.
 DELETION = frozenset("deleted removed erased deleting lost wiped".split())
+#: Generic words for today, for locating the restaurant the body says is tonight's (R80).
+TODAY = frozenset("tonight today tonights now".split())
+#: The body lexicon that locates each family's marker, for the families the policy reads.
+LOCATORS = {"photo_backup": DELETION, "dinner_booking": TODAY}
 
 
 def _words(text: str) -> list[str]:
@@ -66,19 +72,22 @@ def _names(clause: str) -> set[str]:
 
 
 class NegationPolicy(Policy):
-    """The reviewer's rule-1-legal policy for ``photo_backup``; the heuristic elsewhere."""
+    """The reviewer's rule-1-legal policy for one family (``photo_backup`` by default);
+    the heuristic elsewhere."""
 
     name = "negation"
 
-    def __init__(self) -> None:
+    def __init__(self, family: str = "photo_backup") -> None:
         self._heuristic = HeuristicPolicy()
+        self._family = family
+        self._locator = LOCATORS[family]
 
     def decide(self, moment: Moment) -> Decision:
-        if moment.family != "photo_backup":
+        if moment.family != self._family:
             return ask(self._heuristic, moment)
         doomed: set[str] = set()
         for clause in re.split(r"[.,;:—]", moment.signals[0].content):
-            if any(w.lower() in DELETION for w in _words(clause)):
+            if any(w.lower() in self._locator for w in _words(clause)):
                 doomed |= _names(clause)
         flagged: set[str] = set()
         for signal in moment.signals[1:]:
@@ -88,9 +97,9 @@ class NegationPolicy(Policy):
         return Decision(moment_id=moment.id, surface=bool(doomed & flagged))
 
 
-def policy_accuracy(items) -> float:
-    chosen = [i for i in items if i.moment.family == "photo_backup"]
-    policy = NegationPolicy()
+def policy_accuracy(items, family: str = "photo_backup") -> float:
+    chosen = [i for i in items if i.moment.family == family]
+    policy = NegationPolicy(family)
     return sum(ask(policy, i.moment).surface == i.label.should_surface for i in chosen) / len(
         chosen
     )
@@ -123,14 +132,15 @@ def frame_polarity(family: str, version: str) -> dict[str, dict[str, int] | floa
 def main() -> None:
     from tactbench.runner import evaluate
 
-    if LATEST >= 8:
+    for family in LOCATORS:
+        version = FAMILIES[family][0]
         for split in ("dev", "test"):
-            items = load(f"v{LATEST}", split)
+            items = load(version, split)
             heuristic = evaluate(HeuristicPolicy(), items).ics
-            grafted = evaluate(NegationPolicy(), items).ics
+            grafted = evaluate(NegationPolicy(family), items).ics
             print(
-                f"v{LATEST}/{split}: negation policy on photo_backup "
-                f"{policy_accuracy(items):.1%}; ICS heuristic {heuristic:.1f}, "
+                f"{version}/{split}: negation policy on {family} "
+                f"{policy_accuracy(items, family):.1%}; ICS heuristic {heuristic:.1f}, "
                 f"heuristic + negation {grafted:.1f}"
             )
     print("frame polarity (right/wrong/tie frames; accuracy), every version carrying it:")

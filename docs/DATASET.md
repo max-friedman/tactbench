@@ -472,11 +472,11 @@ leaving one frame out (7 of 8), and that family is published with runs. On v5
 swaps which clause of each frame is the privileged one: that negates every letter
 difference in the frame and leaves the label alone, and the 2**8 orientations of
 eight frames are an exhaustive null. Pre-registered: a family fails if under 5% of
-orientations read at least its shipped leave-one-frame-out figure. All 93
-family-version cells pass (64 when Round 73 measured them; v7 and v8 each add one per
-family), covering all fifteen families on every version that carries them. `street_cleaning`'s 62.5% has p=0.430. The lowest is `home_security`
+orientations read at least its shipped leave-one-frame-out figure. All 109
+family-version cells pass (64 when Round 73 measured them; v7, v8 and v9 each add one
+per family), covering all sixteen families on every version that carries them. `street_cleaning`'s 62.5% has p=0.430. The lowest is `home_security`
 at p=0.070 (87.5% leaving one frame out). At 5% each, thirteen families give about
-0.65 expected false alarms (fifteen, since v8, about 0.75), so a future failure is a reason to look at the frames, not
+0.65 expected false alarms (fifteen, since v8, about 0.75; sixteen, since v9, about 0.80), so a future failure is a reason to look at the frames, not
 a verdict. Adding a *z* to every privileged clause drives p to 0.016, so the gate can
 fail.
 
@@ -723,6 +723,153 @@ constructed (`raters: 0`).
 
 All 28 LLM runs are on v8 (Round 77; README, *On dataset v8*).
 
+### Dataset v9 — a sixteenth family, `dinner_booking`
+
+`data/v9` is `tactbench build --version v9 --pairs 32 --families 16`: v8 plus one new
+family (640 dev / 384 test), from dining out, which none of the fifteen touches. The
+user is at the gym after work, around 5-6pm. One shared body signal, the calendar, says
+dinner with friends is tonight at 8 at one restaurant and that another restaurant is
+on Friday. The decider, the reservations app, says which of the two bookings is
+confirmed and which is not — *"Standby status at Marzano. Firm status at
+Corvino."* Speak when tonight's booking is the unconfirmed one, because the party may
+arrive to no table and there is still time to call or book elsewhere; stay quiet when
+tonight's table is confirmed, because only Friday's is pending and that can wait. Both
+restaurants appear in the shared body and on both sides, and swap roles. Restaurants
+come from a pool of 40 invented single words in the style of restaurant names, none of
+which appears in a frame, a body template, or another family's pool.
+
+**The logical form is the same as every family's.** The decider labels one restaurant,
+and given the body that label settles it — the form the R74 review found in all
+fourteen families before v8, which rule 3 (two nouns swapping roles in one frame)
+forces. The skyline reads it the way it reads `water_notice` and `photo_backup`: the
+marker from the body, then the filling of the privileged template. What the family adds
+is a domain, dining out, and a deciding predicate: whether a booking is *confirmed* or
+only requested. It is not where something is now or was (`water_notice`,
+`street_cleaning`), which way something flows (`river_swim`), whether a second copy
+exists (`photo_backup`), who holds a duty, or what is fragile, congested or unused.
+Every frame speaks of the booking at the restaurant as a whole and ends *at* the
+restaurant (so the restaurant is never the thing waitlisted); no frame says *you*,
+*your* or *home*; and no frame shares a content word with the body
+(`test_the_decider_says_nothing_about_tonight`).
+
+**What the frames test.** The predicate is stated several ways, so a reader has to
+work out which clause means "not confirmed": as a status (*"Standby status"* against
+*"Firm status"*), as a list (*"Listed among waitlisted / confirmed guests"*), as what
+the party holds (*"Lacking / Holding a reserved slot"*), as a booking reference
+(*"Reference code unissued / issued by"*), as a condition (*"Conditional /
+Unconditional booking"*), as what happens on arrival (*"Party could / cannot be
+turned away"*), and as likelihood (*"Possibly / Certainly a table"*, *"Seats in doubt /
+in place"*). In every frame exactly one side holds a table (R80 review, below). A
+negation word sits on the unconfirmed side in two frames, on the confirmed side in two,
+and on neither in four, so polarity alone reads exactly half on dev and on held-out
+frames (gated below; the R76 review's lesson, applied before shipping rather than found
+in review).
+
+**Four frames were replaced after review.** The R80 review found two frames where the
+confirmed/unconfirmed reading was not clean: *"Dependent on no cancellation"* reads as
+conditional (it holds as long as nobody cancels) and does not say a table is held, and
+a *revocable hold* is still a held table, so both sides of *"Revocable / Irrevocable
+hold"* read as confirmed. It also asked for *"Seats are not / now held"*, whose sides
+differ by one letter, to go if a balanced set allowed. The same test, that exactly one
+side holds a table, was then applied to every candidate, and eight more were excluded
+for failing it or for English that does not read (*"Chance of losing the table is
+real"* and *"Table could be given away"* describe a table that is held now). Fourteen
+new candidates were written, and the search, under unchanged balance rules, picked a
+new set: four of the first set's frames survive and four are new.
+
+Held to everything v8's new family is (`tests/test_dataset_v9.py`): every moment of the
+first fifteen families equals its v8 counterpart; unigram and bigram at 50% on ten
+seeds; order-balanced cells; both restaurants on both sides and tonight's named first
+in about half of bodies; the six clause features, and vowel and consonant counts, at
+chance; the marker-aware order check; the single-letter gate; the skyline solves it
+(ICS 0.0 on dev and test) and the heuristic does not; polarity balances on each split;
+the character naive Bayes readings at p ≥ 0.05, one- and two-sided; and the committed
+frame search still picks the shipped frames.
+
+**Frames were chosen by a committed search**, `experiments/frame_search_v9.py`
+(`test_the_frame_search_is_committed_and_reproduces_the_shipped_frames` asserts that it
+still picks the shipped frames and prints these counts). 72 candidate frames that
+meet the structural rules and state booking status for the restaurant as a whole,
+searched for a dev set (frames 0-4) and a held-out set (5-7) on which the eight gated
+clause features and negation all balance exactly (2 such sets), then ranked by the
+strongest of 999 cheap clause features (letters, letter pairs and triples, word
+prefixes and suffixes, word lengths, word count) reading the same way on both splits,
+then on dev alone. One rule is new in this search: no two of the eight frames may
+share a word's *root*, not only its stem (the suite's rule), because the first ranked
+set put *"Table promised conditionally"* on dev and *"Conditional booking"* on held-out
+test, which would hand a character learner the held-out answer. 36 frames were excluded
+before the search, each with its reason in the script: the R80 review's two and the
+eight more its test removed (above); idioms (*pencilled in*, *fall
+through*, *locked in*), clauses a careful reader could take either way (*"Answer
+received"* and *"Final word given"* could be a no; *"Booking status closed"* could be a
+cancellation; *"Approval withheld"* could be a refusal; *"Booking could lapse"* holds
+for a confirmed booking too; *"Requests met"* could be special requests), trade jargon
+(*covers*, *placed*), clauses that imply a table only by inference, a negation the
+probe's lexicon does not list (*impossible*), which would hide polarity rather than
+balance it, one addressed to *your*, and one ending *is* the restaurant. On the shipped
+splits, of the 197 such features that differ between a frame's clauses, the best
+reading the same way on both is the letter *b*: "speak iff tonight's restaurant's
+clause has more" reads 60% dev / 83% test. The best on dev alone, words of six letters,
+reads 70% dev (as "fewer") and 50% on test. As for v5-v8, that scan informed the search and
+is not an independent check. The character 3-8-gram probe (Round 49) did not inform it. On v9 its 30 epochs fit dev at only 84.8% (83.1% on the first frames), under the
+probe's own 85% power line, so its verdict was "unmeasurable"; it now trains ten epochs
+longer at a time until it fits (R80; versions that fit at 30 are measured exactly as
+before). At 40 epochs on v9 it fits dev at 91.1% and reads 51.0% on held-out test
+(`dinner_booking` 45.8% of 24), and its verdict holds. The letter-count bag (Round 73)
+reads 50.0% dev→test, and `dinner_booking` (v9) reads 56.2% leaving one frame out,
+p=0.484 against the exact orientation null.
+
+What the family does not resist, as for every family: a reader that locates tonight's
+restaurant's clause and knows which of the eight phrasings mean "not confirmed" solves
+the family — that is reading the decider.
+
+**Polarity, measured before shipping** (`experiments/negation_probe.py`). "Speak iff
+tonight's restaurant's clause alone carries a negation word" is right on 2 frames,
+wrong on 2 and tied on 1 of the dev frames, and tied on all three held-out frames
+(0/0/3), so it reads 50.0% on each. The reviewer's policy, pointed at this family (it locates tonight's
+restaurant with a generic lexicon for today, *tonight*, *today*, *now*), reads 50.0% on
+dev and on test, and grafted onto the heuristic leaves its ICS unchanged (1035.0 dev,
+636.0 test). Over both splits it is 2 right and 2 wrong (p=1.000 against the Round 78
+null). A frame set negated on the privileged side only fails the gate
+(`test_the_polarity_gate_would_catch_one_sided_frames`).
+
+**Character naive Bayes, measured before shipping** (`experiments/char_nb_probe.py`),
+fed the characters of tonight's restaurant's clause and of the other clause, tagged by
+clause. Two-sided p is the one to read; the one-sided p is R74's form.
+
+- letters, dev→test: **66.7%** (two-sided p=1.000; one-sided p=0.500)
+- letters, leaving one frame out: **50.0%** (two-sided p=1.000; one-sided p=0.625)
+- letters, trained on the other fifteen families: **25.0%** (two-sided p=0.289; one-sided p=0.965)
+- pairs, dev→test: **33.3%** (two-sided p=1.000; one-sided p=0.875)
+- pairs, leaving one frame out: **25.0%** (two-sided p=0.438; one-sided p=0.906)
+- pairs, trained on the other fifteen families: **50.0%** (two-sided p=1.000; one-sided p=0.637)
+
+None is under 0.05; dev→test, on three frames, cannot go under 0.125.
+
+**Positional.** The overall 20-seed form passes on v9, as on v7 and v8: 20-seed
+medians 51.2% against 51.9%, and 60-seed medians 51.72% against 52.03%. On the shipped
+seed the overall reading is 50.8% against 52.2%, under the 60% bound. The family itself
+reads 77.5% positional on the shipped seed against a null of 61.3% — above 60% on this
+seed, and the highest shipped-seed family reading on v9. **The shipped seed is the most
+extreme of the 60 seeds**: no other seed reads 77.5% or more, against 7 of 300 null
+draws (2.3%). Over 60 seeds its median is 57.5% against 57.5%, and 35% of seeds read
+above 60% against 37% of null draws, so across seeds the family matches its null; the
+shipped seed is its single worst draw. (On the first frames it was too: 80.0% against
+60.0%, the only one of 60 seeds at 80% or more.) The family test compares over 60 seeds, as v5's-v8's do.
+Positional is reported, not gated.
+
+**Weaker points.** *"Conditional booking"* is the closest to the reviewer's objection:
+a conditional booking is not yet confirmed, but some readers may count it as a
+booking. *"Reference code issued"* says a table is held only through the convention
+that a reservation reference means a confirmed booking. *"Standby status"* and *"Firm
+status"* are terse. Staying quiet when tonight's table is confirmed is defensible but not
+unanimous: someone might want to hear that Friday's booking is still pending. The
+user is exercising (false-positive cost 2.0) and the positive is priced at value 2.
+Labels are constructed (`raters: 0`).
+
+**No LLM has been run on v9.** It has no results directory, no README results section,
+and no row in *Open-weight LLMs at a glance*.
+
 ### Token permutations and the bigram probe
 
 All nine are token permutations: both sides contain the same words, arranged
@@ -894,7 +1041,7 @@ enforces the invariants that make the benchmark meaningful:
 
 ## Known weaknesses
 
-- **Nine families is nine degrees of freedom (ten in `v3`, eleven in `v4`, twelve in `v5`, thirteen in `v6`, fourteen in `v7`, fifteen in `v8`).** Every family has the same logical form (see the v7 and v8 sections); more families add domains and deciding predicates, not decision shapes. Phrasing is no longer the weak point —
+- **Nine families is nine degrees of freedom (ten in `v3`, eleven in `v4`, twelve in `v5`, thirteen in `v6`, fourteen in `v7`, fifteen in `v8`, sixteen in `v9`).** Every family has the same logical form (see the v7, v8 and v9 sections); more families add domains and deciding predicates, not decision shapes. Phrasing is no longer the weak point —
   the unigram audit confirms *vocabulary* doesn't carry the answer, though word
   **order** does (see above) — but the *scenarios*
   are still a small hand-authored set. Item count overstates diversity. More
@@ -912,16 +1059,22 @@ enforces the invariants that make the benchmark meaningful:
   none (p=0.250 each); `health` two to none and `deadline` and `driving` none to two
   (p=0.500). Swapping which clause of a frame is privileged swaps right and wrong, so
   the exact null is a fair coin over the untied frames, two-sided (Round 78,
-  `tests/test_polarity_null.py`). All 93 family-version cells pass at 5%, and the
+  `tests/test_polarity_null.py`). All 109 family-version cells pass at 5%, and the
   lowest p is 0.25: with only three untied frames, even three to none cannot go lower.
   So the leans are recorded, not regenerated. Eight to none, as v8's first
-  `photo_backup` frames had, gives p=1/128; v8 also gates that family to balance
-  exactly.
+  `photo_backup` frames had, gives p=1/128; v8 and v9 also gate their new family to
+  balance exactly (`dinner_booking`: 2 right, 2 wrong).
 - **Letter-count combinations sit near the gate's line in one family.** A weighted bag
   of letter counts fit on dev reads held-out `home_security` (v4) at 83.3% and
   `street_cleaning` (v6) at 100.0%. Against the exact orientation null (Round 73)
   neither is significant: p=0.070 and p=0.430. `home_security` is the closest of the
-  fifteen families to the 5% line (`photo_backup`, v8: p=0.688).
+  sixteen families to the 5% line (`photo_backup`, v8: p=0.688; `dinner_booking`, v9:
+  p=0.484).
+- **`dinner_booking` reads 77.5% on the positional probe on the shipped seed** (v9),
+  against a label-swap null of 61.3%. The shipped seed is the most extreme of 60: no
+  other seed reads as high, against 2.3% of null draws. Over 60 seeds the median is
+  57.5% against 57.5%, so the family matches its null across seeds and the shipped seed
+  is its worst draw (see the v9 section). Positional is reported, not gated.
 - **Independent moments.** Real interruption cost depends on how recently the user
   was last interrupted. Modeling fatigue requires session-level items.
 - **Western, knowledge-worker, English-only.** The scenarios assume a particular

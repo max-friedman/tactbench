@@ -67,6 +67,6 @@ def test_the_family_count():
 
     latest = max(int(d.name[1:]) for d in DATA_ROOT.iterdir() if re.fullmatch(r"v\d+", d.name))
     n = len({i.moment.family for i in load(f"v{latest}", "dev")})
-    words = {12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen"}
-    assert (latest, n) == (8, 15)  # update with the next version, and the README with it
+    words = {12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen"}
+    assert (latest, n) == (9, 16)  # update with the next version, and the README with it
     assert f"All {words[n]} families" in _limitations()

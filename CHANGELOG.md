@@ -5,6 +5,30 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 80)
+
+- **Dataset `v9`: a sixteenth family, `dinner_booking`** (640 dev / 384 test). The
+  calendar has dinner with friends tonight at one restaurant and another restaurant on
+  Friday; the decider, a reservations app, says which booking is confirmed and which
+  is only requested. Speak iff tonight's is not confirmed. The logical form is the same
+  as every family's; what it adds is a domain, dining out, and a deciding predicate,
+  whether a booking is confirmed, stated eight different ways. v1-v8 are unchanged and
+  v9's first fifteen families equal v8's. Frames chosen by a committed search
+  (`experiments/frame_search_v9.py`) that balances negation polarity from the start
+  (2/2/1 dev, 0/0/3 held-out; the negation policy reads 50.0% on each), forbids two
+  frames sharing a word's root, and, after review, requires exactly one side of each
+  frame to hold a table. That review replaced "Dependent on a / no cancellation",
+  "Revocable / Irrevocable hold" and "Seats are not / now held"; the re-run search
+  changed four frames. Unigram and bigram 50.0%; letter-bag null p=0.484; character
+  naive Bayes p ≥ 0.289 on every reading; the overall 20-seed positional comparison
+  passes (51.2% against 51.9%); the family reads 77.5% positional on the shipped seed
+  against a 61.3% null, the most extreme of 60 seeds, though its 60-seed median matches
+  the null (disclosed). No LLM has been run on v9.
+- **The character n-gram audit trains longer when it cannot fit dev.** At 30 epochs it
+  fit v9 dev at 84.8%, under its 85% power line; the verdict now adds ten epochs at a
+  time (up to 100) and runs every control at the same count. v9 holds at 40 epochs
+  (dev 91.1%, test 51.0%); v2-v8 still fit at 30 and are measured as before.
+
 ### Added (Round 79)
 
 - **The LLM results at a glance.** A ten-row table near the top of the README, one row
