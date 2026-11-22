@@ -49,6 +49,7 @@ MARKERS = {
     "v6": ("<!-- llm-results-v6:start -->", "<!-- llm-results-v6:end -->"),
     "v7": ("<!-- llm-results-v7:start -->", "<!-- llm-results-v7:end -->"),
     "v8": ("<!-- llm-results-v8:start -->", "<!-- llm-results-v8:end -->"),
+    "v9": ("<!-- llm-results-v9:start -->", "<!-- llm-results-v9:end -->"),
     "v1-test": ("<!-- llm-results-v1-test:start -->", "<!-- llm-results-v1-test:end -->"),
 }
 
