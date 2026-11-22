@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67, R72 and R77 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 80 complete — dataset `v9`, a sixteenth family (`dinner_booking`); review replaced ambiguous frames; char n-gram probe trains longer only when it cannot fit dev (queue AA: LLM runs on v9). R79: an at-a-glance LLM table (one row per split, ten splits) at the top of the README, generated and gated exactly. R78: negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 81 complete — all 28 LLM runs on `v9`; on `dinner_booking` the best reads 3 of 20 pairs with 4 backwards, nothing else moves (queue AA). R80: dataset `v9`, a sixteenth family (`dinner_booking`); review replaced ambiguous frames; char n-gram probe trains longer only when it cannot fit dev (queue AA: LLM runs on v9). R79: an at-a-glance LLM table (one row per split, ten splits) at the top of the README, generated and gated exactly. R78: negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -341,7 +341,7 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
-AA. **LLM runs on `v9`** (R80). As R77: seed v9 caches from v8's, write
+AA. **LLM runs on `v9` — DONE in R81.** Original entry (R80): As R77: seed v9 caches from v8's, write
    `tests/test_results_v9.py` and the README section first (reuse check against v8,
    claims class, MARKERS, `llm_glance` SPLITS), then run. Only `dinner_booking`'s 40 dev
    moments are queried.
@@ -4006,6 +4006,30 @@ is disclosed as the most extreme of 60 seeds.
 epochs, under its own 85% line, so the verdict read "unmeasurable". It now trains in steps
 of 10 epochs (cap 100) only when 30 do not fit, and runs every control at the same count.
 v2-v8 still fit at 30 (tested); the reviewer swept 40-80 epochs and no count flips v9.
+
+**Loop:** nothing new.
+
+---
+
+## Round 81 — the LLM runs on `v9`
+
+**Ending state: `shipped`.** Queue item AA. **Before:** no LLM had been run on `v9`.
+**After:** all 28 runs, seeded from each run's v8 cache; only `dinner_booking`'s 40 dev
+moments were queried. Every old-family decision equals the run's v8 decision.
+
+**Built first:** `tests/test_results_v9.py` (completeness, no failed calls, both variants
+per model, reuse check against v8, table rescore), the `v9` README markers, and `v9/dev`
+in `llm_glance` SPLITS; red before the runs finished. The claims class was written after
+measuring and pins every figure in the claims block.
+
+**Result:** 21 of 28 runs are constant on the family (11 silent, 10 always speak). The
+best is Mistral-7B naive, 3 pairs right and 4 backwards of 20; no other run gets more
+than 1 right. Across runs, of 18 split pairs 5 are right and 13 backwards. The runs share
+their pairs, so that lean is not tested as independent draws. Nothing else moves: the same
+8 runs beat silence, the same one is inconclusive, 0 of 378 run pairs reverse or change tie
+status. The glance table's v9 row: best +10.5 vs silence, −15.5 vs the pair-blind bar.
+
+**Review:** none beyond the gate; every figure is generated or pinned.
 
 **Loop:** nothing new.
 

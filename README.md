@@ -97,6 +97,7 @@ counts conclusive runs (at most 5% unparsed) with ICS better than saying nothing
 | `v6/dev` | 13 | 520 | 28 | 7 | +11.8 (gemma-3-4b rubric) | −15.4 | 10.4% (llama-3.1-8b naive) |
 | `v7/dev` | 14 | 560 | 28 | 8 | +11.9 (gemma-3-4b rubric) | −17.4 | 9.6% (llama-3.1-8b naive) |
 | `v8/dev` | 15 | 600 | 28 | 8 | +11.1 (gemma-3-4b rubric) | −16.6 | 9.7% (llama-3.1-8b naive) |
+| `v9/dev` | 16 | 640 | 28 | 8 | +10.5 (gemma-3-4b rubric) | −15.5 | 9.4% (llama-3.1-8b naive) |
 <!-- llm-glance:end -->
 
 No run on any split clears the pair-blind bar, and no run gets more than 14.8% of pairs
@@ -459,8 +460,8 @@ restaurant on Friday, and the decider, a reservations app, says which of the two
 bookings is confirmed and which is only requested (640 dev / 384 test). Its logical
 form is the same as every family's; what it adds is a domain and a deciding predicate
 (whether a booking is confirmed) that no earlier family uses. Its first fifteen
-families are identical to v8's. **No LLM has been run on `v9`**, so it has no results
-section and no row in the table above
+families are identical to v8's. All 28 LLM runs are measured on it (Round 81; see
+[below](#on-dataset-v9--a-sixteenth-family))
 ([details](docs/DATASET.md#dataset-v9--a-sixteenth-family-dinner_booking)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
@@ -988,9 +989,49 @@ fifteen old families are v8's decisions, checked equal one by one, so only the 4
 dev moments were sent to a model.
 
 <!-- v9-claims:start -->
+- **On `dinner_booking`, most runs are constant.** **21** of the 28 runs give every one
+  of its 40 moments the same answer (**11** never speak, **10** always do).
+- **No run reads it: the best is 3 of 20 pairs, with 4 backwards.** Mistral-7B naive gets
+  **3** pairs right and **4** backwards; no other run gets more than **1** right. Across
+  all runs, of the **18** pairs answered differently on their two sides, **5** are right
+  and **13** backwards. The runs share their pairs, so the lean is not 18 independent
+  draws and is not tested as one.
+- **Nothing else moves.** The same **8** runs beat silence as on v8, the same one is
+  inconclusive, and of the 378 pairs of runs **0** are reversed and **0** change
+  between tied and ordered.
 <!-- v9-claims:end -->
 
 <!-- llm-results-v9:start -->
+| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:gemma-3-4b` | 716.0 | +10.5 | −15.5 | 0.530 | 0.194 | 0.265 | 0 | 117/640 | 4.7% | 0.0% |
+| `llm:rubric:qwen2.5-7b` | 742.0 | +7.3 | −19.7 | 0.541 | 0.103 | 0.192 | 0 | 61/640 | 1.6% | 0.0% |
+| `llm:naive:llama-3.2-3b` | 746.0 | +6.8 | −20.3 | 0.487 | 0.291 | 0.300 | 0 | 191/640 | 1.9% | 0.0% |
+| `llm:rubric:gemma-2-2b` | 750.0 | +6.2 | −21.0 | 0.492 | 0.100 | 0.451 | 0 | 65/640 | 1.6% | 0.0% |
+| `llm:naive:gemma-2-2b` | 753.0 | +5.9 | −21.5 | 0.552 | 0.100 | 0.439 | 0 | 58/640 | 3.1% | 0.0% |
+| `llm:rubric:llama-3.1-8b` | 787.0 | +1.6 | −26.9 | 0.542 | 0.041 | 0.308 | 0 | 24/640 | 2.2% | 0.0% |
+| `llm:rubric:phi-4-mini` | 796.0 | +0.5 | −28.4 | 1.000 | 0.006 | 0.232 | 0 | 2/640 | 0.6% | 0.0% |
+| `llm:naive:qwen2.5-1.5b` | 798.0 | +0.2 | −28.7 | 1.000 | 0.003 | 0.500 | 0 | 1/640 | 0.3% | 0.0% |
+| `llm:rubric:llama-3.2-3b` | 800.0 | +0.0 | −29.0 | — | 0.000 | 0.300 | 0 | 0/640 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-1.5b` | 800.0 | +0.0 | −29.0 | — | 0.000 | 0.100 | 0 | 0/640 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-3b` | 800.0 | +0.0 | −29.0 | 0.500 | 0.003 | 0.459 | 0 | 2/640 | 0.0% | 0.0% |
+| `llm:rubric:mistral-7b` | 801.0 | −0.1 | −29.2 | 0.000 | 0.000 | 0.455 | 0 | 1/640 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-3b` | 807.0 | −0.9 | −30.2 | 0.506 | 0.741 | 0.414 | 20 | 468/640 | 4.1% | 4.4% |
+| `llm:naive:mistral-7b` | 842.0 | −5.2 | −35.8 | 0.500 | 0.441 | 0.358 | 20 | 282/640 | 4.4% | 0.0% |
+| `llm:naive:qwen2.5-7b` | 876.0 | −9.5 | −41.3 | 0.531 | 0.159 | 0.193 | 19 | 96/640 | 2.8% | 0.0% |
+| `llm:naive:llama-3.1-8b` | 888.0 | −11.0 | −43.2 | 0.505 | 0.584 | 0.295 | 20 | 370/640 | 9.4% | 0.0% |
+| `llm:naive:gemma-3-4b` | 901.0 | −12.6 | −45.3 | 0.488 | 0.491 | 0.359 | 18 | 322/640 | 2.8% | 0.0% |
+| `llm:rubric:granite-3.3-2b` | 909.0 | −13.6 | −46.6 | 0.520 | 0.609 | 0.390 | 25 | 375/640 | 8.1% | 0.0% |
+| `llm:naive:phi-3.5-mini` | 940.0 | −17.5 | −51.6 | 0.501 | 0.934 | 0.401 | 20 | 597/640 | 0.3% | 0.0% |
+| `llm:rubric:phi-3.5-mini` | 940.0 | −17.5 | −51.6 | 0.500 | 0.938 | 0.443 | 20 | 600/640 | 0.0% | 0.0% |
+| `llm:naive:phi-4-mini` | 1022.0 | −27.8 | −64.8 | 0.494 | 0.850 | 0.356 | 22 | 551/640 | 1.9% | 0.0% |
+| `llm:rubric:smollm2-1.7b` | 1208.0 | −51.0 | −94.8 | 0.506 | 0.991 | 0.439 | 36 | 627/640 | 3.1% | 0.0% |
+| `llm:naive:granite-3.3-2b` | 1252.0 | −56.5 | −101.9 | 0.500 | 0.928 | 0.403 | 40 | 594/640 | 1.9% | 0.0% |
+| `llm:naive:llama-3.2-1b` | 1280.0 | −60.0 | −106.5 | 0.500 | 1.000 | 0.135 | 40 | 640/640 | 0.0% | 0.0% |
+| `llm:naive:smollm2-1.7b` | 1280.0 | −60.0 | −106.5 | 0.500 | 1.000 | 0.450 | 40 | 640/640 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-1b` | 1280.0 | −60.0 | −106.5 | 0.500 | 1.000 | 0.008 | 40 | 640/640 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-0.5b` | 1281.0 | −60.1 | −106.6 | 0.500 | 0.997 | 0.445 | 40 | 638/640 | 0.3% | 0.2% |
+| `llm:naive:qwen2.5-0.5b` | 1289.0 | −61.1 | −107.9 | 0.497 | 0.941 | 0.385 | 40 | 606/640 | 0.3% | 5.3% |
 <!-- llm-results-v9:end -->
 
 #### On held-out `v1/test` — phrasings no dev moment uses
@@ -1191,7 +1232,7 @@ benchmark:
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
 - **No frontier LLM has been run.** Fourteen open-weight models of 8B parameters and
-  under are measured (all fourteen on `v4`-`v8` and on held-out `v1/test`, eleven on `v1`-`v3` dev; none on `v9`); whether frontier models do better is the result the project
+  under are measured (all fourteen on `v4`-`v9` and on held-out `v1/test`, eleven on `v1`-`v3` dev); whether frontier models do better is the result the project
   exists to produce, and it costs money that has not been spent. The harness runs
   them unchanged.
 - **The pair-blind bar reads labels.** It is the optimum over policies that cannot

@@ -92,3 +92,80 @@ def test_every_v9_readme_figure_equals_a_fresh_rescore():
     assert not stale, "README v9 LLM table is stale; run `tactbench results --version v9`"
 
 
+class TestTheReadmeV9Claims:
+    """Every figure in the README's v9 claims block, recomputed."""
+
+    @staticmethod
+    def _block() -> str:
+        text = (Path(__file__).parent.parent / "README.md").read_text()
+        block = text.split("<!-- v9-claims:start -->")[1].split("<!-- v9-claims:end -->")[0]
+        return " ".join(block.split())
+
+    @staticmethod
+    def _split_pairs():
+        items = {i.moment.id: i for i in load("v9", "dev") if i.moment.family in NEW}
+        out = {}
+        for name, ds in RUNS.items():
+            by_pair: dict = {}
+            for d in ds:
+                if d.moment_id in items:
+                    by_pair.setdefault(pair_key(d.moment_id), {})[
+                        items[d.moment_id].label.should_surface
+                    ] = d.surface
+            right = sum(p[True] and not p[False] for p in by_pair.values())
+            back = sum(p[False] and not p[True] for p in by_pair.values())
+            out[name] = (right, back, len(by_pair))
+        return items, out
+
+    def test_constant_runs(self):
+        items, _ = self._split_pairs()
+        runs = {n: [d for d in ds if d.moment_id in items] for n, ds in RUNS.items()}
+        constant = [ds for ds in runs.values() if len({d.surface for d in ds}) == 1]
+        silent = sum(not ds[0].surface for ds in constant)
+        assert len(items) == 40 and (len(constant), silent) == (21, 11)
+        block = self._block()
+        assert "**21** of the 28 runs give every one of its 40 moments the same answer" in block
+        assert "(**11** never speak, **10** always do)" in block
+
+    def test_best_pairs(self):
+        _, split = self._split_pairs()
+        top = max(r for r, _, _ in split.values())
+        best = [n for n, (r, _, _) in split.items() if r == top]
+        assert best == ["llm:naive:mistral-7b"] and split[best[0]] == (3, 4, 20)
+        runner_up = max(r for n, (r, _, _) in split.items() if n not in best)
+        assert runner_up == 1
+        block = self._block()
+        assert "the best is 3 of 20 pairs, with 4 backwards" in block
+        assert "Mistral-7B naive gets **3** pairs right and **4** backwards" in block
+        assert "no other run gets more than **1** right" in block
+
+    def test_split_pairs_across_runs(self):
+        _, split = self._split_pairs()
+        right = sum(r for r, _, _ in split.values())
+        back = sum(b for _, b, _ in split.values())
+        assert (right + back, right, back) == (18, 5, 13)
+        block = self._block()
+        assert (
+            "of the **18** pairs answered differently on their two sides, **5** are right" in block
+        )
+        assert "and **13** backwards" in block
+
+    def test_nothing_else_moves(self):
+        c8 = {c.policy: (c, u) for c, u, _ in scorecards("v8")}
+        c9 = {c.policy: (c, u) for c, u, _ in scorecards("v9")}
+        above8 = {p for p, (c, _) in c8.items() if c.ics_normalized > 0}
+        above9 = {p for p, (c, _) in c9.items() if c.ics_normalized > 0}
+        inc8 = {p for p, (_, u) in c8.items() if u > MAX_UNPARSED}
+        inc9 = {p for p, (_, u) in c9.items() if u > MAX_UNPARSED}
+        assert above8 == above9 and len(above9) == 8
+        assert inc8 == inc9 and len(inc9) == 1
+        rev = tie = 0
+        for x, y in combinations(sorted(c9), 2):
+            a = (c8[x][0].ics > c8[y][0].ics) - (c8[x][0].ics < c8[y][0].ics)
+            b = (c9[x][0].ics > c9[y][0].ics) - (c9[x][0].ics < c9[y][0].ics)
+            rev += a * b < 0
+            tie += a != b and a * b == 0
+        assert (rev, tie) == (0, 0)
+        block = self._block()
+        assert "The same **8** runs beat silence as on v8, the same one is" in block
+        assert "of the 378 pairs of runs **0** are reversed and **0** change" in block

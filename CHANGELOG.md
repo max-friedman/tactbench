@@ -5,6 +5,15 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 81)
+
+- **All 28 LLM runs on `v9`**, seeded from each run's v8 cache (old-family decisions
+  checked equal one by one); only `dinner_booking`'s 40 dev moments were queried.
+  21 of 28 runs are constant on the family; the best reads 3 of 20 pairs with 4
+  backwards, and across runs 5 split pairs are right and 13 backwards. Nothing else
+  moves: the same 8 runs beat silence, and no pair of runs changes order. Table,
+  claims and the at-a-glance row gated (`tests/test_results_v9.py`).
+
 ### Added (Round 80)
 
 - **Dataset `v9`: a sixteenth family, `dinner_booking`** (640 dev / 384 test). The
