@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **2181 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **2287 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
