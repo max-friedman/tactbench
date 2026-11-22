@@ -770,6 +770,15 @@ loses to silence on both versions.
 | `llm:naive:qwen2.5-0.5b` | 1145.0 | −78.9 | −138.5 | 0.498 | 0.929 | 0.378 | 40 | 448/480 | 0.4% | 6.7% |
 <!-- llm-results-v5:end -->
 
+#### On dataset v6 — a thirteenth family
+
+All 28 runs on `v6` (Round 72): v5 plus `street_cleaning` (Round 71), 520 dev moments.
+Each run's v6 cache was seeded from its v5 cache, so only the 40 new moments were sent
+to a model, and every old-family decision is checked equal to v5's.
+
+<!-- llm-results-v6:start -->
+<!-- llm-results-v6:end -->
+
 #### On held-out `v1/test` — phrasings no dev moment uses
 
 All 28 runs on v1's held-out split (Round 69): 108 moments whose deciders use frames
