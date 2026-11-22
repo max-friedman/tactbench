@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67, R72 and R77 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 78 complete — negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 79 complete — an at-a-glance LLM table (one row per split, ten splits) at the top of the README, generated and gated exactly. R78: negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -3947,6 +3947,31 @@ test.
 
 **Loop:** nothing new. The R76 entry's instruction to "state the null before deciding"
 did its job: it saved a multi-day regeneration.
+
+---
+
+## Round 79 — the LLM results at a glance
+
+**Ending state: `shipped`.** No queue item; a reader-facing gap found while deciding
+what to do after R78. **Before:** the README's LLM results are nine full tables over
+about 560 lines, and the headline ("no model reads the decider, on any split") appears
+nowhere in one place. **After:** "Open-weight LLMs at a glance", right after the
+built-in results. One row per split with committed runs (10 rows): families, moments,
+runs, how many conclusive runs beat silence, the best run against silence and against
+the pair-blind bar, and the best pairs-both-right.
+
+**Built first:** `tests/test_llm_glance.py`. It requires every results directory on
+disk to be a row, the README block to equal `experiments/llm_glance.py`'s output
+exactly, and pins the two sentences under the table (no run clears the pair-blind bar;
+the best pairs figure is 14.8%). It was red before the README section existed.
+
+**Caught before commit:** a draft sentence said the runs beating silence "do it by
+speaking rarely". On v1/test, Gemma-3-4B naive beats silence while speaking on 61 of
+108 moments, so the sentence was replaced with what the table shows.
+
+**Review:** none beyond the gate; every figure is generated.
+
+**Loop:** nothing new.
 
 ---
 
