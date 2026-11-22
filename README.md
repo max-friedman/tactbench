@@ -408,13 +408,14 @@ decider says which street the car is parked on now and which it was on before (5
 dev / 312 test). Its first twelve families are identical to v5's; the 28 runs on it
 are under *On dataset v6*
 ([details](docs/DATASET.md#dataset-v6--a-thirteenth-family-street_cleaning)).
-`v7` (Round 74) is v6 plus a fourteenth family, `river_swim`, with a decision
-shape none of the thirteen has: a sewage overflow is discharging into a river at one place and
-the user's club swims at another tonight, and the decider says only which place is
-upstream of the other (560 dev / 336 test). Neither place is the user's on either side;
-the answer comes from which way the river carries the hazard. Its first thirteen
-families are identical to v6's. **No LLM has been run on v7**
-([details](docs/DATASET.md#dataset-v7--a-fourteenth-family-river_swim-and-a-new-decision-shape)).
+`v7` (Round 74) is v6 plus a fourteenth family, `river_swim`: a sewage overflow is
+discharging into a river at one place and the user's club swims at another tonight, and
+the decider says only which place is upstream of the other (560 dev / 336 test). Its
+construction is the same as every family's; what differs is that the deciding word
+names a relation between the two places, neither of which is the user's, and that one
+step of world knowledge (a river carries a spill downstream) turns it into the answer.
+Its first thirteen families are identical to v6's. **No LLM has been run on v7**
+([details](docs/DATASET.md#dataset-v7--a-fourteenth-family-river_swim)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
 

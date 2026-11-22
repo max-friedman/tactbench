@@ -7,13 +7,13 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ### Added (Round 74)
 
-- **Dataset `v7`: a fourteenth family, `river_swim`, with a new decision shape** (560
-  dev / 336 test). A sewage overflow discharges into a river at one place and the
-  user's club swims at another tonight; both facts are in the shared body, and the
-  decider says only which place is upstream of the other. Speak iff the overflow is
-  upstream. Every earlier family's decider says which of two entities has the property
-  that matters to the user; here neither place is the user's on either side, and the
-  answer follows from the direction of a relation between them. v1-v6 are unchanged
+- **Dataset `v7`: a fourteenth family, `river_swim`** (560 dev / 336 test). A sewage
+  overflow discharges into a river at one place and the user's club swims at another
+  tonight; both facts are in the shared body, and the decider says only which place is
+  upstream of the other. Speak iff the overflow is upstream. The construction is the
+  same as every family's (the decider labels one place, and given the body that label
+  settles it); what differs is a relational deciding word about two places that are
+  not the user's, and one world-knowledge step (a river carries a spill downstream). v1-v6 are unchanged
   and v7's first thirteen families equal v6's. Frames chosen by search so every gated
   clause feature balances on dev and held-out frames separately; unigram and bigram
   50.0%; character n-gram audit holds (50.6% test); letter-bag null p=0.695. The

@@ -7,13 +7,11 @@ to every invariant ``street_cleaning`` is (tests/test_dataset_v6.py), including 
 clause-feature checks Rounds 45, 47 and 52 added after leaks on clause length, on -er
 words and on vowel counts, the marker-aware order check, and the single-letter gate.
 
-What is new is the decision shape, not only the domain (R71 said plainly that
-``street_cleaning`` added a domain and repeated ``water_notice``'s shape). The shared
-body fixes *both* facts every earlier family's decider supplies: where the hazard is
-(a sewage overflow at one place on a river) and where the user will be (a club swim
-at another). Neither place is ever the user's, current or former. The decider says
-only which of the two lies upstream of the other, and the answer follows from which
-way the water carries the hazard: speak iff the overflow is upstream of the swim.
+The shared body fixes where the hazard is (a sewage overflow at one place on a river)
+and where the user will be (a club swim at another). Neither place is ever the
+user's. The decider says only which of the two lies upstream of the other: speak iff
+the overflow is upstream of the swim. The logical form is the same as every family's
+(R74 review); what differs is a relational deciding word and a world-knowledge step.
 """
 
 from __future__ import annotations
@@ -440,3 +438,25 @@ def test_the_positional_figures_stated_in_the_docs():
     section = " ".join(section.split())
     for figure in figures:
         assert figure in section, figure
+
+
+def test_the_char_nb_figures_stated_in_the_docs():
+    """R74 review: a character naive Bayes reads held-out river_swim 24 of 24, and the
+    same learner trained on the other families reads 7 of its 8 frames. Both are
+    disclosed against the exact orientation null; pinned here."""
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    import char_nb_probe as nb
+
+    doc = " ".join((Path(__file__).parents[1] / "docs" / "DATASET.md").read_text().split())
+    r = nb.readings("river_swim", "letters", "v7")
+    (dt, p_dt), (lofo, p_lofo), (tr, p_tr) = (
+        r["dev->test"],
+        r["leave-one-frame-out"],
+        r["transfer"],
+    )
+    assert dt == 1.0 and p_dt == 1 / 8
+    assert f"held-out test at **{dt:.1%}** (24 of 24)" in doc
+    assert f"it has p=**{p_dt:.3f}**, which is the floor" in doc
+    assert f"Leaving one frame out it reads **{lofo:.1%}** (p=**{p_lofo:.3f}**)" in doc
+    assert f"it reads **{tr:.1%}** of `river_swim`'s frames (p=**{p_tr:.3f}**)" in doc
+    assert p_tr < 0.05 < p_lofo

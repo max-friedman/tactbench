@@ -1337,12 +1337,10 @@ class RiverSwimScenario(Scenario):
     sides, and swap roles. Speak iff the overflow is upstream of the swim, so the water
     carries it there. Dataset v7 only.
 
-    The shape is new (Round 74): in every earlier family the decider says which of two
-    entities has the property that matters to the user (is current, is theirs, is
-    fragile, is congested, is on their duty). Here neither place is the user's on
-    either side; what is permuted is the direction of a relation *between* the hazard's
-    place and the user's, and the answer follows only by propagating the hazard along
-    it."""
+    Logically the same form as every family (the decider labels one place, and given
+    the body that label settles it). What differs: neither place is the user's, the
+    deciding word is relational (*upstream* of the other place), and the answer takes
+    one world-knowledge step, that a river carries a spill downstream (R74 review)."""
 
     family = "river_swim"
     intent = "water_quality_alert"

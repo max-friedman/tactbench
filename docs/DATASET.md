@@ -480,7 +480,7 @@ at p=0.070 (87.5% leaving one frame out). At 5% each, thirteen families give abo
 a verdict. Adding a *z* to every privileged clause drives p to 0.016, so the gate can
 fail.
 
-### Dataset v7 — a fourteenth family, `river_swim`, and a new decision shape
+### Dataset v7 — a fourteenth family, `river_swim`
 
 `data/v7` is `tactbench build --version v7 --pairs 32 --families 14`: v6 plus one new
 family (560 dev / 336 test). The user is on the train home in the late afternoon. One
@@ -494,29 +494,26 @@ body and on both sides, and swap roles. Places come from a pool of 40 invented s
 words (so no model can know a real river's order), none of which appears in a frame,
 a body template, or another family's pool.
 
-**What is new is the decision shape, not only the domain.** Every one of the thirteen
-earlier families asks which of two entities has the property that matters to the user:
-which person holds the duty (`deadline`, `childcare`), can get there (`quiet_hours`)
-or owns the waiting refill (`health`); which object is still unused (`commerce`) or
-which pet is fragile (`pet_care`); which meeting is still ahead (`meeting_prep`);
-which route is congested (`driving`); which account is short (`finance`); where the
-user physically is against where the paperwork says (`travel`); which zone nobody is
-expected in (`home_security`); which place is home now rather than formerly
-(`water_notice`, `street_cleaning`). In each, the decider labels one entity, and the
-label alone settles it. Here the body already fixes both facts those deciders supply —
-where the hazard is, and where the user will be — and neither place is the user's,
-current or former, on either side. What the pair permutes is the *direction of a
-relation between* the hazard's place and the user's place, and the answer follows only
-by propagating the hazard along that direction. "Upstream" is not a property that
-matters to the user on its own; it matters only relative to the other place.
+**What is new is narrower than a new decision shape** (corrected in the R74 review).
+Logically the family reduces to the old form: there are two places, the swim is always
+the other one, so "the overflow is upstream of the swim" is the same as "the overflow's
+place carries the label *upstream*". The decider labels one entity and, given the body,
+that label settles it, as in all thirteen earlier families. The skyline handles it with
+the same branch as `water_notice`. Three things do differ:
 
-What did not change, and could not: the construction is the same template as every
-family's — a marker read from the body (the overflow site) and a decider whose
-privileged role (upstream) decides — because rule 3 requires two nouns swapping roles
-in one frame. A reader that locates the overflow site's clause and knows which words
-mean upstream (*upper*, *climb*, *headwater*, *first*, *above*, *set off*, *against
-the current*, *tops out*) solves the family, as for every earlier family; that is
-reading the decider.
+- the user's location is in the shared body, not in the decider, so the deciding word
+  is about the two places rather than about the user (*upstream*, not *home* or
+  *yours*);
+- the deciding word names a relation between the two places, so "upstream" means
+  nothing about one place on its own;
+- turning it into the answer takes one step of world knowledge: a river carries a
+  spill downstream.
+
+The construction is the same template as every family's, because rule 3 requires two
+nouns swapping roles in one frame. A reader that locates the overflow site's clause
+and knows which words mean upstream (*upper*, *climb*, *headwater*, *first*, *above*,
+*set off*, *against the current*, *tops out*) solves the family; that is reading the
+decider.
 
 Held to everything v6's new family is (`tests/test_dataset_v7.py`): every moment of
 the first thirteen families equals its v6 counterpart; unigram and bigram at 50% on
@@ -526,7 +523,9 @@ counts, at chance; the marker-aware order check; the single-letter gate; the sky
 solves it and the heuristic does not. One check is new: no frame says either place is
 the user's (no *you*, *your* or *home*).
 
-**Frames were chosen by search**, as v6's were: 44 candidate frames that meet the
+**Frames were chosen by search**, as v6's were. The search script was not committed, so
+its counts below are the builder's record and cannot be re-run; the scan figures after
+them were reproduced in review. 44 candidate frames that meet the
 structural rules and read clearly as upstream against downstream of the other place,
 searched for a dev set (frames 0-4) and a held-out set (5-7) on which all eight gated
 clause features balance exactly (1,740 such sets), then ranked by the strongest of
@@ -554,6 +553,26 @@ seed. Over 60 seeds its median is 57.5% against 57.5%, and 25% of seeds read abo
 against 25% of null draws, so the shipped seed is one of the quarter that do, at the
 null's own rate. The family test compares over 60 seeds, as v5's and v6's do.
 Positional is reported, not gated.
+
+**A character naive Bayes reads the held-out frames, at chance against the null**
+(R74 review; `experiments/char_nb_probe.py`). The audit's own naive Bayes, fed the
+letters of the overflow site's clause and of the other clause, tagged by clause, and fit
+on dev, reads `river_swim`'s held-out test at **100.0%** (24 of 24). That is three
+frames, and against the exact orientation null it has p=**0.125**, which is the floor
+for three frames. Leaving one frame out it reads **62.5%** (p=**0.398**). Trained on
+the other thirteen families only, it reads **87.5%** of `river_swim`'s frames
+(p=**0.035**). That is the strongest transfer of the fourteen families, and the only one
+of the probe's 84 family, representation and reading cells under 0.05; chance alone
+gives about four. So `river_swim`'s upstream clauses share letters with other
+families' privileged clauses. It is disclosed, not gated; the probe takes minutes per
+run.
+
+**Two frames are weaker than the rest.** *"Situated above / below the other on the
+river"*: on a map, *above* can mean north. *"Mapped elevation tops out / bottoms out
+at"*: the idiom usually takes a quantity, and it works here only because there are two
+places. Staying quiet when the overflow is downstream is defensible but not unanimous:
+near a river mouth a tide can carry a discharge upstream. Labels are constructed
+(`raters: 0`).
 
 No LLM has been run on v7.
 
@@ -737,6 +756,9 @@ enforces the invariants that make the benchmark meaningful:
   from 11% of moments on `v1`, 68% from 8% on `v5` (87% as recorded in Round 9), because a false positive while asleep under DND is the most
   expensive error priced. Deliberate, but it makes the headline sensitive to how
   that one family is written.
+- **Character features transfer into `river_swim`.** A character naive Bayes trained on
+  the other thirteen families reads 87.5% of its frames (p=0.035 against the exact
+  null, the only one of 84 cells under 0.05; see the v7 section).
 - **Letter-count combinations sit near the gate's line in one family.** A weighted bag
   of letter counts fit on dev reads held-out `home_security` (v4) at 83.3% and
   `street_cleaning` (v6) at 100.0%. Against the exact orientation null (Round 73)
