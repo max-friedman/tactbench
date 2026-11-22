@@ -59,5 +59,14 @@ def test_the_model_count():
 
 
 def test_the_family_count():
-    assert len({i.moment.family for i in load("v5", "dev")}) == 12
-    assert "All twelve families" in _limitations()
+    """On the newest dataset on disk, found rather than named (v6 added a family and
+    this test had named v5: the hand-listed-cases failure of issue #56)."""
+    import re
+
+    from tactbench.dataset.loader import DATA_ROOT
+
+    latest = max(int(d.name[1:]) for d in DATA_ROOT.iterdir() if re.fullmatch(r"v\d+", d.name))
+    n = len({i.moment.family for i in load(f"v{latest}", "dev")})
+    words = {12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen"}
+    assert (latest, n) == (6, 13)  # update with the next version, and the README with it
+    assert f"All {words[n]} families" in _limitations()

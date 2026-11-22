@@ -152,7 +152,7 @@ carry nearly the same token multiset, so *vocabulary* cannot separate them.
 (Word **order** still can — see the blind spot below.)
 
 **Every family sits at the chance floor for the bag-of-words probe — all nine in `v1`,
-all twelve in `v5`. Overall: 50.0% on both.** That number is real and it is also much weaker than it looks — see
+all twelve in `v5`, all thirteen in `v6`. Overall: 50.0% on all three.** That number is real and it is also much weaker than it looks — see
 [the blind spot](#the-blind-spot-in-that-number) immediately below.
 
 That was not always true, and the exception is worth the telling. `quiet_hours`
@@ -382,7 +382,7 @@ directions:
 > chance"* — **stay quiet**. Same contact, same repetition, same hour. Repetition
 > alone must never be enough to break DND at 3am.
 
-**Three versions.** `v1` (20 pairs per family; 252 dev / 108 test) is what every
+**Six versions.** `v1` (20 pairs per family; 252 dev / 108 test) is what every
 figure in this README is measured on. `v2` (Round 37) is the same generator at 32
 pairs per family (360 dev / 216 test). At 20 pairs, clause order is unbalanced
 within frames and a position-aware probe exploits it — overall it beats a
@@ -400,8 +400,14 @@ dataset v4*
 `v5` (Round 52) is v4 plus a twelfth family, `water_notice`, from a domain none of
 the eleven touches: a boil-water notice for one of two districts, where the decider
 says which is home now (480 dev / 288 test). Its first eleven families are identical
-to v4's; no LLM has been run on it yet
+to v4's; the 28 runs on it are under *On dataset v5*
 ([details](docs/DATASET.md#dataset-v5--a-twelfth-family-water_notice-round-52)).
+`v6` is v5 plus a thirteenth family, `street_cleaning`, from municipal parking: a city
+notice says one of two streets is swept at 7am tomorrow and parked cars towed, and the
+decider says which street the car is parked on now and which it was on before (520
+dev / 312 test). Its first twelve families are identical to v5's. **No LLM has been
+run on `v6`**, so no table below covers it
+([details](docs/DATASET.md#dataset-v6--a-thirteenth-family-street_cleaning)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
 
@@ -896,7 +902,7 @@ print(evaluate(MyPolicy(), load("v1", "dev")))
 
 ## Honest limitations
 
-This is a first release (datasets `v1`-`v5`). The things that would make it stronger
+This is a first release (datasets `v1`-`v6`). The things that would make it stronger
 are not done yet, and pretending otherwise would defeat the purpose of building a
 benchmark:
 
@@ -928,7 +934,7 @@ benchmark:
   counted as ties rather than misses.
 - **Moments are synthetic and template-generated.** Eight frames per family is
   still eight, and the scenarios remain a small hand-authored set — nine families
-  (ten in `v3`, eleven in `v4`, twelve in `v5`) is that many effective degrees of freedom, whatever the item count. The deciders
+  (ten in `v3`, eleven in `v4`, twelve in `v5`, thirteen in `v6`) is that many effective degrees of freedom, whatever the item count. The deciders
   themselves are no longer uniform: Round 16 restored prose phrasing
   (*"Behind the screen is your prescription. Through the till is Elena's
   prescription."*) while holding every family at the 50% chance floor on the
@@ -949,14 +955,14 @@ benchmark:
   the most expensive error the model prices. That concentration is deliberate, and
   it means the headline is sensitive to how that one family is written. It is no
   longer *exploitable* (see above), but it is still load-bearing.
-- **All twelve families are one author's idea of a working life** — knowledge work,
-  a car, a pharmacy, school pickup, a pet, a house, a water supply. Interruption norms are culturally specific and
+- **All thirteen families are one author's idea of a working life** — knowledge work,
+  a car, a pharmacy, school pickup, a pet, a house, a water supply, a parking notice. Interruption norms are culturally specific and
   this captures one culture's.
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
 - **No frontier LLM has been run.** Fourteen open-weight models of 8B parameters and
-  under are measured (all fourteen on `v4` and `v5`, eleven on `v1`-`v3`); whether frontier models do better is the result the project
+  under are measured (all fourteen on `v4` and `v5`, eleven on `v1`-`v3`, none on `v6`); whether frontier models do better is the result the project
   exists to produce, and it costs money that has not been spent. The harness runs
   them unchanged.
 - **The pair-blind bar reads labels.** It is the optimum over policies that cannot
@@ -988,7 +994,7 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    frontier models are not.
 2. Human-labeled subset with reported agreement — the labeling tool and κ are built
    (Round 31); the labels themselves need people.
-3. More scenario families — twelve (`v5`, Round 52) is still one author's idea of a
+3. More scenario families — thirteen (`v6`) is still one author's idea of a
    working life, and family count, not phrasing, is the ceiling on dataset diversity.
 4. Held-out test split behind a submission script — **blocked on custody**, not
    code (Round 33). Hiding the label file or the seed hides nothing; keeping the

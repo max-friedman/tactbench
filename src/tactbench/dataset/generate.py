@@ -87,6 +87,17 @@ DISTRICTS = [
     "Newby", "Otley", "Pershore", "Ripley", "Stanway", "Tilbury", "Wetherby", "Yeovil",
 ]  # fmt: skip
 
+#: Streets for ``street_cleaning`` (dataset v6). Single words, so a street never shares
+#: a token with a frame or a body template; none is a word of another pool.
+STREETS = [
+    "Elm", "Oak", "Birch", "Cedar", "Maple", "Linden", "Poplar", "Rowan", "Alder",
+    "Beech", "Holly", "Laurel", "Spruce", "Larch", "Sycamore", "Hawthorn", "Chestnut",
+    "Cypress", "Aspen", "Magnolia", "Mercer", "Fulton", "Grafton", "Kingsley",
+    "Tavistock", "Lancaster", "Mortimer", "Ashford", "Belgrave", "Clifton", "Dorset",
+    "Euston", "Fairfax", "Gresham", "Haverstock", "Jubilee", "Kendal", "Lowther",
+    "Montague", "Ormond",
+]  # fmt: skip
+
 COLLEAGUES = [
     "Priya Raman",
     "Marco Silva",
@@ -367,6 +378,27 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
         ("Broadband installed in {who}", "Broadband cancelled in {who}"),
         ("Doorbell camera mounted in {who}", "Doorbell camera unmounted in {who}"),
         ("Moving van unloaded in {who}", "Moving van loaded in {who}"),
+    ],
+    "street_cleaning": [
+        # Privileged: where the car is parked now; the other clause is where it was.
+        # Chosen by search (v6), as water_notice's were, over 51 candidate frames that
+        # meet the structural rules and read clearly as now vs before: every gated
+        # clause feature (chars, -er, -s, -ing, -ed, longest word, vowels, consonants)
+        # balances exactly on dev frames (0-4) and on held-out frames (5-7) -- the
+        # privileged clause wins as often as it loses -- and among those sets, this one
+        # minimises the strongest of 936 cheap clause features (letters, letter pairs
+        # and triples, affixes, word lengths) read the same way on both splits (60%),
+        # then on dev alone (70%). Excluded before the search: frames naming only an
+        # absence ("Plate absent", "Kerb vacant"), which say where the car is not
+        # rather than where it was, and "stop logged" frames (a stop can be brief).
+        ("New spot is {who}", "Old spot is {who}"),
+        ("Parking session started on {who}", "Parking session ended on {who}"),
+        ("Destination of the move was {who}", "Origin of the move was {who}"),
+        ("Kerb claimed this evening on {who}", "Kerb surrendered this evening on {who}"),
+        ("Tracker says the car is on {who}", "Tracker says the car was on {who}"),
+        ("Sedan presently stationed on {who}", "Sedan formerly stationed on {who}"),
+        ("Live location reads {who}", "Prior location reads {who}"),
+        ("Stationary since teatime on {who}", "Stationary until teatime on {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
@@ -1202,6 +1234,62 @@ class WaterNoticeScenario(Scenario):
         )
 
 
+class StreetCleaningScenario(Scenario):
+    """A city notice says one of two streets is swept at 7am tomorrow and cars parked
+    there will be towed; the user is at the gym in the evening. The decider, a location
+    signal from an hour earlier, says which street the car is parked on now and which
+    it was parked on before -- both streets appear in the shared body and on both
+    sides, and swap roles. Dataset v6 only."""
+
+    family = "street_cleaning"
+    intent = "move_car_alert"
+    positive_value = 2
+    window_s = 3600
+    positive_slices = ["lead_time", "money_risk"]
+    near_slices = ["not_affected", "money_risk"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.EXERCISING,
+            device="phone",
+            last_interaction_s=rng.randint(300, 1800),
+            local_hour=rng.randint(19, 21),
+        )
+
+    def body(self, rng):
+        self._swept, self._clear = rng.sample(STREETS, 2)
+        a, b = self._swept, self._clear
+        # The swept street is named first in two phrasings and second in two (R45).
+        phrasing = rng.choice(
+            [
+                f"City notice: street sweeping on {a} from 7am tomorrow; parked cars "
+                f"will be towed. {b} is not swept this week.",
+                f"Council alert — {b} is not on this week's route, but sweepers clear "
+                f"{a} at 7am tomorrow and tow parked cars.",
+                f"Sweeping crews scheduled for {a} at 7am tomorrow; vehicles left there "
+                f"will be towed. No sweeping on {b}.",
+                f"Parking update: no sweeping on {b}; sweeping crews scheduled for {a} "
+                f"at 7am tomorrow, with towing.",
+            ]
+        )
+        return [Signal(source=Source.APP_EVENT, age_s=600, content=phrasing, meta={"app": "city"})]
+
+    decider_source = Source.LOCATION
+    decider_age_s = 3600
+
+    def fillers(self, rng):
+        return self._swept, self._clear
+
+    def why(self):
+        return (
+            "The car is parked on the street swept at 7am; unless it is moved tonight "
+            "it will be towed, which is worth a word between sets.",
+            "The swept street is where the car used to be; it is now on a street that "
+            "is not being swept. Nothing tonight needs doing, so a workout is not "
+            "worth interrupting.",
+        )
+
+
 SCENARIOS: list[Scenario] = [
     TravelScenario(),
     DeadlineScenario(),
@@ -1221,6 +1309,7 @@ LATER_SCENARIOS: list[Scenario] = [
     PetCareScenario(),
     HomeSecurityScenario(),
     WaterNoticeScenario(),
+    StreetCleaningScenario(),
 ]
 ALL_SCENARIOS: list[Scenario] = [*SCENARIOS, *LATER_SCENARIOS]
 
@@ -1243,7 +1332,7 @@ def generate(
     rather than leaving it to be rediscovered.
 
     ``families`` takes the first that many of :data:`ALL_SCENARIOS`; the default is
-    the original nine, which v1 and v2 use. v3 uses ten, v4 eleven, v5 twelve.
+    the original nine, which v1 and v2 use. v3 uses ten, v4 eleven, v5 twelve, v6 thirteen.
     """
     rng = random.Random(seed)
     items: list[Item] = []
