@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67, R72 and R77 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 77 complete — all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 78 complete — negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1956 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **2052 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -345,7 +345,7 @@ Y. **LLM runs on `v8` — DONE in R77.** Original entry (R76): As R75: seed v8 c
    `tests/test_results_v8.py` and the README section first, then run. Only
    `photo_backup`'s 40 dev moments are queried.
 
-Z. **Negation polarity leans in published families** (new, R76;
+Z. **Negation polarity leans in published families — CLOSED in R78: within chance** (p=0.25 at most; `tests/test_polarity_null.py`). Original entry (R76;
    `experiments/negation_probe.py`). A generic negation lexicon plus locating the marker
    reads `commerce` and `finance` at 67-71% on both splits: 3 of 8 frames lean the
    label's way and none against. `health` 2/0, `deadline` and `driving` 0/2 (inverted).
@@ -3923,6 +3923,33 @@ nothing; R76 a #56 instance. No two non-`nothing` lines in a row.
 
 ---
 
+## Round 78 — negation polarity, against its exact null
+
+**Ending state: `shipped`.** Queue item Z. **Before:** R76 recorded `commerce` and
+`finance` leaning 3 of 8 frames to none on negation polarity. It queued a decision on
+re-framing them, which would mean regenerating published data and re-running about 11
+families' model decisions. The R76 entry itself noted that 3/0 is weak evidence.
+
+**Null first, then the decision.** A fixed policy reads each frame right, wrong or tied.
+Swapping which clause of a frame is privileged swaps right and wrong, so the exact null
+over the 2**8 orientations is a fair coin over the untied frames, taken two-sided
+because an inverted lean is as usable. Pre-registered: fail at p < 0.05.
+
+**Result:** all 93 family-version cells pass. `commerce` and `finance` (3/0) give
+p=0.250, `health` (2/0) and `deadline` and `driving` (0/2) give 0.500, and the rest are
+1.0. With three untied frames no lean can reach the line. Re-framing would chase noise,
+so Z is closed and nothing is regenerated. The gate goes into the Standing invariants,
+a strengthening. The DATASET.md disclosure had said "four families" while listing three
+and omitting the two inverted ones; it now lists all five with their p.
+
+**Review:** none beyond the gate. The null is exhaustive and the mutation (8/0) is a
+test.
+
+**Loop:** nothing new. The R76 entry's instruction to "state the null before deciding"
+did its job: it saved a multi-day regeneration.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -4050,6 +4077,10 @@ dataset or the policy is wrong, not the assertion.
   replaced it with a property of the optimizer that could not fail on any data**,
   and called that "stronger-in-meaning"; review caught it. Best single word today:
   308 on dev (bar 238), 132 on test (bar 102). A planted one-word leak is caught.
+- **No family's negation polarity beats its exact null** (`tests/test_polarity_null.py`,
+  R78): a fixed generic-negation policy's right/wrong frames, two-sided Binomial over
+  untied frames, p ≥ 0.05 on every family and version. A planted 8-to-0 lean gives
+  p=1/128. v8's `photo_backup` is additionally held to exact balance.
 - **A fair coin gets ~25% of pairs both right, and every LLM run is more than 2 sd
   below it** — `experiments/pairs_audit.py`, independent of `results.py`, wired in
   as `test_the_pairs_audit_holds` (R28 §A). Coin: 25.1%, sd 3.9 over 1000 seeds;

@@ -1134,10 +1134,11 @@ benchmark:
   a car, a pharmacy, school pickup, a pet, a house, a water supply, a parking notice,
   a river swim, a photo library. Interruption norms are culturally specific and
   this captures one culture's.
-- **Negation words lean in a few published families.** "Speak iff the marker's clause
-  alone is negated" is right on three of eight frames, and wrong on none, in `commerce`
-  and `finance` (`experiments/negation_probe.py`). v8's first frames leaned eight of
-  eight and were replaced; the new family is gated to balance.
+- **Negation words lean in a few published families, within chance.** "Speak iff the
+  marker's clause alone is negated" is right on three of eight frames and wrong on none
+  in `commerce` and `finance` (p=0.25 against the exact frame-orientation null;
+  `experiments/negation_probe.py`). v8's first frames leaned eight of eight (p=1/128)
+  and were replaced; every family is now gated against the null.
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.

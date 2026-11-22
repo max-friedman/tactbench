@@ -5,6 +5,14 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 78)
+
+- **Negation polarity gated against its exact null on every family.** Swapping which
+  clause of a frame is privileged swaps a fixed negation policy's right and wrong
+  frames, so the null is a fair coin over untied frames. All 93 family-version cells
+  pass; the published leans (`commerce`, `finance` three to none) have p=0.25. The
+  disclosure, which had said "four families" and listed three, now lists all five.
+
 ### Added (Round 77)
 
 - **LLM results on `v8`.** All 28 runs, with every reused old-family decision checked
