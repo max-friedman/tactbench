@@ -5,6 +5,14 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 75)
+
+- **LLM results on `v7`.** All 28 runs, with every reused old-family decision checked
+  equal to v6's. On `river_swim` 15 runs are constant and the best reads 3 of 20 pairs,
+  below a coin's 5: a relational decider fares no better than `street_cleaning`. Two
+  verdicts move mechanically (one correct catch lifts Qwen2.5-1.5B naive +0.3 over
+  silence; Qwen2.5-3B naive sits at exactly 5.0% unparsed, under the >5% flag).
+
 ### Added (Round 74)
 
 - **Dataset `v7`: a fourteenth family, `river_swim`** (560 dev / 336 test). A sewage

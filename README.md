@@ -414,7 +414,8 @@ the decider says only which place is upstream of the other (560 dev / 336 test).
 construction is the same as every family's; what differs is that the deciding word
 names a relation between the two places, neither of which is the user's, and that one
 step of world knowledge (a river carries a spill downstream) turns it into the answer.
-Its first thirteen families are identical to v6's. **No LLM has been run on v7**
+Its first thirteen families are identical to v6's; the 28 runs on it are under *On
+dataset v7*
 ([details](docs/DATASET.md#dataset-v7--a-fourteenth-family-river_swim)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
@@ -829,6 +830,61 @@ to a model, and every old-family decision is checked equal to v5's.
 | `llm:naive:qwen2.5-0.5b` | 1187.0 | −74.6 | −128.3 | 0.497 | 0.931 | 0.381 | 40 | 487/520 | 0.4% | 6.3% |
 <!-- llm-results-v6:end -->
 
+#### On dataset v7 — a fourteenth family
+
+All 28 runs on `v7` (Round 75): v6 plus `river_swim` (Round 74), 560 dev moments. Each
+run's v7 cache was seeded from its v6 cache, so only the 40 new moments were sent to a
+model, and every old-family decision is checked equal to v6's.
+
+<!-- v7-claims:start -->
+- **A relational decider fares no better.** On `river_swim`, **15** of the 28 runs give
+  every one of its 40 moments the same answer (**6** never speak, **9** always do). The
+  best pairs-both-right score is **3** of 20 pairs (Granite-3.3-2B with the rubric), below
+  the 5 a coin expects; its pairs split 3 right and 0 backwards, p=0.125 at even odds.
+  Across all runs, of the **23** pairs answered differently on their two sides, **10** are
+  right and **13** backwards. On `street_cleaning` the best was 5 of 20.
+- **Two verdicts move, both mechanically.** Qwen2.5-1.5B naive, silent on every v6
+  moment, speaks once on `river_swim`, correctly, so it now beats silence by **+0.3**
+  (ICS 718.0 against 720.0, one catch). Qwen2.5-3B naive is no longer inconclusive. It
+  has the same **28** unreadable answers as on v6, but 28 of 560 is exactly 5.0%, and
+  the CLI flags a run only above 5%.
+- Of the 378 pairs of runs, **6** are reversed by ICS and **4** change between tied and
+  ordered.
+<!-- v7-claims:end -->
+
+<!-- llm-results-v7:start -->
+| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:gemma-3-4b` | 634.0 | +11.9 | −17.4 | 0.536 | 0.211 | 0.268 | 0 | 110/560 | 5.4% | 0.0% |
+| `llm:naive:llama-3.2-3b` | 662.0 | +8.1 | −22.6 | 0.488 | 0.211 | 0.296 | 0 | 121/560 | 2.1% | 0.0% |
+| `llm:rubric:qwen2.5-7b` | 662.0 | +8.1 | −22.6 | 0.541 | 0.118 | 0.197 | 0 | 61/560 | 1.8% | 0.0% |
+| `llm:rubric:gemma-2-2b` | 670.0 | +6.9 | −24.1 | 0.492 | 0.114 | 0.452 | 0 | 65/560 | 1.8% | 0.0% |
+| `llm:naive:gemma-2-2b` | 673.0 | +6.5 | −24.6 | 0.552 | 0.114 | 0.437 | 0 | 58/560 | 3.6% | 0.0% |
+| `llm:rubric:llama-3.1-8b` | 709.0 | +1.5 | −31.3 | 0.524 | 0.039 | 0.311 | 0 | 21/560 | 1.8% | 0.0% |
+| `llm:rubric:phi-4-mini` | 716.0 | +0.6 | −32.6 | 1.000 | 0.007 | 0.259 | 0 | 2/560 | 0.7% | 0.0% |
+| `llm:naive:qwen2.5-1.5b` | 718.0 | +0.3 | −33.0 | 1.000 | 0.004 | 0.500 | 0 | 1/560 | 0.4% | 0.0% |
+| `llm:rubric:llama-3.2-3b` | 720.0 | +0.0 | −33.3 | — | 0.000 | 0.300 | 0 | 0/560 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-1.5b` | 720.0 | +0.0 | −33.3 | — | 0.000 | 0.113 | 0 | 0/560 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-3b` | 720.0 | +0.0 | −33.3 | — | 0.000 | 0.457 | 0 | 0/560 | 0.0% | 0.0% |
+| `llm:rubric:mistral-7b` | 721.0 | −0.1 | −33.5 | 0.000 | 0.000 | 0.455 | 0 | 1/560 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-3b` | 727.0 | −1.0 | −34.6 | 0.508 | 0.704 | 0.409 | 20 | 388/560 | 4.6% | 5.0% |
+| `llm:naive:mistral-7b` | 764.0 | −6.1 | −41.5 | 0.498 | 0.436 | 0.363 | 20 | 245/560 | 3.2% | 0.0% |
+| `llm:naive:qwen2.5-7b` | 798.0 | −10.8 | −47.8 | 0.526 | 0.179 | 0.191 | 19 | 95/560 | 2.9% | 0.0% |
+| `llm:naive:llama-3.1-8b` | 806.0 | −11.9 | −49.3 | 0.508 | 0.579 | 0.292 | 20 | 319/560 | 9.6% | 0.0% |
+| `llm:naive:gemma-3-4b` | 817.0 | −13.5 | −51.3 | 0.489 | 0.482 | 0.359 | 18 | 276/560 | 2.9% | 0.0% |
+| `llm:rubric:granite-3.3-2b` | 821.0 | −14.0 | −52.0 | 0.531 | 0.575 | 0.382 | 25 | 303/560 | 9.3% | 0.0% |
+| `llm:naive:phi-3.5-mini` | 860.0 | −19.4 | −59.3 | 0.501 | 0.925 | 0.403 | 20 | 517/560 | 0.4% | 0.0% |
+| `llm:rubric:phi-3.5-mini` | 860.0 | −19.4 | −59.3 | 0.500 | 0.929 | 0.443 | 20 | 520/560 | 0.0% | 0.0% |
+| `llm:naive:phi-4-mini` | 940.0 | −30.6 | −74.1 | 0.494 | 0.832 | 0.360 | 22 | 472/560 | 2.1% | 0.0% |
+| `llm:rubric:smollm2-1.7b` | 1136.0 | −57.8 | −110.4 | 0.503 | 0.989 | 0.445 | 36 | 551/560 | 2.1% | 0.0% |
+| `llm:naive:granite-3.3-2b` | 1172.0 | −62.8 | −117.0 | 0.500 | 0.918 | 0.403 | 40 | 514/560 | 2.1% | 0.0% |
+| `llm:naive:llama-3.2-1b` | 1200.0 | −66.7 | −122.2 | 0.500 | 1.000 | 0.141 | 40 | 560/560 | 0.0% | 0.0% |
+| `llm:naive:smollm2-1.7b` | 1200.0 | −66.7 | −122.2 | 0.500 | 1.000 | 0.450 | 40 | 560/560 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-1b` | 1200.0 | −66.7 | −122.2 | 0.500 | 1.000 | 0.009 | 40 | 560/560 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-0.5b` | 1201.0 | −66.8 | −122.4 | 0.500 | 0.996 | 0.450 | 40 | 558/560 | 0.4% | 0.2% |
+| `llm:naive:qwen2.5-0.5b` | 1209.0 | −67.9 | −123.9 | 0.496 | 0.932 | 0.383 | 40 | 526/560 | 0.4% | 6.1% |
+<!-- llm-results-v7:end -->
+
 #### On held-out `v1/test` — phrasings no dev moment uses
 
 All 28 runs on v1's held-out split (Round 69): 108 moments whose deciders use frames
@@ -1022,7 +1078,7 @@ benchmark:
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
 - **No frontier LLM has been run.** Fourteen open-weight models of 8B parameters and
-  under are measured (all fourteen on `v4`-`v6` and on held-out `v1/test`, eleven on `v1`-`v3` dev, none on `v7`); whether frontier models do better is the result the project
+  under are measured (all fourteen on `v4`-`v7` and on held-out `v1/test`, eleven on `v1`-`v3` dev); whether frontier models do better is the result the project
   exists to produce, and it costs money that has not been spent. The harness runs
   them unchanged.
 - **The pair-blind bar reads labels.** It is the optimum over policies that cannot

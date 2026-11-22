@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 and R72 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 74 complete — dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 75 complete — all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1637 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1745 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -341,7 +341,7 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
-X. **LLM runs on `v7`** (new, R74). 28 runs; seed each v7 cache from its v6 cache
+X. **LLM runs on `v7` — DONE in R75.** Original entry (R74): 28 runs; seed each v7 cache from its v6 cache
    (`runs/*-v6-dev.jsonl` copied to `-v7-dev`), so only `river_swim`'s 40 dev moments are
    queried. Write `tests/test_results_v7.py` and the README section before the runs, as
    R72 did. The interesting question: does a relational decider fare differently from
@@ -3798,6 +3798,40 @@ family's shipped-seed positional reading is 72.5% against 57.5%, matching its nu
 **Loop:** #39 gains an instance. A builder told to produce something "new" wrote the
 novelty claim wider than its evidence, in five places; the independent review caught
 it and the gate could not have.
+
+---
+
+## Round 75 — the 28 LLM runs on dataset v7
+
+**Ending state: `shipped`.** Queue item X. **Before:** no model had been run on `v7`.
+**After:** all 28 runs. Caches were seeded from v6, so only `river_swim`'s 40 dev
+moments were queried, and the 520 reused decisions are checked one by one. Tests and
+the README section were committed before the runs finished.
+
+**Result (`TestTheReadmeV7Claims`; 8 mutations of the README text, all caught):**
+- On `river_swim`, 15 of 28 runs are constant (6 silent, 9 always speak).
+- The best is 3 of 20 pairs (Granite-3.3-2B rubric; 3 right, 0 backwards, p=0.125),
+  below a coin's 5. Across runs, 23 split pairs: 10 right, 13 backwards. The question
+  R74 queued, whether a relational decider fares differently from `street_cleaning`
+  (5 of 20), is answered: no, and if anything worse.
+- Two verdicts move, both mechanically. Qwen2.5-1.5B naive, silent on all of v6, makes
+  one correct catch and beats silence by +0.3. Qwen2.5-3B naive keeps its 28 unreadable
+  answers, but 28 of 560 is exactly 5.0%, which the strict >5% flag does not mark.
+- 6 of 378 run orderings reverse and 4 change between tied and ordered.
+
+**Slips this round and last, both caught before merge:**
+- The reuse test was first written comparing v7 with itself: a text substitution also
+  rewrote `load_results("v6")`. It failed (520 against 560) rather than passing
+  vacuously, and the cause was found from that failure.
+- In R74 the branch was not reset onto `main` after R73's squash-merge, so PR #70
+  conflicted and CI never started. It was fixed by merging `main` in; the tree was
+  identical to the reviewed head. The reset step is in the workflow and was skipped
+  because the next round's builder was launched straight from the merge.
+
+**Review:** none beyond the gate and the mutation check. Claims are recomputed by tests.
+
+**Loop:** nothing new. The skipped reset is a local slip, not a protocol gap; R70-R75
+followed the reset step every other time.
 
 ---
 

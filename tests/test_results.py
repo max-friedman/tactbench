@@ -47,6 +47,7 @@ MARKERS = {
     "v4": ("<!-- llm-results-v4:start -->", "<!-- llm-results-v4:end -->"),
     "v5": ("<!-- llm-results-v5:start -->", "<!-- llm-results-v5:end -->"),
     "v6": ("<!-- llm-results-v6:start -->", "<!-- llm-results-v6:end -->"),
+    "v7": ("<!-- llm-results-v7:start -->", "<!-- llm-results-v7:end -->"),
     "v1-test": ("<!-- llm-results-v1-test:start -->", "<!-- llm-results-v1-test:end -->"),
 }
 

@@ -574,7 +574,7 @@ places. Staying quiet when the overflow is downstream is defensible but not unan
 near a river mouth a tide can carry a discharge upstream. Labels are constructed
 (`raters: 0`).
 
-No LLM has been run on v7.
+All 28 LLM runs are on v7 (Round 75; README, *On dataset v7*).
 
 ### Token permutations and the bigram probe
 
