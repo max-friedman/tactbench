@@ -38,6 +38,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -80,6 +84,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -104,6 +112,10 @@
         "rubric": 2330.6
       },
       "v5": {
+        "naive": null,
+        "rubric": null
+      },
+      "v6": {
         "naive": null,
         "rubric": null
       }
@@ -148,6 +160,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -188,6 +204,10 @@
         "rubric": null
       },
       "v5": {
+        "naive": null,
+        "rubric": null
+      },
+      "v6": {
         "naive": null,
         "rubric": null
       }
@@ -232,6 +252,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -256,6 +280,10 @@
         "rubric": 4335.4
       },
       "v5": {
+        "naive": null,
+        "rubric": null
+      },
+      "v6": {
         "naive": null,
         "rubric": null
       }
@@ -300,6 +328,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -324,6 +356,10 @@
         "rubric": 3050.3
       },
       "v5": {
+        "naive": null,
+        "rubric": null
+      },
+      "v6": {
         "naive": null,
         "rubric": null
       }
@@ -368,6 +404,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -408,6 +448,10 @@
         "rubric": null
       },
       "v5": {
+        "naive": null,
+        "rubric": null
+      },
+      "v6": {
         "naive": null,
         "rubric": null
       }
@@ -452,6 +496,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -494,6 +542,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -534,6 +586,10 @@
         "rubric": null
       },
       "v5": {
+        "naive": null,
+        "rubric": null
+      },
+      "v6": {
         "naive": null,
         "rubric": null
       }

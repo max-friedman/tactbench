@@ -13,11 +13,11 @@ findings** below.
 
 ## Current status
 
-- **Loop audit due:** R72 (fifth round after R67's audit) — **or sooner**: a stop
+- **Loop audit due:** R77 (fifth round after R72's audit) — **or sooner**: a stop
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
-  update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 ran on time). A round
+  update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 and R72 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 71 complete — dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 72 complete — all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1367 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1473 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -341,7 +341,7 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
-W. **LLM runs on `v6`** (new, R71). 28 runs; old-family decisions seed from v5's
+W. **LLM runs on `v6` — DONE in R72.** Original entry (R71): 28 runs; old-family decisions seed from v5's
    cache, so only `street_cleaning`'s 40 dev moments are queried (about 1,120 calls).
    Check old-family decisions equal v5's, as R54 did against v4.
 
@@ -3676,6 +3676,45 @@ half; the readings are identical on 3.11-3.13.
 **Not done:** LLM runs on v6 (queue W); the letter-combination gate (V).
 
 **Loop:** #56 gains an instance (a per-letter gate named for "letter counts").
+
+---
+
+## Round 72 — the 28 LLM runs on dataset v6; and a loop audit
+
+**Ending state: `shipped`.** Queue item W. **Before:** no model had been run on `v6`
+(R71). **After:** all 28 runs. Each v6 cache was seeded from the run's v5 cache, so
+only the 40 `street_cleaning` dev moments were queried (1,120 calls).
+`test_old_family_decisions_are_exactly_v5s` checks the 480 reused decisions one by
+one. The tests and README section were committed before the runs finished, and were
+red until then. A container restart killed the runner at 4 of 28; it resumed from the
+per-decision caches.
+
+**Result (`TestTheReadmeV6Claims`, each pin mutation-tested):** on `street_cleaning`,
+21 of 28 runs are constant (12 silent, 9 always speak). The best pairs-both-right is
+5 of 20 (Granite-3.3-2B rubric), a coin's expectation; its 5 right against 1
+backwards is p≈0.11. Across runs, 20 pairs are answered differently on their two
+sides: 12 right, 8 backwards. The same 7 runs beat silence as on v5, the same two are
+inconclusive, and 0 of 378 run orderings change. The R54 conclusion replicates on a
+second family of the same shape.
+
+**Review:** none beyond the gate and the mutation check. The claims are recomputed by
+tests, and the reused decisions are checked one by one.
+
+**Loop audit (due; R68-R71).** Loop lines: R68-R70 `nothing new`; R71 a #56 instance.
+- *Effort out of proportion?* Waiting on multi-hour runs again. The stop hook asked for
+  a commit whenever a result landed between checks. A monitor that commits each file
+  as it lands made that routine. It is a harness matter, not a protocol one.
+- *Skipped steps?* R70 and R72 had no review beyond the gate. R70 was a pure move;
+  R72's claims are recomputed by tests. That is tempting to generalise, so it is
+  recorded here, not used as precedent. R71 delegated the build and the review to two
+  subagents, so neither was §D-independent (#29 again, no new proposal).
+- *Ending states:* all `shipped`, correctly. *Stop conditions:* none fired.
+  *Ambiguity:* none found.
+- *Unread state sections?* None newly so.
+- R71's #56 instance was commented upstream (#56), and so was the float-summation
+  lesson CI caught.
+
+**Loop:** audit on time; nothing new beyond R71's #56 comment.
 
 ---
 

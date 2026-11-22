@@ -5,6 +5,13 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 72)
+
+- **LLM results on `v6`.** All 28 open-weight runs, committed in `results/v6-dev/`, with
+  every reused old-family decision checked equal to v5's. On `street_cleaning` 21 runs
+  are constant and the best reads 5 of 20 pairs, a coin's expectation; the same 7 runs
+  beat silence as on v5 and no run ordering changes.
+
 ### Added (Round 71)
 
 - **Dataset `v6`: a thirteenth family, `street_cleaning`** (520 dev / 312 test). A city
