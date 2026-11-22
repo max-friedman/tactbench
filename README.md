@@ -423,7 +423,8 @@ says which album has a copy somewhere other than the cloud (600 dev / 360 test).
 Its logical form is the same as every family's; what it adds is a domain and a
 deciding predicate (whether any second copy exists, stated eight different ways, with
 negation words balanced across the two sides) that no earlier family uses. Its
-first fourteen families are identical to v7's. **No LLM has been run on v8**
+first fourteen families are identical to v7's; the 28 runs on it are under *On
+dataset v8*
 ([details](docs/DATASET.md#dataset-v8--a-fifteenth-family-photo_backup)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
@@ -899,7 +900,49 @@ All 28 runs on `v8` (Round 77): v7 plus `photo_backup` (Round 76), 600 dev momen
 run's v8 cache was seeded from its v7 cache, so only the 40 new moments were sent to a
 model, and every old-family decision is checked equal to v7's.
 
+<!-- v8-claims:start -->
+- **On `photo_backup`, most runs are constant again.** **19** of the 28 runs give every
+  one of its 40 moments the same answer (**8** never speak, **11** always do).
+- **The best is 4 of 20 pairs, below a coin's 5, but none backwards.** SmolLM2-1.7B with
+  the rubric gets **4** pairs right and **0** backwards; at even odds that is p=0.0625,
+  close to but not past the 5% line. Across all runs, of the **18** pairs answered
+  differently on their two sides, **11** are right and **7** backwards.
+- **Nothing else moves.** The same **8** runs beat silence as on v7, the same one is
+  inconclusive, and of the 378 pairs of runs **0** are reversed and **1** changes
+  between tied and ordered.
+<!-- v8-claims:end -->
+
 <!-- llm-results-v8:start -->
+| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:gemma-3-4b` | 676.0 | +11.1 | −16.6 | 0.530 | 0.203 | 0.267 | 0 | 115/600 | 5.0% | 0.0% |
+| `llm:rubric:qwen2.5-7b` | 702.0 | +7.6 | −21.0 | 0.541 | 0.110 | 0.198 | 0 | 61/600 | 1.7% | 0.0% |
+| `llm:naive:llama-3.2-3b` | 704.0 | +7.4 | −21.4 | 0.487 | 0.247 | 0.300 | 0 | 152/600 | 2.0% | 0.0% |
+| `llm:rubric:gemma-2-2b` | 710.0 | +6.6 | −22.4 | 0.492 | 0.107 | 0.451 | 0 | 65/600 | 1.7% | 0.0% |
+| `llm:naive:gemma-2-2b` | 713.0 | +6.2 | −22.9 | 0.552 | 0.107 | 0.438 | 0 | 58/600 | 3.3% | 0.0% |
+| `llm:rubric:llama-3.1-8b` | 747.0 | +1.7 | −28.8 | 0.542 | 0.043 | 0.309 | 0 | 24/600 | 2.3% | 0.0% |
+| `llm:rubric:phi-4-mini` | 756.0 | +0.5 | −30.3 | 1.000 | 0.007 | 0.247 | 0 | 2/600 | 0.7% | 0.0% |
+| `llm:naive:qwen2.5-1.5b` | 758.0 | +0.3 | −30.7 | 1.000 | 0.003 | 0.500 | 0 | 1/600 | 0.3% | 0.0% |
+| `llm:rubric:llama-3.2-3b` | 760.0 | +0.0 | −31.0 | — | 0.000 | 0.300 | 0 | 0/600 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-1.5b` | 760.0 | +0.0 | −31.0 | — | 0.000 | 0.105 | 0 | 0/600 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-3b` | 760.0 | +0.0 | −31.0 | 0.500 | 0.003 | 0.457 | 0 | 2/600 | 0.0% | 0.0% |
+| `llm:rubric:mistral-7b` | 761.0 | −0.1 | −31.2 | 0.000 | 0.000 | 0.455 | 0 | 1/600 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-3b` | 767.0 | −0.9 | −32.2 | 0.507 | 0.723 | 0.412 | 20 | 428/600 | 4.3% | 4.7% |
+| `llm:naive:mistral-7b` | 800.0 | −5.3 | −37.9 | 0.502 | 0.427 | 0.358 | 20 | 255/600 | 3.7% | 0.0% |
+| `llm:naive:qwen2.5-7b` | 836.0 | −10.0 | −44.1 | 0.531 | 0.170 | 0.192 | 19 | 96/600 | 3.0% | 0.0% |
+| `llm:naive:llama-3.1-8b` | 850.0 | −11.8 | −46.6 | 0.504 | 0.570 | 0.296 | 20 | 339/600 | 9.7% | 0.0% |
+| `llm:naive:gemma-3-4b` | 857.0 | −12.8 | −47.8 | 0.490 | 0.470 | 0.357 | 18 | 288/600 | 2.7% | 0.0% |
+| `llm:rubric:granite-3.3-2b` | 861.0 | −13.3 | −48.4 | 0.528 | 0.603 | 0.383 | 25 | 343/600 | 8.7% | 0.0% |
+| `llm:naive:phi-3.5-mini` | 900.0 | −18.4 | −55.2 | 0.501 | 0.930 | 0.400 | 20 | 557/600 | 0.3% | 0.0% |
+| `llm:rubric:phi-3.5-mini` | 900.0 | −18.4 | −55.2 | 0.500 | 0.933 | 0.443 | 20 | 560/600 | 0.0% | 0.0% |
+| `llm:naive:phi-4-mini` | 980.0 | −28.9 | −69.0 | 0.494 | 0.843 | 0.360 | 22 | 512/600 | 2.0% | 0.0% |
+| `llm:rubric:smollm2-1.7b` | 1168.0 | −53.7 | −101.4 | 0.506 | 0.990 | 0.438 | 36 | 587/600 | 3.3% | 0.0% |
+| `llm:naive:granite-3.3-2b` | 1212.0 | −59.5 | −109.0 | 0.500 | 0.923 | 0.403 | 40 | 554/600 | 2.0% | 0.0% |
+| `llm:naive:llama-3.2-1b` | 1240.0 | −63.2 | −113.8 | 0.500 | 1.000 | 0.132 | 40 | 600/600 | 0.0% | 0.0% |
+| `llm:naive:smollm2-1.7b` | 1240.0 | −63.2 | −113.8 | 0.500 | 1.000 | 0.450 | 40 | 600/600 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-1b` | 1240.0 | −63.2 | −113.8 | 0.500 | 1.000 | 0.008 | 40 | 600/600 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-0.5b` | 1241.0 | −63.3 | −114.0 | 0.500 | 0.997 | 0.447 | 40 | 598/600 | 0.3% | 0.2% |
+| `llm:naive:qwen2.5-0.5b` | 1249.0 | −64.3 | −115.3 | 0.496 | 0.937 | 0.384 | 40 | 566/600 | 0.3% | 5.7% |
 <!-- llm-results-v8:end -->
 
 #### On held-out `v1/test` — phrasings no dev moment uses
@@ -1099,7 +1142,7 @@ benchmark:
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
 - **No frontier LLM has been run.** Fourteen open-weight models of 8B parameters and
-  under are measured (all fourteen on `v4`-`v7` and on held-out `v1/test`, eleven on `v1`-`v3` dev, none on `v8`); whether frontier models do better is the result the project
+  under are measured (all fourteen on `v4`-`v8` and on held-out `v1/test`, eleven on `v1`-`v3` dev); whether frontier models do better is the result the project
   exists to produce, and it costs money that has not been spent. The harness runs
   them unchanged.
 - **The pair-blind bar reads labels.** It is the optimum over policies that cannot
