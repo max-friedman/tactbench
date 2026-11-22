@@ -312,6 +312,10 @@
       "v5": {
         "naive": null,
         "rubric": null
+      },
+      "v6": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
