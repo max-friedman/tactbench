@@ -210,6 +210,10 @@
       "v6": {
         "naive": null,
         "rubric": null
+      },
+      "v7": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -408,6 +412,10 @@
       "v6": {
         "naive": null,
         "rubric": null
+      },
+      "v7": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
@@ -452,6 +460,10 @@
         "rubric": null
       },
       "v6": {
+        "naive": null,
+        "rubric": null
+      },
+      "v7": {
         "naive": null,
         "rubric": null
       }
