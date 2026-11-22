@@ -455,7 +455,7 @@ What the family does not resist, as for `water_notice`: the former-position clau
 always carries an ordinary word of the past or of leaving (*old*, *ended*, *origin*,
 *surrendered*, *was*, *formerly*, *prior*, *until*). A reader that locates the swept
 street's clause and knows those words solves the family — that is reading the
-decider. No LLM has been run on v6.
+decider. All 28 LLM runs are on v6 (Round 72; README, *On dataset v6*).
 
 **A combination of letter counts reads the held-out frames, and the per-letter gate
 cannot see it** (found in the R71 review; `experiments/letter_bag_probe.py`). Weight

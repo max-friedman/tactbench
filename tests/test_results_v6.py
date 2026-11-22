@@ -16,11 +16,8 @@ from test_results import _readme_rows
 
 from tactbench.cli import MAX_UNPARSED
 from tactbench.dataset.loader import load
-from tactbench.metrics import score
-from tactbench.policies.builtin import AlwaysPolicy, NeverPolicy
-from tactbench.policies.llm import unparsed_rate
-from tactbench.results import load_results, pairs_both_right, scorecards
-from tactbench.runner import normalized, pair_blind_ics, run_policy
+from tactbench.results import load_results, scorecards
+from tactbench.runner import normalized, pair_blind_ics
 from tactbench.schema import pair_key
 
 RUNS = load_results("v6")
@@ -95,3 +92,86 @@ def test_every_v6_readme_figure_equals_a_fresh_rescore():
     assert not stale, "README v6 LLM table is stale; run `tactbench results --version v6`"
 
 
+class TestTheReadmeV6Claims:
+    """Every figure in the README's v6 claims block, recomputed."""
+
+    @staticmethod
+    def _block() -> str:
+        text = (Path(__file__).parent.parent / "README.md").read_text()
+        block = text.split("<!-- v6-claims:start -->")[1].split("<!-- v6-claims:end -->")[0]
+        return " ".join(block.split())
+
+    @staticmethod
+    def _family():
+        items = {i.moment.id: i for i in load("v6", "dev") if i.moment.family in NEW}
+        return items, {n: [d for d in ds if d.moment_id in items] for n, ds in RUNS.items()}
+
+    @classmethod
+    def _split_pairs(cls):
+        items, runs = cls._family()
+        out = {}
+        for name, ds in runs.items():
+            by_pair: dict = {}
+            for d in ds:
+                by_pair.setdefault(pair_key(d.moment_id), {})[
+                    items[d.moment_id].label.should_surface
+                ] = d.surface
+            right = sum(p[True] and not p[False] for p in by_pair.values())
+            back = sum(p[False] and not p[True] for p in by_pair.values())
+            out[name] = (right, back, len(by_pair))
+        return out
+
+    def test_constant_runs_on_the_new_family(self):
+        items, runs = self._family()
+        assert len(items) == 40
+        constant = [ds for ds in runs.values() if len({d.surface for d in ds}) == 1]
+        silent = sum(not ds[0].surface for ds in constant)
+        assert (len(constant), silent) == (21, 12)
+        block = self._block()
+        assert "**21** of the 28 runs give every one of its 40 moments the same answer" in block
+        assert "(**12** never speak, **9** always do)" in block
+
+    def test_best_pairs_and_its_odds(self):
+        from math import comb
+
+        split = self._split_pairs()
+        best = max(split, key=lambda n: split[n][0])
+        right, back, n = split[best]
+        assert best == "llm:rubric:granite-3.3-2b" and (right, back, n) == (5, 1, 20)
+        assert max(r for r, _, _ in split.values()) == 5
+        assert all(r != 5 for name, (r, _, _) in split.items() if name != best)
+        p = sum(comb(6, k) for k in (5, 6)) / 2**6
+        assert round(p, 2) == 0.11
+        block = self._block()
+        assert "**5** of 20 pairs (Granite-3.3-2B with the rubric)" in block
+        assert "5 right and 1 backwards; at even odds that is p≈0.11" in block
+
+    def test_split_pairs_across_runs(self):
+        split = self._split_pairs()
+        right = sum(r for r, _, _ in split.values())
+        back = sum(b for _, b, _ in split.values())
+        assert (right + back, right, back) == (20, 12, 8)
+        assert (
+            "of the **20** pairs answered differently on their two sides, "
+            "**12** are right and **8** backwards" in self._block()
+        )
+
+    def test_nothing_else_moves(self):
+        c5 = {c.policy: (c, u) for c, u, _ in scorecards("v5")}
+        c6 = {c.policy: (c, u) for c, u, _ in scorecards("v6")}
+        assert set(c5) == set(c6)
+        above5 = {p for p, (c, _) in c5.items() if c.ics_normalized > 0}
+        above6 = {p for p, (c, _) in c6.items() if c.ics_normalized > 0}
+        inc5 = {p for p, (_, u) in c5.items() if u > MAX_UNPARSED}
+        inc6 = {p for p, (_, u) in c6.items() if u > MAX_UNPARSED}
+        assert above5 == above6 and len(above6) == 7
+        assert inc5 == inc6 and len(inc6) == 2
+        changed = 0
+        for x, y in combinations(sorted(c6), 2):
+            s5 = (c5[x][0].ics > c5[y][0].ics) - (c5[x][0].ics < c5[y][0].ics)
+            s6 = (c6[x][0].ics > c6[y][0].ics) - (c6[x][0].ics < c6[y][0].ics)
+            changed += s5 != s6
+        assert len(list(combinations(c6, 2))) == 378 and changed == 0
+        block = self._block()
+        assert "The same **7** runs beat silence as on v5, the same two are inconclusive" in block
+        assert "of the 378 pairs of runs **0** change order" in block
