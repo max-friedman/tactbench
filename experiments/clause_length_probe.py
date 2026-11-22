@@ -25,6 +25,7 @@ from tactbench.dataset.loader import load
 from tactbench.policies.skyline import (
     _BOIL_DISTRICT,
     _MOTION_ZONE,
+    _OVERFLOW_SITE,
     _SKIPPED_PET,
     _SWEPT_STREET,
 )
@@ -61,6 +62,8 @@ def _marker(item: Item) -> str:
         return _BOIL_DISTRICT.search(body).group(1)
     if item.moment.family == "street_cleaning":
         return _SWEPT_STREET.search(body).group(1)
+    if item.moment.family == "river_swim":
+        return _OVERFLOW_SITE.search(body).group(1)
     return next(g for g in _SKIPPED_PET.search(body).groups() if g)
 
 

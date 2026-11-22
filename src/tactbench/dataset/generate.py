@@ -98,6 +98,18 @@ STREETS = [
     "Montague", "Ormond",
 ]  # fmt: skip
 
+#: Places on one river for ``river_swim`` (dataset v7). Single invented words, so a place
+#: never shares a token with a frame or a body template and carries no real-world order
+#: along a known river; none is a word of another pool.
+REACHES = [
+    "Brackwell", "Coldmere", "Dunholt", "Elsmoor", "Fenmarch", "Gorsley", "Hollinwade",
+    "Ivyford", "Kestley", "Larkmoor", "Netherby", "Oxcombe", "Pennock", "Quarley", "Rookham",
+    "Sallowby", "Thistlecombe", "Ullock", "Wendbury", "Yarrowby", "Ashlock", "Bilsdon",
+    "Copley", "Dimmock", "Eskholt", "Frayne", "Gilsby", "Harnock", "Inchley", "Kirkwade",
+    "Lowick", "Mardale", "Nunwick", "Orlock", "Pelham", "Ravensby", "Stokeley", "Tilsworth",
+    "Wrenford", "Bexholt",
+]  # fmt: skip
+
 COLLEAGUES = [
     "Priya Raman",
     "Marco Silva",
@@ -399,6 +411,33 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
         ("Sedan presently stationed on {who}", "Sedan formerly stationed on {who}"),
         ("Live location reads {who}", "Prior location reads {who}"),
         ("Stationary since teatime on {who}", "Stationary until teatime on {who}"),
+    ],
+    "river_swim": [
+        # Privileged: the place upstream of the other; the other clause is downstream.
+        # Neither clause says which place is the user's -- the body fixes that -- so
+        # only the direction of the river between the two places is permuted. Chosen by
+        # search (v7) over 44 candidate frames that meet the structural rules and read
+        # clearly as upstream vs downstream of the other place: every gated clause
+        # feature (chars, -er, -s, -ing, -ed, longest word, vowels, consonants) balances
+        # exactly on dev frames (0-4) and on held-out frames (5-7), and among the 1,740
+        # such sets this one minimises the strongest of ~440 cheap clause features
+        # (letters, letter pairs and triples, affixes, word lengths) read the same way on
+        # both splits (60%), then on dev alone (70%). Excluded before the search as
+        # readable backwards or unclear: "Higher ground surrounds" (a valley village is
+        # surrounded by higher ground), "Silt settles later near", "Rainwater drains
+        # first past", "Climbing the towpath leads to" (towpaths are flat), "Rowing
+        # upstream from one finds".
+        ("Upper reaches take in {who}", "Lower reaches take in {who}"),
+        ("Weir steps climb toward {who}", "Weir steps descend toward {who}"),
+        ("Headwater side holds {who}", "Mouth side holds {who}"),
+        ("Water flows first past {who}", "Water flows later past {who}"),
+        (
+            "Situated above the other on the river is {who}",
+            "Situated below the other on the river is {who}",
+        ),
+        ("Drifting rafts set off near {who}", "Drifting rafts wash up near {who}"),
+        ("Paddling against the current leads to {who}", "Paddling with the current leads to {who}"),
+        ("Mapped elevation tops out at {who}", "Mapped elevation bottoms out at {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
@@ -1290,6 +1329,69 @@ class StreetCleaningScenario(Scenario):
         )
 
 
+class RiverSwimScenario(Scenario):
+    """A sewage overflow is discharging into a river at one place, and the user's club
+    swims in the same river at another place this evening; the user is on the train home.
+    The shared body fixes both facts. The decider, a river map, says only which of the
+    two places lies upstream of the other -- both places appear in the body and on both
+    sides, and swap roles. Speak iff the overflow is upstream of the swim, so the water
+    carries it there. Dataset v7 only.
+
+    Logically the same form as every family (the decider labels one place, and given
+    the body that label settles it). What differs: neither place is the user's, the
+    deciding word is relational (*upstream* of the other place), and the answer takes
+    one world-knowledge step, that a river carries a spill downstream (R74 review)."""
+
+    family = "river_swim"
+    intent = "water_quality_alert"
+    positive_value = 2
+    window_s = 3600
+    positive_slices = ["lead_time", "health_risk"]
+    near_slices = ["not_affected", "health_risk"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.COMMUTING,
+            device="phone",
+            last_interaction_s=rng.randint(60, 900),
+            local_hour=rng.randint(16, 18),
+        )
+
+    def body(self, rng):
+        self._site, self._swim = rng.sample(REACHES, 2)
+        a, b = self._site, self._swim
+        # The overflow site is named first in two phrasings and second in two (R45).
+        phrasing = rng.choice(
+            [
+                f"River alert: sewage overflow at {a} since 2pm. Your club's open-water "
+                f"swim tonight is at {b}.",
+                f"Swim club reminder: tonight's open-water session is at {b}. Separately, "
+                f"a sewage overflow was reported at {a} this afternoon.",
+                f"Storm overflow discharging at {a} since 2pm. Club swim at {b} starts at 7pm.",
+                f"Club swim at {b} starts at 7pm tonight. Storm overflow discharging at "
+                f"{a} since 2pm.",
+            ]
+        )
+        return [
+            Signal(source=Source.APP_EVENT, age_s=1800, content=phrasing, meta={"app": "river"})
+        ]
+
+    decider_source = Source.APP_EVENT
+    decider_age_s = 604800
+
+    def fillers(self, rng):
+        return self._site, self._swim
+
+    def why(self):
+        return (
+            "The overflow is upstream of tonight's swim, so the river carries the sewage "
+            "to where the user will be in the water; worth knowing on the way home.",
+            "The overflow is downstream of the swim, and the river carries it away from "
+            "where the user will be. Nothing tonight is affected, so there is nothing to "
+            "say.",
+        )
+
+
 SCENARIOS: list[Scenario] = [
     TravelScenario(),
     DeadlineScenario(),
@@ -1310,6 +1412,7 @@ LATER_SCENARIOS: list[Scenario] = [
     HomeSecurityScenario(),
     WaterNoticeScenario(),
     StreetCleaningScenario(),
+    RiverSwimScenario(),
 ]
 ALL_SCENARIOS: list[Scenario] = [*SCENARIOS, *LATER_SCENARIOS]
 
@@ -1332,7 +1435,8 @@ def generate(
     rather than leaving it to be rediscovered.
 
     ``families`` takes the first that many of :data:`ALL_SCENARIOS`; the default is
-    the original nine, which v1 and v2 use. v3 uses ten, v4 eleven, v5 twelve, v6 thirteen.
+    the original nine, which v1 and v2 use. v3 uses ten, v4 eleven, v5 twelve, v6 thirteen,
+    v7 fourteen.
     """
     rng = random.Random(seed)
     items: list[Item] = []

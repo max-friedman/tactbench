@@ -19,7 +19,7 @@ from tactbench.runner import evaluate, normalized, pair_blind_ics, silence_ics
 from tactbench.web.server import PAGE, _Handler, build_payload
 
 #: Every dataset on disk and its splits. v2para (R42) is a reworded dev slice only.
-CASES = [(v, s) for v in ("v1", "v2", "v3", "v4", "v5", "v6") for s in ("dev", "test")]
+CASES = [(v, s) for v in ("v1", "v2", "v3", "v4", "v5", "v6", "v7") for s in ("dev", "test")]
 CASES.append(("v2para", "dev"))
 
 

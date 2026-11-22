@@ -1,8 +1,9 @@
 """Where the random marker sits in the decider, for every random-marker family. Round 55.
 
-Six families draw their marker at random -- the gate boarding moved away from, the
+Seven families draw their marker at random -- the gate boarding moved away from, the
 item whose return window closes, the pet that skipped a meal, the zone with motion, the
-district under a boil-water notice, and (v6) the street swept tomorrow -- so the
+district under a boil-water notice, (v6) the street swept tomorrow, and (v7) the place
+a sewage overflow is discharging into a river -- so the
 token-positional probe cannot see which clause names it (R52 review). The check that
 can: read the marker from the body, as the skyline does, and ask whether the first
 decider clause names it. Within each label that must hold exactly half the time, so
@@ -27,6 +28,7 @@ from tactbench.policies.skyline import (
     _GATE_CHANGE,
     _MARKERS,
     _MOTION_ZONE,
+    _OVERFLOW_SITE,
     _RETURN_ITEM,
     _SKIPPED_PET,
     _SWEPT_STREET,
@@ -40,6 +42,7 @@ MARKERS = {
     "home_security": _MOTION_ZONE,
     "water_notice": _BOIL_DISTRICT,
     "street_cleaning": _SWEPT_STREET,
+    "river_swim": _OVERFLOW_SITE,
 }
 #: First version carrying each family; every later version carries it unchanged.
 SINCE = {
@@ -49,8 +52,9 @@ SINCE = {
     "home_security": 4,
     "water_notice": 5,
     "street_cleaning": 6,
+    "river_swim": 7,
 }
-LATEST = 6
+LATEST = 7
 V1_IMBALANCE = pytest.mark.xfail(
     strict=True, reason="R36: v1's 20 pairs over 8 frames leave dev 9:5 by clause order"
 )
@@ -111,4 +115,4 @@ def test_the_order_check_would_catch_a_fixed_order(family, monkeypatch):
         return original(self, frame, rng, idx - idx % (2 * len(self.frames)))
 
     monkeypatch.setattr(Scenario, "render_frame", privileged_first)
-    assert order_rule(generate(32, 20260726, families=13), family) == 1.0
+    assert order_rule(generate(32, 20260726, families=14), family) == 1.0

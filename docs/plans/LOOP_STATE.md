@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 and R72 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 73 complete — letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 74 complete — dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1540 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1637 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -218,7 +218,7 @@ last round whose commit changed the file.
 
 | area | last touched | probe / status |
 |---|---|---|
-| `dataset/generate.py` | R71 | 13 families (`v6`); letter combinations gated against an exact orientation null on every family and version (R73, `tests/test_letter_bag_null.py`; lowest `home_security` p=0.070); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v6 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
+| `dataset/generate.py` | R74 | 14 families (`v7`; `river_swim` R74); letter combinations gated against an exact orientation null on every family and version (R73, `tests/test_letter_bag_null.py`; lowest `home_security` p=0.070); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v6 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
 | `metrics.py` | R8 | ICS, base-rate weighting, hard violations raw; ICS constants still unvalidated by humans (NEEDS-MAX 2) |
 | `policies/builtin.py` | R1 | heuristic near chance and does not solve, on every committed split (R61, `tests/test_heuristic_committed.py`): precision exactly 0.500 on all 11, ICS > 0. Before R61 only a fresh 10-pair v1 build and each new family were tested |
 | `policies/skyline.py` | R62 | resolver built from the frame templates **and the paraphrase frames** (R62); markers read from the body for five families; zero errors and zero hard violations on all 11 committed splits (`tests/test_invariants_committed.py`) |
@@ -340,6 +340,12 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
+
+X. **LLM runs on `v7`** (new, R74). 28 runs; seed each v7 cache from its v6 cache
+   (`runs/*-v6-dev.jsonl` copied to `-v7-dev`), so only `river_swim`'s 40 dev moments are
+   queried. Write `tests/test_results_v7.py` and the README section before the runs, as
+   R72 did. The interesting question: does a relational decider fare differently from
+   `street_cleaning`'s (5 of 20 pairs, a coin)?
 
 W. **LLM runs on `v6` — DONE in R72.** Original entry (R71): 28 runs; old-family decisions seed from v5's
    cache, so only `street_cleaning`'s 40 dev moments are queried (about 1,120 calls).
@@ -3749,6 +3755,49 @@ power was shown by mutation.
 
 **Loop:** nothing new. That a threshold needs its null is already filed as #61, and
 this round is one more instance of applying it.
+
+---
+
+## Round 74 — dataset v7: a fourteenth family, `river_swim`
+
+**Ending state: `shipped`.** Queue item 8. **Before:** thirteen families (`v6`); R71
+had said `street_cleaning` repeated `water_notice`'s shape. **After:** `data/v7` (560
+dev / 336 test) adds `river_swim`. A sewage overflow discharges at one river place and
+the user's club swims at another tonight; the decider says only which place is
+upstream; speak iff the overflow is upstream. v1-v6 byte-identical; v7's first
+thirteen families equal v6's.
+
+**Built by a subagent briefed to find a decision shape none of the thirteen has, and
+reviewed adversarially by a second** (neither §D-independent; owner-authorized merge).
+**Checks first:** `tests/test_dataset_v7.py` failed at collection, then 29 of 39 with
+placeholder frames. Every hand-listed version/family test now covers v7, including
+R73's letter-bag null (78 family-version cells, all pass; `river_swim` p=0.695). Frames
+chosen by search. Unigram and bigram 50.0%; char n-gram holds (87.1% fit, 50.6% test).
+The overall 20-seed positional form passes on v7 (v6's xfail does not recur). The
+family's shipped-seed positional reading is 72.5% against 57.5%, matching its null over
+60 seeds; disclosed. Skyline ICS 0.0.
+
+**Review findings, all MEDIUM or below:**
+- **Overclaim, corrected in five places.** The builder wrote "a decision shape none of
+  the thirteen has". Logically the family reduces to the old form, since the decider
+  labels one place and that label settles it, and the skyline uses `water_notice`'s
+  branch. What is new is narrower: a relational deciding word about two places that
+  are not the user's, plus one world-knowledge step.
+- **A character naive Bayes** (letters, tagged by clause) fit on dev reads held-out
+  `river_swim` 24 of 24 (p=0.125, the three-frame floor) and 62.5% leaving one frame
+  out (p=0.398). Trained on the other thirteen families it reads 87.5% of the frames
+  (p=0.035). That is the only one of 84 cells under 0.05, where chance gives about four.
+  Committed as `experiments/char_nb_probe.py`, pinned, and disclosed; not gated, because
+  a run takes minutes. `letter_bag_probe.clause_rows` is now shared by both probes.
+- **LOW:** two weaker frames (map *above*; *elevation tops out*) and the tidal caveat on
+  the quiet label, both disclosed. The search counts are now labelled as the builder's
+  record (the script was not committed).
+
+**Not done:** LLM runs on v7 (queue X).
+
+**Loop:** #39 gains an instance. A builder told to produce something "new" wrote the
+novelty claim wider than its evidence, in five places; the independent review caught
+it and the gate could not have.
 
 ---
 

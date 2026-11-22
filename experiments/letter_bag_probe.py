@@ -31,6 +31,7 @@ from tactbench.policies.skyline import (
     _GATE_CHANGE,
     _MARKERS,
     _MOTION_ZONE,
+    _OVERFLOW_SITE,
     _RETURN_ITEM,
     _SKIPPED_PET,
     _SWEPT_STREET,
@@ -38,8 +39,9 @@ from tactbench.policies.skyline import (
 from tactbench.schema import policy_view
 
 #: Families whose marker is read from the body, with the dataset that introduced them
-#: and the skyline's regex for the marker (its first non-empty group). R71 measured the
-#: last three; R73 added the rest.
+#: and the skyline's regex for the marker (its first non-empty group). R71 measured
+#: ``home_security``, ``water_notice`` and ``street_cleaning``; R73 added the rest; R74
+#: added ``river_swim``.
 FAMILIES: dict[str, tuple[str, re.Pattern[str] | str]] = {
     "travel": ("v1", _GATE_CHANGE),
     "commerce": ("v1", _RETURN_ITEM),
@@ -47,12 +49,13 @@ FAMILIES: dict[str, tuple[str, re.Pattern[str] | str]] = {
     "home_security": ("v4", _MOTION_ZONE),
     "water_notice": ("v5", _BOIL_DISTRICT),
     "street_cleaning": ("v6", _SWEPT_STREET),
+    "river_swim": ("v7", _OVERFLOW_SITE),
 }
 #: The seven families whose marker is a constant (the skyline's ``_MARKERS``), added in
 #: R73 so the null covers every family.
 FAMILIES.update({f: ("v1", m) for f, m in _MARKERS.items() if m is not None and f not in FAMILIES})
 #: Versions on disk that carry every family above from its first one.
-LATEST = 6
+LATEST = 7
 LETTERS = string.ascii_lowercase
 
 
@@ -75,8 +78,10 @@ def rows(version: str, family: str, split: str) -> list[tuple[str, list[int], in
     return item_rows(load(version, split), family)
 
 
-def item_rows(items, family: str) -> list[tuple[str, list[int], int]]:
-    """As :func:`rows`, from any items (a mutated build, for a test)."""
+def clause_rows(items, family: str) -> list[tuple[str, str, str, bool]]:
+    """(frame key, privileged-clause template, other template, label) per moment, the
+    privileged clause being the one naming the marker. Shared with
+    ``char_nb_probe.py``."""
     marker = FAMILIES[family][1]
     out = []
     for item in items:
@@ -97,11 +102,16 @@ def item_rows(items, family: str) -> list[tuple[str, list[int], int]]:
         assert len(hits) == 1, (family, view.signals[-1].content)
         i = hits[0]
         mine, other = _template(family, clauses[i]), _template(family, clauses[1 - i])
-        diff = [_sign(mine.count(ch) - other.count(ch)) for ch in LETTERS]
-        out.append(
-            (" | ".join(sorted([mine, other])), diff, 1 if item.label.should_surface else -1)
-        )
+        out.append((" | ".join(sorted([mine, other])), mine, other, item.label.should_surface))
     return out
+
+
+def item_rows(items, family: str) -> list[tuple[str, list[int], int]]:
+    """As :func:`rows`, from any items (a mutated build, for a test)."""
+    return [
+        (key, [_sign(mine.count(ch) - other.count(ch)) for ch in LETTERS], 1 if y else -1)
+        for key, mine, other, y in clause_rows(items, family)
+    ]
 
 
 def _fit(train) -> list[int]:

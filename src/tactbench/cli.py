@@ -76,7 +76,7 @@ def build(
     families: int | None = typer.Option(
         None,
         help="Scenario families to include (default: the original nine; "
-        "v3 10, v4 11, v5 12, v6 13).",
+        "v3 10, v4 11, v5 12, v6 13, v7 14).",
     ),
 ) -> None:
     """Generate the synthetic dataset splits."""
