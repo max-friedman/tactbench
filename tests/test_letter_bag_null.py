@@ -9,8 +9,8 @@ privileged one (``experiments/letter_bag_probe.py``).
 
 Pre-registered before any family was measured against the null: a family fails if
 at most 5% of orientations read at least what the shipped one reads (p < 0.05).
-At 5% each, 13 families give about 0.65 expected false alarms, so a single failure
-calls for a look at the frames, not a verdict on its own.
+At 5% each, 13 families give about 0.65 expected false alarms (14 since v7: about 0.70),
+so a single failure calls for a look at the frames, not a verdict on its own.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ CASES = [
 def test_every_family_is_covered():
     from tactbench.dataset.generate import ALL_SCENARIOS
 
-    assert set(bag.FAMILIES) == {s.family for s in ALL_SCENARIOS} and len(bag.FAMILIES) == 13
+    assert set(bag.FAMILIES) == {s.family for s in ALL_SCENARIOS} and len(bag.FAMILIES) == 14
     assert bag.LATEST == max(
         int(d.name[1:])
         for d in (Path(__file__).parents[1] / "data").iterdir()
@@ -71,4 +71,6 @@ def test_the_figures_stated_in_the_docs():
     assert f"The lowest is `home_security` at p={p:.3f} ({obs:.1%} leaving one frame out)" in doc
     obs, p = readings[("street_cleaning", "v6")]
     assert f"`street_cleaning`'s {obs:.1%} has p={p:.3f}" in doc
+    obs, p = readings[("river_swim", "v7")]
+    assert f"`river_swim` (v7) reads {obs:.1%} leaving one frame out, p={p:.3f}" in doc
     assert f"{len(readings)} family-version cells" in doc

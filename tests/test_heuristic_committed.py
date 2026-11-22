@@ -34,7 +34,7 @@ def violations(policy, items) -> list[str]:
 
 
 def test_every_committed_split_is_listed():
-    assert len(SPLITS) == 13 and ("v2", "dev") in SPLITS and ("v2para", "dev") in SPLITS
+    assert len(SPLITS) == 15 and ("v2", "dev") in SPLITS and ("v2para", "dev") in SPLITS
 
 
 @pytest.mark.parametrize(("version", "split"), SPLITS)

@@ -5,6 +5,25 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 74)
+
+- **Dataset `v7`: a fourteenth family, `river_swim`, with a new decision shape** (560
+  dev / 336 test). A sewage overflow discharges into a river at one place and the
+  user's club swims at another tonight; both facts are in the shared body, and the
+  decider says only which place is upstream of the other. Speak iff the overflow is
+  upstream. Every earlier family's decider says which of two entities has the property
+  that matters to the user; here neither place is the user's on either side, and the
+  answer follows from the direction of a relation between them. v1-v6 are unchanged
+  and v7's first thirteen families equal v6's. Frames chosen by search so every gated
+  clause feature balances on dev and held-out frames separately; unigram and bigram
+  50.0%; character n-gram audit holds (50.6% test); letter-bag null p=0.695. The
+  overall 20-seed positional comparison passes on v7 (51.4% against 52.9%). No LLM has
+  been run on v7.
+- Every test that lists versions or random-marker families covers v7
+  (`test_marker_order`, `test_web`, the committed-split counts, the README unigram,
+  bigram and family-count checks, the character n-gram audit, the letter-bag null);
+  `test_dataset_v6.py`'s family total is now `>=`, and `test_dataset_v7.py` pins 14.
+
 ### Added (Round 73)
 
 - **Letter-count combinations are gated against an exact null.** For each of the 2**8
