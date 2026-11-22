@@ -150,6 +150,10 @@
       "v8": {
         "naive": null,
         "rubric": null
+      },
+      "v9": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
