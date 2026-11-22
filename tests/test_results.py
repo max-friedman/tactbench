@@ -406,6 +406,25 @@ def test_the_char_ngram_audit_holds_on_v7():
     assert f"on v7 it fits dev at {fit}% and reads {acc}% on held-out test" in doc
 
 
+def test_the_char_ngram_audit_holds_on_v8():
+    """The same audit, same falsifiers, on the fifteen-family set (R76), gated from the
+    round that built it, as v6's and v7's were."""
+    import re
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    probe = str(root / "experiments" / "char_ngram_audit.py")
+    out = subprocess.run(
+        [sys.executable, "-I", probe, "v8", "--verdict"],
+        capture_output=True, text=True, check=True, cwd=root,
+    ).stdout  # fmt: skip
+    assert out.strip().endswith("verdict: holds"), out
+    fit, acc = re.findall(r"(\d+\.\d)%", out.splitlines()[0])[:2]
+    doc = " ".join((root / "docs" / "DATASET.md").read_text().split())
+    assert f"on v8 it fits dev at {fit}% and reads {acc}% on held-out test" in doc
+
+
 def test_the_v1_commentary_sits_under_the_v1_table():
     """R70: the v1 dev commentary (and the `pairs`/`unparsed` definitions every later
     table uses) sat after the v5 table, where it read as v5's. It belongs between the

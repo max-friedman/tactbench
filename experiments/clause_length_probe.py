@@ -24,6 +24,7 @@ from tactbench.dataset.generate import ALL_FRAMES, HELD_OUT_FRAMES, WHO
 from tactbench.dataset.loader import load
 from tactbench.policies.skyline import (
     _BOIL_DISTRICT,
+    _DELETED_ALBUM,
     _MOTION_ZONE,
     _OVERFLOW_SITE,
     _SKIPPED_PET,
@@ -64,6 +65,8 @@ def _marker(item: Item) -> str:
         return _SWEPT_STREET.search(body).group(1)
     if item.moment.family == "river_swim":
         return _OVERFLOW_SITE.search(body).group(1)
+    if item.moment.family == "photo_backup":
+        return _DELETED_ALBUM.search(body).group(1)
     return next(g for g in _SKIPPED_PET.search(body).groups() if g)
 
 

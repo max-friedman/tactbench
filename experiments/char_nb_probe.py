@@ -59,23 +59,28 @@ def _family_rows(family: str, version: str):
     return dev, test
 
 
-def readings(family: str, rep: str, version: str = f"v{LATEST}") -> dict[str, tuple[float, float]]:
-    """{reading: (observed, exact p)} for one family on one version."""
+def readings(
+    family: str, rep: str, version: str = f"v{LATEST}", two_sided: bool = False
+) -> dict[str, tuple[float, float]]:
+    """{reading: (observed, exact p)} for one family on one version.
+
+    ``two_sided`` (R76) counts orientations at least as far from a half as the observed
+    reading, either way, since negating a learner is free (exploitable accuracy, as the
+    lexical probes report it). The default is the one-sided p the R74 figures quote."""
     dev, test = _family_rows(family, version)
     rows = dev + test
     frames = sorted({r[0] for r in rows})
     dev_frames = {r[0] for r in dev}
     assert len(frames) == 8, (family, len(frames))
-    others = (
-        [
-            r
-            for f in FAMILIES
-            if f != family
-            for r in _family_rows(f, version)[0] + _family_rows(f, version)[1]
-        ]
-        if _available(version)
-        else []
-    )
+    # Transfer trains on every other family the version carries (R76: filtering by
+    # family rather than requiring all of them, so a newer family does not empty the
+    # training set of an older version's reading).
+    others = [
+        r
+        for f in FAMILIES
+        if f != family and _carries(version, f)
+        for r in _family_rows(f, version)[0] + _family_rows(f, version)[1]
+    ]
 
     def dev_test(flip):
         docs = _docs(rows, rep, flip)
@@ -101,16 +106,20 @@ def readings(family: str, rep: str, version: str = f"v{LATEST}") -> dict[str, tu
         ("transfer", transfer),
     ):
         observed = fn(frozenset())
-        at_least = sum(
-            fn(frozenset(f for f, s in zip(frames, signs, strict=True) if s)) >= observed - 1e-12
+        null = [
+            fn(frozenset(f for f, s in zip(frames, signs, strict=True) if s))
             for signs in product((0, 1), repeat=8)
-        )
+        ]
+        if two_sided:
+            at_least = sum(abs(x - 0.5) >= abs(observed - 0.5) - 1e-12 for x in null)
+        else:
+            at_least = sum(x >= observed - 1e-12 for x in null)
         out[name] = (observed, at_least / 2**8)
     return out
 
 
-def _available(version: str) -> bool:
-    return all(int(first[1:]) <= int(version[1:]) for first, _ in FAMILIES.values())
+def _carries(version: str, family: str) -> bool:
+    return int(FAMILIES[family][0][1:]) <= int(version[1:])
 
 
 def main() -> None:
