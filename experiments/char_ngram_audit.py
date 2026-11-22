@@ -39,6 +39,13 @@ MIN_CONTROL_PAIRS = 0.90
 MAX_PAIR_CHOICE = 0.65
 NGRAMS = (3, 4, 5, 6, 7, 8)
 EPOCHS = 30
+#: Added in R80, for power only: on v9 (sixteen families) 30 epochs fit dev at 83.1%,
+#: under MIN_DEV_FIT, so the verdict was "unmeasurable". The verdict now trains longer,
+#: ten epochs at a time up to this cap, until the real probe fits dev, and runs every
+#: control and the pairwise probe at that same count. A version that fits at 30 epochs
+#: (v2-v8) is measured exactly as before. Training longer can only make the probe
+#: better at finding a leak; the falsifiers are unchanged.
+MAX_EPOCHS = 100
 
 
 def read(version: str, split: str) -> list[dict]:
@@ -76,7 +83,9 @@ def normalise(grams: Counter[str]) -> dict[str, float]:
     return {g: v / norm for g, v in grams.items()}
 
 
-def perceptron(data: list[tuple[dict[str, float], float]], seed: int) -> dict[str, float]:
+def perceptron(
+    data: list[tuple[dict[str, float], float]], seed: int, epochs: int = EPOCHS
+) -> dict[str, float]:
     """Averaged perceptron: fits any separable training set, so underfitting cannot
     pass for resistance. Plain SGD logistic regression reached 50-70% on dev here."""
     w: dict[str, float] = defaultdict(float)
@@ -84,7 +93,7 @@ def perceptron(data: list[tuple[dict[str, float], float]], seed: int) -> dict[st
     stamp: dict[str, int] = defaultdict(int)
     step = 0
     rng = random.Random(seed)
-    for _ in range(EPOCHS):
+    for _ in range(epochs):
         rng.shuffle(data)
         for x, y in data:
             step += 1
@@ -99,10 +108,12 @@ def perceptron(data: list[tuple[dict[str, float], float]], seed: int) -> dict[st
     return {g: total[g] / step for g in w}
 
 
-def fit(rows: list[dict], seed: int = 0, words: bool = False) -> dict[str, float]:
+def fit(
+    rows: list[dict], seed: int = 0, words: bool = False, epochs: int = EPOCHS
+) -> dict[str, float]:
     label = {True: 1.0, False: -1.0}
     data = [(normalise(features(r, words)), label[r["label"]["should_surface"]]) for r in rows]
-    return perceptron(data, seed)
+    return perceptron(data, seed, epochs)
 
 
 def predict(w: dict[str, float], row: dict, words: bool = False) -> bool:
@@ -160,11 +171,13 @@ def plant(rows: list[dict]) -> list[dict]:
     return out
 
 
-def audit(version: str, control: bool = False, words: bool = False, seed: int = 0) -> dict:
+def audit(
+    version: str, control: bool = False, words: bool = False, seed: int = 0, epochs: int = EPOCHS
+) -> dict:
     dev, test = read(version, "dev"), read(version, "test")
     if control:
         dev, test = plant(dev), plant(test)
-    w = fit(dev, seed, words)
+    w = fit(dev, seed, words, epochs)
     return {
         "version": version + (" +planted" if control else "") + (" words" if words else ""),
         "dev": score(dev, {r["moment"]["id"]: predict(w, r, words) for r in dev}),
@@ -193,7 +206,7 @@ def _difference(a: dict, b: dict) -> dict[str, float]:
     return {g: v for g, v in x.items() if v}
 
 
-def audit_pairwise(version: str, seed: int = 0) -> dict:
+def audit_pairwise(version: str, seed: int = 0, epochs: int = EPOCHS) -> dict:
     """The strongest char probe the R49 review found: pair-aware.
 
     Trained on within-pair differences of the decider's n-grams, so the shared body
@@ -205,7 +218,7 @@ def audit_pairwise(version: str, seed: int = 0) -> dict:
     dev, test = read(version, "dev"), read(version, "test")
     label = {True: 1.0, False: -1.0}
     data = [(_difference(a, b), label[a["label"]["should_surface"]]) for a, b in _pairs(dev)]
-    w = perceptron(data, seed)
+    w = perceptron(data, seed, epochs)
     w.pop("__bias__", None)
     preds = {}
     for a, b in _pairs(test):
@@ -223,15 +236,21 @@ def main(argv: list[str]) -> None:
         "v6",
         "v7",
         "v8",
+        "v9",
     ]
     results = [audit(v) for v in versions]
     if "--control" in argv:
         results += [audit(v, control=True) for v in versions]
     if "--verdict" in argv:
         for v in versions:
-            real, planted = audit(v), audit(v, control=True)
-            word_control = audit(v, control=True, words=True)
-            pair = audit_pairwise(v)["test"]
+            epochs = EPOCHS
+            real = audit(v)
+            while real["dev"]["accuracy"] < MIN_DEV_FIT and epochs < MAX_EPOCHS:
+                epochs += 10
+                real = audit(v, epochs=epochs)
+            planted = audit(v, control=True, epochs=epochs)
+            word_control = audit(v, control=True, words=True, epochs=epochs)
+            pair = audit_pairwise(v, epochs=epochs)["test"]
             t = real["test"]
             print(
                 f"{v}: dev fit {real['dev']['accuracy']:.1%}, test accuracy"
@@ -241,6 +260,7 @@ def main(argv: list[str]) -> None:
                 f" word unigrams on it {word_control['test']['accuracy']:.1%};"
                 f" pairwise probe pairs-both-right {pair['pairs_both_right']:.1%},"
                 f" pair choice {pair['pair_choice']:.1%} of {pair['split_pairs']}"
+                + (f"; trained {epochs} epochs to fit dev" if epochs != EPOCHS else "")
             )
             if real["dev"]["accuracy"] < MIN_DEV_FIT:
                 print("verdict: unmeasurable as stated (probe does not fit dev)")

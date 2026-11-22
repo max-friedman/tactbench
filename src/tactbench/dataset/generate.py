@@ -346,6 +346,19 @@ ALBUMS = [
     "Hanoi", "Osaka", "Seoul", "Taipei", "Hobart", "Auckland", "Montreal", "Lucerne",
 ]  # fmt: skip
 
+#: Restaurants for ``dinner_booking`` (dataset v9). Single invented words in the style of
+#: restaurant names, so a restaurant never shares a token with a frame or a body template
+#: and carries no real-world reputation; none is a word of another pool or an ordinary
+#: English word.
+RESTAURANTS = [
+    "Marzano", "Bellacqua", "Corvino", "Fiorella", "Gambetti", "Lucarno", "Pastrelli",
+    "Rossano", "Saltimbo", "Tavolini", "Verdello", "Zaffera", "Brasquet", "Chardelle",
+    "Duvallon", "Escaline", "Ferrandou", "Galvette", "Loubenne", "Mirabou", "Noirelle",
+    "Pellacour", "Quillardi", "Rivabella", "Sorrelli", "Tamberino", "Ulivetto", "Vescari",
+    "Albarossa", "Basquine", "Cantorelli", "Dalmonti", "Elbarino", "Fornacci", "Giradoro",
+    "Lantieri", "Moscarda", "Nervetti", "Orsolani", "Pomarelli",
+]  # fmt: skip
+
 #: Frames for families added after v2 (see :data:`LATER_SCENARIOS`). Kept apart so
 #: ``FRAMES`` still means v1's and v2's nine families to every probe and experiment.
 #: The structural frame tests run over :data:`ALL_FRAMES`.
@@ -474,6 +487,29 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
         ("Lacking any duplicate is {who}", "Having a duplicate is {who}"),
         ("Copies total one for {who}", "Copies total two for {who}"),
         ("Closing the account forfeits all of {who}", "Closing the account forfeits none of {who}"),
+    ],
+    "dinner_booking": [
+        # Privileged: the booking at the restaurant is not confirmed; the other clause says
+        # a table is. Each clause speaks of the booking at that restaurant as a whole (R76
+        # review), and neither says anything about tonight -- the body fixes which
+        # restaurant is tonight's. Chosen by experiments/frame_search_v9.py (committed, so
+        # the counts re-run) over 69 candidates that meet the structural rules: every gated
+        # clause feature (chars, -er, -s, -ing, -ed, longest word, vowels, consonants) and
+        # generic negation balance exactly on dev frames (0-4) and on held-out frames
+        # (5-7), and no two frames share a word's root. The negation sits on the
+        # privileged side in three frames, on the other side in three, and on neither in
+        # two. The exclusions, with reasons, are listed in that script.
+        ("Waiting list entry stands at {who}", "Firm booking entry stands at {who}"),
+        ("Unconfirmed so far at {who}", "Confirmed so far at {who}"),
+        ("Enquiry unanswered at {who}", "Enquiry accepted at {who}"),
+        ("Table promised conditionally at {who}", "Table promised unconditionally at {who}"),
+        ("Revocable hold at {who}", "Irrevocable hold at {who}"),
+        (
+            "Reservation status reads tentative at {who}",
+            "Reservation status reads definite at {who}",
+        ),
+        ("Seats are not held at {who}", "Seats are now held at {who}"),
+        ("Dependent on a cancellation at {who}", "Dependent on no cancellation at {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
@@ -1492,6 +1528,67 @@ class PhotoBackupScenario(Scenario):
         )
 
 
+class DinnerBookingScenario(Scenario):
+    """The user's calendar has dinner with friends tonight at one restaurant and another
+    restaurant on Friday; the user is at the gym after work. The shared body fixes which
+    restaurant is tonight's. The decider, the reservations app, says only which of the
+    two bookings is confirmed and which is still only requested -- both restaurants
+    appear in the body and on both sides, and swap roles. Speak iff tonight's booking is
+    the unconfirmed one, so the party may arrive to no table. Dataset v9 only.
+
+    Logically the same form as every family (the decider labels one restaurant, and given
+    the body that label settles it; R74 review). What it adds is a domain none of the
+    fifteen touches, dining out, and a deciding predicate none uses: whether a booking is
+    confirmed or only requested."""
+
+    family = "dinner_booking"
+    intent = "booking_alert"
+    positive_value = 2
+    window_s = 3600
+    positive_slices = ["lead_time", "plans_at_risk"]
+    near_slices = ["not_affected", "plans_at_risk"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.EXERCISING,
+            device="phone",
+            last_interaction_s=rng.randint(300, 2400),
+            local_hour=rng.randint(17, 18),
+        )
+
+    def body(self, rng):
+        self._tonight, self._friday = rng.sample(RESTAURANTS, 2)
+        a, b = self._tonight, self._friday
+        # Tonight's restaurant is named first in two phrasings and second in two (R45).
+        phrasing = rng.choice(
+            [
+                f"Calendar: tonight's dinner with friends is at {a}, 8pm. Also coming up: "
+                f"{b} on Friday.",
+                f"This week: {b} on Friday. Tonight's dinner with friends is at {a}, 8pm.",
+                f"Dinner with friends tonight at {a}, 8pm. Then {b} on Friday.",
+                f"Coming up on Friday: {b}. Dinner with friends at {a} tonight, 8pm.",
+            ]
+        )
+        return [
+            Signal(source=Source.APP_EVENT, age_s=3600, content=phrasing, meta={"app": "calendar"})
+        ]
+
+    decider_source = Source.APP_EVENT
+    decider_age_s = 10800
+
+    def fillers(self, rng):
+        return self._tonight, self._friday
+
+    def why(self):
+        return (
+            "Tonight's restaurant has not confirmed a table, so the party may arrive to "
+            "none; worth a word while there is still time to call or book elsewhere.",
+            "Tonight's table is confirmed; only Friday's booking is still pending, and "
+            "that can wait. Nothing tonight needs doing, so a workout is not worth "
+            "interrupting.",
+        )
+
+
 SCENARIOS: list[Scenario] = [
     TravelScenario(),
     DeadlineScenario(),
@@ -1514,6 +1611,7 @@ LATER_SCENARIOS: list[Scenario] = [
     StreetCleaningScenario(),
     RiverSwimScenario(),
     PhotoBackupScenario(),
+    DinnerBookingScenario(),
 ]
 ALL_SCENARIOS: list[Scenario] = [*SCENARIOS, *LATER_SCENARIOS]
 
@@ -1537,7 +1635,7 @@ def generate(
 
     ``families`` takes the first that many of :data:`ALL_SCENARIOS`; the default is
     the original nine, which v1 and v2 use. v3 uses ten, v4 eleven, v5 twelve, v6 thirteen,
-    v7 fourteen, v8 fifteen.
+    v7 fourteen, v8 fifteen, v9 sixteen.
     """
     rng = random.Random(seed)
     items: list[Item] = []

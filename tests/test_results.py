@@ -421,9 +421,32 @@ def test_the_char_ngram_audit_holds_on_v8():
         capture_output=True, text=True, check=True, cwd=root,
     ).stdout  # fmt: skip
     assert out.strip().endswith("verdict: holds"), out
+    # R80's longer training applies only when 30 epochs do not fit dev; v8 fits at 30.
+    assert "epochs" not in out, out
     fit, acc = re.findall(r"(\d+\.\d)%", out.splitlines()[0])[:2]
     doc = " ".join((root / "docs" / "DATASET.md").read_text().split())
     assert f"on v8 it fits dev at {fit}% and reads {acc}% on held-out test" in doc
+
+
+def test_the_char_ngram_audit_holds_on_v9():
+    """The same audit, same falsifiers, on the sixteen-family set (R80). At its 30 epochs
+    the probe fits v9 dev under its own 85% power line, so the verdict trains longer
+    until it fits (``MAX_EPOCHS``); the epoch count it needed is printed and pinned."""
+    import re
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    probe = str(root / "experiments" / "char_ngram_audit.py")
+    out = subprocess.run(
+        [sys.executable, "-I", probe, "v9", "--verdict"],
+        capture_output=True, text=True, check=True, cwd=root,
+    ).stdout  # fmt: skip
+    assert out.strip().endswith("verdict: holds"), out
+    epochs = re.search(r"trained (\d+) epochs to fit dev", out).group(1)
+    fit, acc = re.findall(r"(\d+\.\d)%", out.splitlines()[0])[:2]
+    doc = " ".join((root / "docs" / "DATASET.md").read_text().split())
+    assert f"At {epochs} epochs on v9 it fits dev at {fit}% and reads {acc}% on held-out" in doc
 
 
 def test_the_v1_commentary_sits_under_the_v1_table():

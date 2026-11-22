@@ -29,6 +29,7 @@ from tactbench.policies.skyline import (
     _OVERFLOW_SITE,
     _SKIPPED_PET,
     _SWEPT_STREET,
+    _TONIGHT_RESTAURANT,
 )
 from tactbench.schema import Item
 
@@ -67,6 +68,8 @@ def _marker(item: Item) -> str:
         return _OVERFLOW_SITE.search(body).group(1)
     if item.moment.family == "photo_backup":
         return _DELETED_ALBUM.search(body).group(1)
+    if item.moment.family == "dinner_booking":
+        return _TONIGHT_RESTAURANT.search(body).group(1)
     return next(g for g in _SKIPPED_PET.search(body).groups() if g)
 
 

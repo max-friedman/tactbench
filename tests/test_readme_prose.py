@@ -130,7 +130,7 @@ def test_the_public_parser_solves_held_out_frames_of_an_unseen_seed():
 def test_every_family_at_the_unigram_chance_floor():
     from tactbench.audit import lexical_leakage
 
-    for version, n in (("v1", 9), ("v5", 12), ("v6", 13), ("v7", 14), ("v8", 15)):
+    for version, n in (("v1", 9), ("v5", 12), ("v6", 13), ("v7", 14), ("v8", 15), ("v9", 16)):
         items = load(version, "dev")
         families = sorted({i.moment.family for i in items})
         assert len(families) == n
@@ -140,7 +140,7 @@ def test_every_family_at_the_unigram_chance_floor():
             assert 0.5 + abs(acc - 0.5) == 0.5, (version, f)
     assert (
         "all nine in `v1`, all twelve in `v5`, all thirteen in `v6`, all fourteen in `v7`, "
-        "all fifteen in `v8`. Overall: 50.0% on all five." in README
+        "all fifteen in `v8`, all sixteen in `v9`. Overall: 50.0% on all six." in README
     )
 
 
@@ -153,7 +153,7 @@ def test_the_bag_of_bigrams_ties_silence_on_every_version():
     from test_metrics import TestOrderSensitiveShortcut
 
     ngram = TestOrderSensitiveShortcut._NgramPolicy
-    for version in ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"):
+    for version in ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9"):
         dev, test = load(version, "dev"), load(version, "test")
         reference = silence_ics(test)
         best = max(

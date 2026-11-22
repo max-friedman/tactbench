@@ -179,7 +179,7 @@ carry nearly the same token multiset, so *vocabulary* cannot separate them.
 (Word **order** still can — see the blind spot below.)
 
 **Every family sits at the chance floor for the bag-of-words probe — all nine in `v1`,
-all twelve in `v5`, all thirteen in `v6`, all fourteen in `v7`, all fifteen in `v8`. Overall: 50.0% on all five.** That number is real and it is also much weaker than it looks — see
+all twelve in `v5`, all thirteen in `v6`, all fourteen in `v7`, all fifteen in `v8`, all sixteen in `v9`. Overall: 50.0% on all six.** That number is real and it is also much weaker than it looks — see
 [the blind spot](#the-blind-spot-in-that-number) immediately below.
 
 That was not always true, and the exception is worth the telling. `quiet_hours`
@@ -453,6 +453,15 @@ negation words balanced across the two sides) that no earlier family uses. Its
 first fourteen families are identical to v7's; the 28 runs on it are under *On
 dataset v8*
 ([details](docs/DATASET.md#dataset-v8--a-fifteenth-family-photo_backup)).
+`v9` (Round 80) is v8 plus a sixteenth family, `dinner_booking`, from dining out: the
+user's calendar has dinner with friends tonight at one restaurant and another
+restaurant on Friday, and the decider, a reservations app, says which of the two
+bookings is confirmed and which is only requested (640 dev / 384 test). Its logical
+form is the same as every family's; what it adds is a domain and a deciding predicate
+(whether a booking is confirmed) that no earlier family uses. Its first fifteen
+families are identical to v8's. **No LLM has been run on `v9`**, so it has no results
+section and no row in the table above
+([details](docs/DATASET.md#dataset-v9--a-sixteenth-family-dinner_booking)).
 
 Construction details and limitations in [docs/DATASET.md](docs/DATASET.md).
 
@@ -1104,7 +1113,7 @@ print(evaluate(MyPolicy(), load("v1", "dev")))
 
 ## Honest limitations
 
-This is a first release (datasets `v1`-`v8`). The things that would make it stronger
+This is a first release (datasets `v1`-`v9`). The things that would make it stronger
 are not done yet, and pretending otherwise would defeat the purpose of building a
 benchmark:
 
@@ -1136,7 +1145,7 @@ benchmark:
   counted as ties rather than misses.
 - **Moments are synthetic and template-generated.** Eight frames per family is
   still eight, and the scenarios remain a small hand-authored set — nine families
-  (ten in `v3`, eleven in `v4`, twelve in `v5`, thirteen in `v6`, fourteen in `v7`, fifteen in `v8`) is that many effective degrees of freedom, whatever the item count. The deciders
+  (ten in `v3`, eleven in `v4`, twelve in `v5`, thirteen in `v6`, fourteen in `v7`, fifteen in `v8`, sixteen in `v9`) is that many effective degrees of freedom, whatever the item count. The deciders
   themselves are no longer uniform: Round 16 restored prose phrasing
   (*"Behind the screen is your prescription. Through the till is Elena's
   prescription."*) while holding every family at the 50% chance floor on the
@@ -1157,9 +1166,9 @@ benchmark:
   the most expensive error the model prices. That concentration is deliberate, and
   it means the headline is sensitive to how that one family is written. It is no
   longer *exploitable* (see above), but it is still load-bearing.
-- **All fifteen families are one author's idea of a working life** — knowledge work,
+- **All sixteen families are one author's idea of a working life** — knowledge work,
   a car, a pharmacy, school pickup, a pet, a house, a water supply, a parking notice,
-  a river swim, a photo library. Interruption norms are culturally specific and
+  a river swim, a photo library, a dinner booking. Interruption norms are culturally specific and
   this captures one culture's.
 - **Negation words lean in a few published families, within chance.** "Speak iff the
   marker's clause alone is negated" is right on three of eight frames and wrong on none
@@ -1170,7 +1179,7 @@ benchmark:
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.
 - **No frontier LLM has been run.** Fourteen open-weight models of 8B parameters and
-  under are measured (all fourteen on `v4`-`v8` and on held-out `v1/test`, eleven on `v1`-`v3` dev); whether frontier models do better is the result the project
+  under are measured (all fourteen on `v4`-`v8` and on held-out `v1/test`, eleven on `v1`-`v3` dev; none on `v9`); whether frontier models do better is the result the project
   exists to produce, and it costs money that has not been spent. The harness runs
   them unchanged.
 - **The pair-blind bar reads labels.** It is the optimum over policies that cannot
@@ -1202,7 +1211,7 @@ draft violated it and scored a meaningless perfect 1.000/1.000.
    frontier models are not.
 2. Human-labeled subset with reported agreement — the labeling tool and κ are built
    (Round 31); the labels themselves need people.
-3. More scenario families — fifteen (`v8`) is still one author's idea of a
+3. More scenario families — sixteen (`v9`) is still one author's idea of a
    working life, and family count, not phrasing, is the ceiling on dataset diversity.
 4. Held-out test split behind a submission script — **blocked on custody**, not
    code (Round 33). Hiding the label file or the seed hides nothing; keeping the
