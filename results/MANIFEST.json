@@ -46,6 +46,10 @@
       "v7": {
         "naive": null,
         "rubric": null
+      },
+      "v8": {
+        "naive": null,
+        "rubric": null
       }
     }
   },
