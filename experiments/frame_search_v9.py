@@ -13,7 +13,10 @@ rules the suite enforces on any frame (``TestProseFrameStructure``): one slot, a
 end, never clause-initial; no clause opens with a stopword; both clauses put the same
 token before the slot and have equal skeletons. Candidates use no word of the
 family's body templates (``test_the_decider_says_nothing_about_tonight``) and never
-*you*, *your* or *home*.
+*you*, *your* or *home*. Since the R80 review, exactly one side of each candidate holds a
+table: the review found *"Dependent on no cancellation"* conditional rather than held,
+and both sides of *"Revocable / Irrevocable hold"* held, and the same test then removed
+eight more (see :data:`EXCLUDED`).
 
 The search is v8's, with negation polarity balanced from the start (the R76 review's
 finding, so it is not left for a review to find again):
@@ -70,7 +73,6 @@ CANDIDATES: list[tuple[str, str]] = [
     ("Diners queued on standby at {who}", "Diners booked in firmly at {who}"),
     ("Waiting list entry stands at {who}", "Firm booking entry stands at {who}"),
     ("Booking request awaits a reply at {who}", "Booking request got a yes at {who}"),
-    ("Allocation pending at {who}", "Allocation complete at {who}"),
     ("Waitlisted at {who}", "Confirmed at {who}"),
     ("Seats in doubt at {who}", "Seats in place at {who}"),
     ("Table sought for the party at {who}", "Table waiting for the party at {who}"),
@@ -87,7 +89,6 @@ CANDIDATES: list[tuple[str, str]] = [
     ("Absent from the booked tables at {who}", "Present among the booked tables at {who}"),
     ("Missing a firm booking at {who}", "Holding a firm booking at {who}"),
     ("Seat promised by nobody at {who}", "Seat promised by staff at {who}"),
-    ("Uncertainty surrounds the table at {who}", "Certainty surrounds the table at {who}"),
     ("Seat allocation undecided at {who}", "Seat allocation decided at {who}"),
     ("Request unanswered at {who}", "Request honoured at {who}"),
     ("Enquiry unanswered at {who}", "Enquiry accepted at {who}"),
@@ -96,10 +97,8 @@ CANDIDATES: list[tuple[str, str]] = [
     ("Table unallocated at {who}", "Table allocated at {who}"),
     ("Reservation unaccepted at {who}", "Reservation accepted at {who}"),
     ("Hold unconfirmed by staff at {who}", "Hold confirmed by staff at {who}"),
-    ("Acceptance absent from {who}", "Acceptance present from {who}"),
     ("Booking unsettled at {who}", "Booking settled at {who}"),
     ("Booking stands unconfirmed at {who}", "Booking stands firm at {who}"),
-    ("Allocation incomplete at {who}", "Allocation complete at {who}"),
     ("Approval lacking at {who}", "Approval given at {who}"),
     ("Seats are not held at {who}", "Seats are now held at {who}"),
     ("Guest list shows none of the party at {who}", "Guest list shows all of the party at {who}"),
@@ -109,7 +108,10 @@ CANDIDATES: list[tuple[str, str]] = [
     ("Holding no table for the party at {who}", "Holding a table for the party at {who}"),
     ("Booked table exists nowhere at {who}", "Booked table exists already at {who}"),
     ("Seat count held is zero at {who}", "Seat count held is four at {who}"),
-    ("Places kept for the party number zero at {who}", "Places kept for the party number four at {who}"),
+    (
+        "Places kept for the party number zero at {who}",
+        "Places kept for the party number four at {who}",
+    ),
     ("Reference code unissued by {who}", "Reference code issued by {who}"),
     ("Booking reference absent from {who}", "Booking reference arrived from {who}"),
     ("Confirmation code missing from {who}", "Confirmation code received from {who}"),
@@ -120,13 +122,9 @@ CANDIDATES: list[tuple[str, str]] = [
     ("Nothing confirmed at {who}", "Everything confirmed at {who}"),
     # A negation on the other side (the booking is confirmed).
     ("Needing a final confirmation at {who}", "Needing no further confirmation at {who}"),
-    ("Subject to seat availability at {who}", "Subject to no conditions at {who}"),
     ("Table promised conditionally at {who}", "Table promised unconditionally at {who}"),
     ("Conditional booking at {who}", "Unconditional booking at {who}"),
     ("Seating doubtful at {who}", "Seating undoubted at {who}"),
-    ("Chance of losing the table is real at {who}", "Chance of losing the table is zero at {who}"),
-    ("Seats might go to others at {who}", "Seats cannot go to others at {who}"),
-    ("Table could be given away at {who}", "Table cannot be given away at {who}"),
     # Added after the R80 review.
     ("Party could be turned away at {who}", "Party cannot be turned away at {who}"),
     ("Hostess may turn the party away at {who}", "Hostess cannot turn the party away at {who}"),
@@ -140,6 +138,37 @@ CANDIDATES: list[tuple[str, str]] = [
 #: Rejected before the search, with the reason. A careful human could read each one
 #: backwards, or it leans on an idiom, or it does not settle whether a table is held.
 EXCLUDED: dict[tuple[str, str], str] = {
+    ("Uncertainty surrounds the table at {who}", "Certainty surrounds the table at {who}"): (
+        "'certainty surrounds' is not idiomatic English"
+    ),
+    ("Allocation incomplete at {who}", "Allocation complete at {who}"): (
+        "a bare 'allocation' does not say what is allocated"
+    ),
+    ("Allocation pending at {who}", "Allocation complete at {who}"): (
+        "a bare 'allocation' does not say what is allocated"
+    ),
+    ("Acceptance absent from {who}", "Acceptance present from {who}"): (
+        "'present from' is not idiomatic English"
+    ),
+    ("Subject to seat availability at {who}", "Subject to no conditions at {who}"): (
+        "R80 review's test (exactly one side holds a table): "
+        "'subject to no conditions' does not say a table is held"
+    ),
+    ("Seats might go to others at {who}", "Seats cannot go to others at {who}"): (
+        "R80 review's test (exactly one side holds a table): "
+        "seats that might go to others may be held now"
+    ),
+    ("Table could be given away at {who}", "Table cannot be given away at {who}"): (
+        "R80 review's test (exactly one side holds a table): "
+        "a table that could be given away is held now"
+    ),
+    (
+        "Chance of losing the table is real at {who}",
+        "Chance of losing the table is zero at {who}",
+    ): (
+        "R80 review's test (exactly one side holds a table): "
+        "a table one could lose is a held table, so both sides can read as held"
+    ),
     ("Seating relies on a callback at {who}", "Seating relies on no callback at {who}"): (
         "the R80 review's objection to 'dependent on no cancellation': relying on no "
         "callback does not say a table is held"

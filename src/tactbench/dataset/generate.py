@@ -490,26 +490,24 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
     ],
     "dinner_booking": [
         # Privileged: the booking at the restaurant is not confirmed; the other clause says
-        # a table is. Each clause speaks of the booking at that restaurant as a whole (R76
-        # review), and neither says anything about tonight -- the body fixes which
-        # restaurant is tonight's. Chosen by experiments/frame_search_v9.py (committed, so
-        # the counts re-run) over 69 candidates that meet the structural rules: every gated
-        # clause feature (chars, -er, -s, -ing, -ed, longest word, vowels, consonants) and
-        # generic negation balance exactly on dev frames (0-4) and on held-out frames
-        # (5-7), and no two frames share a word's root. The negation sits on the
-        # privileged side in three frames, on the other side in three, and on neither in
-        # two. The exclusions, with reasons, are listed in that script.
-        ("Waiting list entry stands at {who}", "Firm booking entry stands at {who}"),
-        ("Unconfirmed so far at {who}", "Confirmed so far at {who}"),
-        ("Enquiry unanswered at {who}", "Enquiry accepted at {who}"),
-        ("Table promised conditionally at {who}", "Table promised unconditionally at {who}"),
-        ("Revocable hold at {who}", "Irrevocable hold at {who}"),
-        (
-            "Reservation status reads tentative at {who}",
-            "Reservation status reads definite at {who}",
-        ),
-        ("Seats are not held at {who}", "Seats are now held at {who}"),
-        ("Dependent on a cancellation at {who}", "Dependent on no cancellation at {who}"),
+        # a table is. Exactly one side of each frame holds a table (R80 review). Each clause
+        # speaks of the booking at that restaurant as a whole (R76 review), and neither says
+        # anything about tonight -- the body fixes which restaurant is tonight's. Chosen by
+        # experiments/frame_search_v9.py (committed, so the counts re-run) over 72
+        # candidates that meet the structural rules: every gated clause feature (chars, -er,
+        # -s, -ing, -ed, longest word, vowels, consonants) and generic negation balance
+        # exactly on dev frames (0-4) and on held-out frames (5-7), and no two frames share
+        # a word's root. The negation sits on the privileged side in two frames, on the
+        # other side in two, and on neither in four. The exclusions, with reasons, are
+        # listed in that script.
+        ("Standby status at {who}", "Firm status at {who}"),
+        ("Lacking a reserved slot at {who}", "Holding a reserved slot at {who}"),
+        ("Reference code unissued by {who}", "Reference code issued by {who}"),
+        ("Conditional booking at {who}", "Unconditional booking at {who}"),
+        ("Party could be turned away at {who}", "Party cannot be turned away at {who}"),
+        ("Listed among waitlisted guests at {who}", "Listed among confirmed guests at {who}"),
+        ("Possibly a table at {who}", "Certainly a table at {who}"),
+        ("Seats in doubt at {who}", "Seats in place at {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's

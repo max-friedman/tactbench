@@ -15,16 +15,19 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
   whether a booking is confirmed, stated eight different ways. v1-v8 are unchanged and
   v9's first fifteen families equal v8's. Frames chosen by a committed search
   (`experiments/frame_search_v9.py`) that balances negation polarity from the start
-  (2/2/1 dev, 1/1/1 held-out; the negation policy reads 50.0% on each) and, new, forbids
-  two frames sharing a word's root. Unigram and bigram 50.0%; letter-bag null p=0.664;
-  character naive Bayes p ≥ 0.414 on every reading; the overall 20-seed positional
-  comparison passes (51.2% against 51.8%); the family reads 80.0% positional on the
-  shipped seed against a 60.0% null, at the null's rate over 60 seeds (disclosed). No
-  LLM has been run on v9.
+  (2/2/1 dev, 0/0/3 held-out; the negation policy reads 50.0% on each), forbids two
+  frames sharing a word's root, and, after review, requires exactly one side of each
+  frame to hold a table. That review replaced "Dependent on a / no cancellation",
+  "Revocable / Irrevocable hold" and "Seats are not / now held"; the re-run search
+  changed four frames. Unigram and bigram 50.0%; letter-bag null p=0.484; character
+  naive Bayes p ≥ 0.289 on every reading; the overall 20-seed positional comparison
+  passes (51.2% against 51.9%); the family reads 77.5% positional on the shipped seed
+  against a 61.3% null, the most extreme of 60 seeds, though its 60-seed median matches
+  the null (disclosed). No LLM has been run on v9.
 - **The character n-gram audit trains longer when it cannot fit dev.** At 30 epochs it
-  fit v9 dev at 83.1%, under its 85% power line; the verdict now adds ten epochs at a
+  fit v9 dev at 84.8%, under its 85% power line; the verdict now adds ten epochs at a
   time (up to 100) and runs every control at the same count. v9 holds at 40 epochs
-  (dev 90.0%, test 51.8%); v2-v8 still fit at 30 and are measured as before.
+  (dev 91.1%, test 51.0%); v2-v8 still fit at 30 and are measured as before.
 
 ### Added (Round 79)
 
