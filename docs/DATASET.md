@@ -906,11 +906,17 @@ enforces the invariants that make the benchmark meaningful:
 - **Character features transfer into `river_swim`.** A character naive Bayes trained on
   the other thirteen families reads 87.5% of its frames (p=0.035 against the exact
   null, the only one of 84 cells under 0.05; see the v7 section).
-- **Negation polarity leans in four published families.** "Speak iff the marker's clause
-  alone carries a negation word" is right on three of eight frames, and wrong on none,
-  in `commerce` and `finance` on every version, and on two in `health` (see the v8
-  section, `experiments/negation_probe.py`). Not gated on published versions; v8's
-  `photo_backup` is gated to balance exactly.
+- **Negation polarity leans in five published families, none beyond chance.** "Speak
+  iff the marker's clause alone carries a negation word" (`experiments/negation_probe.py`)
+  reads each frame right, wrong or tied. `commerce` and `finance` lean three frames to
+  none (p=0.250 each); `health` two to none and `deadline` and `driving` none to two
+  (p=0.500). Swapping which clause of a frame is privileged swaps right and wrong, so
+  the exact null is a fair coin over the untied frames, two-sided (Round 78,
+  `tests/test_polarity_null.py`). All 93 family-version cells pass at 5%, and the
+  lowest p is 0.25: with only three untied frames, even three to none cannot go lower.
+  So the leans are recorded, not regenerated. Eight to none, as v8's first
+  `photo_backup` frames had, gives p=1/128; v8 also gates that family to balance
+  exactly.
 - **Letter-count combinations sit near the gate's line in one family.** A weighted bag
   of letter counts fit on dev reads held-out `home_security` (v4) at 83.3% and
   `street_cleaning` (v6) at 100.0%. Against the exact orientation null (Round 73)
