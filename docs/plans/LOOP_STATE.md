@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 68 complete — the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 69 complete — all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1206 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1286 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -225,13 +225,13 @@ last round whose commit changed the file.
 | `audit.py` | R40 | unigram + bigram gated, positional reported with a label-swap null column (R40). Gated probes seed-stable to 0.0% (R22); positional is not |
 | char n-gram audit | R63 | `experiments/char_ngram_audit.py`, gated on v4 and v5 (`test_the_char_ngram_audit_holds`, `..._on_v5`); v5: test 51.0%, pair-aware side choice 57.1% |
 | clause order, random markers | R55 | `tests/test_marker_order.py`: all five body-read-marker families, every version; v1 dev strict xfail (R36) |
-| `README.md` results | R54 | built-in table vs `eval` (R17); one LLM table per version v1-v5 plus `v2para`, each row and each claims block gated against a fresh re-score (`tests/test_results*.py`) |
+| `README.md` results | R69 | built-in table vs `eval` (R17); one LLM table per version v1-v5 plus `v2para` and held-out `v1/test` (R69), each row and each claims block gated against a fresh re-score (`tests/test_results*.py`) |
 | `cli.py` split | R10 | buckets on `pair_key`; `TestSplitIntegrity` |
 | `schema.pair_key` / `policy_view` | R26 | one pair definition; no policy sees `slices` or a label-bearing id (`tests/test_policy_view.py`) |
 | `runner.pair_blind_ics` | R26 | the comprehension bar; `tests/test_pair_blind.py`, both splits, mutation-tested |
 | `policies/llm.py` | R53 | strict parser (unparsed counted); `--provider local`; `--no-system-role`; structural system-turn preflight (`results/SYSTEM_TURN.md`). 14 open-weight models; no hosted model (NEEDS-MAX 1) |
 | `results/` + `results.py` | R42 | committed decisions + MANIFEST per version; old-family decisions checked equal across versions |
-| `experiments/run_local_llms.py` | R53 | reproduces every LLM row from weights; caches seed from the previous version |
+| `experiments/run_local_llms.py` | R68 | reproduces every LLM row from weights, on dev or test (`--split`, R68); caches seed from the previous version |
 | `labeling.py` | R31 | CLI and Fleiss' κ, tested on synthetic raters; **no real labels** (NEEDS-MAX 2) |
 | `web/server.py` | R59 | pair-blind column; header names the dataset version, built in the payload and asserted exactly in the served page; `tests/test_web.py` on every dataset on disk (board == `eval`); v5 rendered in Chromium, no JS errors. Every text field escaped before `innerHTML`, and the payload embedded with `<>&` as JSON escapes (R60); the static check is an allowlist with 19 mutation tests; `experiments/viewer_injection_probe.py` checks in a browser |
 | `.github/workflows/` | owner-only | CI on py3.11-3.13 + reproducibility + audit; not editable by a round |
@@ -341,7 +341,8 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
-T. **LLM runs on a held-out split** (new, R68). README limitation: "no model has been
+T. **LLM runs on a held-out split — DONE in R69 for v1.** v2-v5 test not run (each
+   is hours of local inference; queue it again only if a question needs it). Original entry: README limitation: "no model has been
    run on the held-out split". R68 made the runner able to; the runs themselves are
    long (about 10 s a call: v1 test is 108 moments x 28 runs, about 8 h). Then gate the
    table and state, measured, whether dev's ordering and verdicts hold on test.
@@ -3539,6 +3540,39 @@ function existed.
 **Not done here:** the runs, which take about 8 hours of local inference (item T).
 
 **Review:** none beyond the gate. The names are held to the two readers by tests.
+
+**Loop:** nothing new.
+
+---
+
+## Round 69 — the LLM runs on a held-out split
+
+**Ending state: `shipped`.** Queue item T. **Before:** the README listed "no model has
+been run on the held-out split" as a limitation; every LLM figure was on dev, whose
+phrasings (frames 0-4) are the ones the decider templates publish.
+
+**Built first:** `tests/test_results_v1_test.py` — all 28 runs present and complete,
+no failed call, both variants per model, README rows one-to-one with the runs and
+equal to a fresh re-score. Red until the runs landed (about 8 h of local inference,
+committed in pieces as they finished).
+
+**After (measured, `TestTheReadmeHeldOutClaims`):** 22 runs exist on both v1 splits
+(the three R50 models were never run on v1 dev). 21 of 22 keep their verdict against
+silence; Gemma-3-4B naive goes −6.5 → +2.1. Of 231 pairs of runs, 5 reverse — all
+involving that run — and 8 change between tied and ordered. The best row is the same
+(Gemma-3-4B rubric, +16.4 → +18.1). 7 of 28 beat silence on test, none clears the
+pair-blind bar (best −15.7), best `pairs` 14.8%, no run inconclusive (max 1.9%
+unparsed). One dev pattern breaks: a run beats silence with 4 hard violations.
+README states the reading narrowly: agreement is what decisions driven by shared body
+and state look like, not generalising comprehension. Limitation narrowed to "only v1
+has been run on its held-out split".
+
+**Caught by the gate:** the first draft said every reversal was against a run tying
+silence; the test found the fifth is Qwen2.5-3B naive (−6.0 → −9.0). Fixed in prose.
+
+**Not done:** v2-v5 held-out runs.
+
+**Review:** in-session subagent (not §D-independent; owner-authorized merge).
 
 **Loop:** nothing new.
 
