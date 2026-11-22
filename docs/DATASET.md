@@ -465,8 +465,20 @@ label on dev, and the weighted sum reads `street_cleaning`'s held-out test at
 out at a time over all eight reads **62.5%** (5 of 8 frames above half). The class is
 not new: on v4 `home_security` the same probe reads **83.3%** dev→test and **87.5%**
 leaving one frame out (7 of 8), and that family is published with runs. On v5
-`water_notice` it reads **33.3%** and **12.5%**. No gate covers letter combinations;
-the single-letter check covers one letter at a time.
+`water_notice` it reads **33.3%** and **12.5%**.
+
+**Against an exact null, none of it is distinguishable from chance** (Round 73,
+`tests/test_letter_bag_null.py`). Readings are fixed by the frames, so the right null
+swaps which clause of each frame is the privileged one: that negates every letter
+difference in the frame and leaves the label alone, and the 2**8 orientations of
+eight frames are an exhaustive null. Pre-registered: a family fails if under 5% of
+orientations read at least its shipped leave-one-frame-out figure. All 64
+family-version cells pass, covering all thirteen families on every version that
+carries them. `street_cleaning`'s 62.5% has p=0.430. The lowest is `home_security`
+at p=0.070 (87.5% leaving one frame out). At 5% each, thirteen families give about
+0.65 expected false alarms, so a future failure is a reason to look at the frames, not
+a verdict. Adding a *z* to every privileged clause drives p to 0.016, so the gate can
+fail.
 
 ### Token permutations and the bigram probe
 
@@ -648,10 +660,11 @@ enforces the invariants that make the benchmark meaningful:
   from 11% of moments on `v1`, 68% from 8% on `v5` (87% as recorded in Round 9), because a false positive while asleep under DND is the most
   expensive error priced. Deliberate, but it makes the headline sensitive to how
   that one family is written.
-- **Letter-count combinations are ungated.** A weighted bag of letter counts fit on
-  dev reads held-out `home_security` (v4) at 83.3% and `street_cleaning` (v6) at
-  100.0% (see the v6 section). Each test split is three frames, so this is
-  suggestive, not conclusive; leaving one frame out reads 87.5% and 62.5%.
+- **Letter-count combinations sit near the gate's line in one family.** A weighted bag
+  of letter counts fit on dev reads held-out `home_security` (v4) at 83.3% and
+  `street_cleaning` (v6) at 100.0%. Against the exact orientation null (Round 73)
+  neither is significant: p=0.070 and p=0.430. `home_security` is the closest of the
+  thirteen families to the 5% line.
 - **Independent moments.** Real interruption cost depends on how recently the user
   was last interrupted. Modeling fatigue requires session-level items.
 - **Western, knowledge-worker, English-only.** The scenarios assume a particular

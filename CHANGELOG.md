@@ -5,6 +5,16 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 73)
+
+- **Letter-count combinations are gated against an exact null.** For each of the 2**8
+  orientations of which clause in each frame is privileged, the same dev-fit letter bag
+  is scored leaving one frame out; a family fails if under 5% of orientations match
+  its shipped reading. All 64 family-version cells pass (lowest: `home_security`,
+  p=0.070; `street_cleaning`, whose 100% dev->test raised it, p=0.430). A planted
+  lean fails it (p=0.016). `experiments/letter_bag_probe.py` now covers all thirteen
+  families.
+
 ### Added (Round 72)
 
 - **LLM results on `v6`.** All 28 open-weight runs, committed in `results/v6-dev/`, with

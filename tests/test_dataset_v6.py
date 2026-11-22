@@ -392,8 +392,8 @@ def test_no_single_letter_count_reads_the_label_on_both_splits():
     R52 found vowels. Here every letter a-z is checked: "speak iff the swept street's
     clause has more of letter x" may not reach 70% (or fall to 30%) on dev and test
     both. Frame-determined, so the shipped splits are the whole reading. It checks one
-    letter at a time; a weighted combination of letters is not covered (DATASET.md,
-    experiments/letter_bag_probe.py)."""
+    letter at a time; weighted combinations are gated against an exact null in
+    tests/test_letter_bag_null.py (R73)."""
     assert _letter_leaks(load("v6", "dev"), load("v6", "test")) == []
 
 
