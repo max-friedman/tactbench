@@ -63,6 +63,8 @@ _BOIL_DISTRICT = re.compile(r"boil-water notice (?:issued )?(?:for|covers) (\w+)
 _SWEPT_STREET = re.compile(r"(?:street sweeping on|sweepers clear|crews scheduled for) (\w+)", re.I)
 # "sewage overflow at Copley" / "overflow was reported at Copley" / "overflow discharging at"
 _OVERFLOW_SITE = re.compile(r"overflow (?:was reported |discharging )?at (\w+)", re.I)
+# "the Lisbon album will be deleted" / "the Lisbon album is deleted" / "is removed from"
+_DELETED_ALBUM = re.compile(r"(\w+) album (?:will be deleted|is deleted|is removed)", re.I)
 
 
 #: The value that means *speak* when it occupies a frame's privileged role.
@@ -84,6 +86,7 @@ _MARKERS = {
     "water_notice": None,
     "street_cleaning": None,
     "river_swim": None,
+    "photo_backup": None,
 }
 
 
@@ -165,6 +168,11 @@ class SkylinePolicy(Policy):
                 if not site:
                     return False
                 marker = site.group(1)
+            elif moment.family == "photo_backup":
+                album = _DELETED_ALBUM.search(text)
+                if not album:
+                    return False
+                marker = album.group(1)
             elif moment.family == "pet_care":
                 skipped = _SKIPPED_PET.search(text)
                 if not skipped:
@@ -210,6 +218,7 @@ class SkylinePolicy(Policy):
             "water_notice": "boil_water_alert",
             "street_cleaning": "move_car_alert",
             "river_swim": "water_quality_alert",
+            "photo_backup": "data_loss_alert",
         }
         return Decision(
             moment_id=moment.id,

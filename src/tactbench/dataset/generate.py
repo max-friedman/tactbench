@@ -335,6 +335,17 @@ FRAMES: dict[str, list[tuple[str, str]]] = {
     ],
 }
 
+#: Photo albums for ``photo_backup`` (dataset v8), named, as trip albums usually are, after
+#: a city. Single words, so an album never shares a token with a frame or a body
+#: template; none is a word of another pool or an ordinary English word.
+ALBUMS = [
+    "Lisbon", "Kyoto", "Oslo", "Seville", "Bergen", "Porto", "Krakow", "Tallinn", "Ghent",
+    "Bruges", "Lyon", "Florence", "Naples", "Valencia", "Granada", "Vienna", "Prague",
+    "Budapest", "Dubrovnik", "Zagreb", "Riga", "Vilnius", "Helsinki", "Reykjavik",
+    "Galway", "Marrakesh", "Istanbul", "Athens", "Havana", "Lima", "Cusco", "Quito",
+    "Hanoi", "Osaka", "Seoul", "Taipei", "Hobart", "Auckland", "Montreal", "Lucerne",
+]  # fmt: skip
+
 #: Frames for families added after v2 (see :data:`LATER_SCENARIOS`). Kept apart so
 #: ``FRAMES`` still means v1's and v2's nine families to every probe and experiment.
 #: The structural frame tests run over :data:`ALL_FRAMES`.
@@ -438,6 +449,31 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
         ("Drifting rafts set off near {who}", "Drifting rafts wash up near {who}"),
         ("Paddling against the current leads to {who}", "Paddling with the current leads to {who}"),
         ("Mapped elevation tops out at {who}", "Mapped elevation bottoms out at {who}"),
+    ],
+    "photo_backup": [
+        # Privileged: the album has no copy outside the cloud; the other clause says it
+        # has one. Each clause speaks of the album as a whole, not of one device (R76
+        # review), and neither says anything about deletion -- the body fixes which album
+        # goes at midnight. Chosen by experiments/frame_search_v8.py (committed, so the
+        # counts re-run) over 41 candidates that meet the structural rules: every gated
+        # clause feature (chars, -er, -s, -ing, -ed, longest word, vowels, consonants)
+        # and, since the R76 review, generic negation balances exactly on dev frames
+        # (0-4) and on held-out frames (5-7). The first v8 frames put a negation in
+        # every privileged clause and in no other, and a negation lexicon read the
+        # family 24 of 24 on held-out test; here the negation sits on the privileged
+        # side in two frames, on the other side in three, and on both or neither in
+        # three. The exclusions, with reasons, are listed in that script.
+        ("Protected by no archive is {who}", "Protected by an archive is {who}"),
+        ("Retrievable by no other means is {who}", "Retrievable by some other means is {who}"),
+        ("Missing from every backup is {who}", "Missing from no backup is {who}"),
+        (
+            "Restoring needs the online original for {who}",
+            "Restoring needs no online original for {who}",
+        ),
+        ("Dependent on a single instance is {who}", "Dependent on no single instance is {who}"),
+        ("Lacking any duplicate is {who}", "Having a duplicate is {who}"),
+        ("Copies total one for {who}", "Copies total two for {who}"),
+        ("Closing the account forfeits all of {who}", "Closing the account forfeits none of {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's
@@ -1392,6 +1428,70 @@ class RiverSwimScenario(Scenario):
         )
 
 
+class PhotoBackupScenario(Scenario):
+    """A free cloud photo plan ends at midnight and deletes one of two albums; the other
+    is kept. The user is out for the evening. The shared body fixes which album goes.
+    The decider, a backup report from the morning, says only which of the two albums
+    has a copy somewhere other than the cloud -- both albums appear in the body and on
+    both sides, and swap roles. Speak iff the album being deleted has no other copy, so
+    midnight loses it for good. Dataset v8 only.
+
+    Logically the same form as every family (the decider labels one album, and given the
+    body that label settles it; R74 review). What it adds is a domain none of the
+    fourteen touches, personal data, and a deciding predicate none uses: whether a
+    second copy exists."""
+
+    family = "photo_backup"
+    intent = "data_loss_alert"
+    positive_value = 2
+    window_s = 3600
+    positive_slices = ["lead_time", "data_loss"]
+    near_slices = ["not_affected", "data_loss"]
+
+    def state(self, rng):
+        return UserState(
+            activity=Activity.SOCIAL,
+            device="phone",
+            last_interaction_s=rng.randint(60, 1800),
+            local_hour=rng.randint(19, 21),
+        )
+
+    def body(self, rng):
+        self._doomed, self._kept = rng.sample(ALBUMS, 2)
+        a, b = self._doomed, self._kept
+        # The deleted album is named first in two phrasings and second in two (R45).
+        phrasing = rng.choice(
+            [
+                f"Photo storage: your free cloud plan ends at midnight and the {a} album "
+                f"will be deleted. The {b} album is kept.",
+                f"Cloud photos — the {b} album stays, but the {a} album is deleted at "
+                f"midnight when your free plan ends.",
+                f"Free plan ending: the {a} album is removed from the cloud at midnight. "
+                f"No change to the {b} album.",
+                f"Cloud update: no change to the {b} album; the {a} album is removed from "
+                f"the cloud at midnight.",
+            ]
+        )
+        return [
+            Signal(source=Source.APP_EVENT, age_s=1800, content=phrasing, meta={"app": "photos"})
+        ]
+
+    decider_source = Source.APP_EVENT
+    decider_age_s = 43200
+
+    def fillers(self, rng):
+        return self._doomed, self._kept
+
+    def why(self):
+        return (
+            "The album deleted at midnight has no copy anywhere else, so those photos are "
+            "lost for good unless the user saves them tonight; worth a word over dinner.",
+            "The album being deleted already has a copy outside the cloud, so nothing is "
+            "lost at midnight. Nothing tonight needs doing, so a social evening is not "
+            "worth interrupting.",
+        )
+
+
 SCENARIOS: list[Scenario] = [
     TravelScenario(),
     DeadlineScenario(),
@@ -1413,6 +1513,7 @@ LATER_SCENARIOS: list[Scenario] = [
     WaterNoticeScenario(),
     StreetCleaningScenario(),
     RiverSwimScenario(),
+    PhotoBackupScenario(),
 ]
 ALL_SCENARIOS: list[Scenario] = [*SCENARIOS, *LATER_SCENARIOS]
 
@@ -1436,7 +1537,7 @@ def generate(
 
     ``families`` takes the first that many of :data:`ALL_SCENARIOS`; the default is
     the original nine, which v1 and v2 use. v3 uses ten, v4 eleven, v5 twelve, v6 thirteen,
-    v7 fourteen.
+    v7 fourteen, v8 fifteen.
     """
     rng = random.Random(seed)
     items: list[Item] = []

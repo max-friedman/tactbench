@@ -1,9 +1,10 @@
 """Where the random marker sits in the decider, for every random-marker family. Round 55.
 
-Seven families draw their marker at random -- the gate boarding moved away from, the
+Eight families draw their marker at random -- the gate boarding moved away from, the
 item whose return window closes, the pet that skipped a meal, the zone with motion, the
-district under a boil-water notice, (v6) the street swept tomorrow, and (v7) the place
-a sewage overflow is discharging into a river -- so the
+district under a boil-water notice, (v6) the street swept tomorrow, (v7) the place
+a sewage overflow is discharging into a river, and (v8) the photo album deleted at
+midnight -- so the
 token-positional probe cannot see which clause names it (R52 review). The check that
 can: read the marker from the body, as the skyline does, and ask whether the first
 decider clause names it. Within each label that must hold exactly half the time, so
@@ -25,6 +26,7 @@ from tactbench.dataset.generate import Scenario, generate
 from tactbench.dataset.loader import load
 from tactbench.policies.skyline import (
     _BOIL_DISTRICT,
+    _DELETED_ALBUM,
     _GATE_CHANGE,
     _MARKERS,
     _MOTION_ZONE,
@@ -43,6 +45,7 @@ MARKERS = {
     "water_notice": _BOIL_DISTRICT,
     "street_cleaning": _SWEPT_STREET,
     "river_swim": _OVERFLOW_SITE,
+    "photo_backup": _DELETED_ALBUM,
 }
 #: First version carrying each family; every later version carries it unchanged.
 SINCE = {
@@ -53,8 +56,9 @@ SINCE = {
     "water_notice": 5,
     "street_cleaning": 6,
     "river_swim": 7,
+    "photo_backup": 8,
 }
-LATEST = 7
+LATEST = 8
 V1_IMBALANCE = pytest.mark.xfail(
     strict=True, reason="R36: v1's 20 pairs over 8 frames leave dev 9:5 by clause order"
 )
@@ -115,4 +119,4 @@ def test_the_order_check_would_catch_a_fixed_order(family, monkeypatch):
         return original(self, frame, rng, idx - idx % (2 * len(self.frames)))
 
     monkeypatch.setattr(Scenario, "render_frame", privileged_first)
-    assert order_rule(generate(32, 20260726, families=14), family) == 1.0
+    assert order_rule(generate(32, 20260726, families=15), family) == 1.0

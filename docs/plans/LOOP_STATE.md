@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 and R72 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 75 complete — all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 76 complete — dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1745 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1850 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -218,7 +218,7 @@ last round whose commit changed the file.
 
 | area | last touched | probe / status |
 |---|---|---|
-| `dataset/generate.py` | R74 | 14 families (`v7`; `river_swim` R74); letter combinations gated against an exact orientation null on every family and version (R73, `tests/test_letter_bag_null.py`; lowest `home_security` p=0.070); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v6 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
+| `dataset/generate.py` | R76 | 15 families (`v8`; `photo_backup` R76, polarity-gated); negation polarity measured on all families (`experiments/negation_probe.py`; commerce/finance lean 3/0, queue Z); letter combinations gated against an exact orientation null on every family and version (R73, `tests/test_letter_bag_null.py`; lowest `home_security` p=0.070); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v6 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
 | `metrics.py` | R8 | ICS, base-rate weighting, hard violations raw; ICS constants still unvalidated by humans (NEEDS-MAX 2) |
 | `policies/builtin.py` | R1 | heuristic near chance and does not solve, on every committed split (R61, `tests/test_heuristic_committed.py`): precision exactly 0.500 on all 11, ICS > 0. Before R61 only a fresh 10-pair v1 build and each new family were tested |
 | `policies/skyline.py` | R62 | resolver built from the frame templates **and the paraphrase frames** (R62); markers read from the body for five families; zero errors and zero hard violations on all 11 committed splits (`tests/test_invariants_committed.py`) |
@@ -340,6 +340,20 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
+
+Y. **LLM runs on `v8`** (new, R76). As R75: seed v8 caches from v7's, write
+   `tests/test_results_v8.py` and the README section first, then run. Only
+   `photo_backup`'s 40 dev moments are queried.
+
+Z. **Negation polarity leans in published families** (new, R76;
+   `experiments/negation_probe.py`). A generic negation lexicon plus locating the marker
+   reads `commerce` and `finance` at 67-71% on both splits: 3 of 8 frames lean the
+   label's way and none against. `health` 2/0, `deadline` and `driving` 0/2 (inverted).
+   These families are published with runs, so the lean is recorded and disclosed, not
+   regenerated. Decide whether a polarity gate belongs in the standing invariants for
+   new families (v8 has one) and whether a v9 should re-frame the leaning families.
+   Before deciding, state the null: with 8 frames, 3/0 has p = 1/8 under a fair per-frame
+   coin among non-tied frames, so a single family at 3/0 is weak evidence.
 
 X. **LLM runs on `v7` — DONE in R75.** Original entry (R74): 28 runs; seed each v7 cache from its v6 cache
    (`runs/*-v6-dev.jsonl` copied to `-v7-dev`), so only `river_swim`'s 40 dev moments are
@@ -3832,6 +3846,48 @@ the README section were committed before the runs finished.
 
 **Loop:** nothing new. The skipped reset is a local slip, not a protocol gap; R70-R75
 followed the reset step every other time.
+
+---
+
+## Round 76 — dataset v8: a fifteenth family, `photo_backup`
+
+**Ending state: `shipped`.** Queue item 8. **Before:** fourteen families (`v7`).
+**After:** `data/v8` (600 dev / 360 test) adds `photo_backup`. A free cloud plan
+deletes one of two albums at midnight; the decider, a backup report, says which album
+has a copy elsewhere; speak iff the deleted album has none. v1-v7 byte-identical. The
+docs say plainly that the logical form is every family's; what it adds is a domain and
+a predicate (whether any second copy exists).
+
+**Built by a subagent, reviewed adversarially by a second** (neither §D-independent;
+owner-authorized merge). `tests/test_dataset_v8.py` failed at collection, then 33 of 43.
+The frame-search script is committed this time (`experiments/frame_search_v8.py`), and
+a test holds it to the shipped frames. That fixes R74's unreproducible counts.
+
+**Review found the first build solvable by polarity (MEDIUM, treated as a defect):**
+- A rule-1-legal policy (a generic negation lexicon, deletion words, and locating the
+  deleted album in the body) read held-out `photo_backup` 24 of 24. Every privileged
+  clause carried the negation (8/8; no other family above 3/8), so the held-out frames
+  tested nothing beyond the dev cue.
+- Four frames reported absence at one device, not "no copy anywhere".
+- **Fixed in the dataset, check first.** `experiments/negation_probe.py` and
+  `test_polarity_does_not_decide_the_family` (right == wrong on dev and on held-out
+  separately; the policy at 50% on each). The test failed on the first frames, and
+  `test_the_polarity_gate_would_catch_the_first_v8_frames` keeps them as a regression
+  check. The search now balances negation as a ninth feature, and the one-device frames
+  are gone. After: polarity 2/2/1 on dev and 1/1/1 held out (right/wrong/tie), the
+  policy at 50.0% on both, and the heuristic plus negation equal to the heuristic. Every
+  earlier audit was re-run and its figures updated; char-NB p now leads two-sided.
+- **Found on the way:** the probe over published families finds `commerce` and `finance`
+  at 3 right / 0 wrong of 8 frames (67-71% on both splits). They are recorded and
+  disclosed (README limitations, DATASET Known weaknesses), not regenerated; queue Z.
+- **LOW, disclosed:** a body-order by decider-order rule reads 75% on held-out test on
+  the shipped seed, at chance over 60 seeds. The letter *o* rule reads 70% dev / 67%
+  test, just under the single-letter gate.
+
+**Not done:** LLM runs on v8 (queue Y); polarity leans in published families (queue Z).
+
+**Loop:** nothing new beyond #56's pattern again. The search balanced every feature it
+was told about and was blind to polarity, the one it was not told about.
 
 ---
 
