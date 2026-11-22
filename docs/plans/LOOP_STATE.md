@@ -3667,6 +3667,12 @@ noted, not changed.
 A rebuild check of mine without `--pairs` rewrote v2-v5; I restored it from git, and
 the documented commands reproduce every file.
 
+**Caught by CI:** the probe's first version read v4 at 83.3% on Python 3.12/3.13 and at
+100% on 3.11. Its weights were floats, and sums that are exactly zero came out as
+tiny positive or negative numbers depending on the version's float summation (3.12
+changed `sum()`). The weights are integers now, so every tie is exact and scores a
+half; the readings are identical on 3.11-3.13.
+
 **Not done:** LLM runs on v6 (queue W); the letter-combination gate (V).
 
 **Loop:** #56 gains an instance (a per-letter gate named for "letter counts").

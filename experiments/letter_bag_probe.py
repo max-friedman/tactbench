@@ -57,8 +57,12 @@ def rows(version: str, family: str, split: str) -> list[tuple[str, list[int], in
     return out
 
 
-def _fit(train):
-    return [sum(x[j] * y for _, x, y in train) / len(train) for j in range(len(LETTERS))]
+def _fit(train) -> list[int]:
+    # Integer weights (the correlation times the training size), so every prediction
+    # below is exact. With float weights, sums that are exactly zero came out as tiny
+    # positive or negative numbers depending on the Python version's float summation
+    # (3.12 changed it), and v4's reading flipped between 83.3% and 100% (R71 CI).
+    return [sum(x[j] * y for _, x, y in train) for j in range(len(LETTERS))]
 
 
 def _accuracy(weights, test) -> float:
