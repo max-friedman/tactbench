@@ -9,22 +9,27 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 - **Dataset `v8`: a fifteenth family, `photo_backup`** (600 dev / 360 test). A free
   cloud photo plan ends at midnight and deletes one of two albums; the decider, a backup
-  report, says only which album has a copy outside the cloud. Speak iff the album being
+  report, says which album has a copy outside the cloud. Speak iff the album being
   deleted has none. The logical form is the same as every family's (the decider labels
   one album, and given the body that label settles it); what it adds is a domain,
-  personal data, and a deciding predicate, whether a second copy exists, that no earlier
-  family uses. v1-v7 are unchanged and v8's first fourteen families equal v7's. Unigram
-  and bigram 50.0%; character n-gram audit holds (52.5% test); letter-bag null p=0.672;
-  the overall 20-seed positional comparison passes (51.6% against 52.7%). No LLM has
-  been run on v8.
+  personal data, and a deciding predicate, whether any second copy exists, stated eight
+  different ways. v1-v7 are unchanged and v8's first fourteen families equal v7's.
+  Unigram and bigram 50.0%; character n-gram audit holds (50.0% test); letter-bag null
+  p=0.688; the overall 20-seed positional comparison passes (51.4% against 52.4%). No
+  LLM has been run on v8.
+- **Frames replaced after review.** The first frames put a negation in every privileged
+  clause and none elsewhere; a rule-1-legal negation policy read the family 24 of 24 on
+  held-out test. Four also reported absence at one device only. Polarity is now gated to
+  balance on each split (`experiments/negation_probe.py`, 50.0% on dev and test), and
+  every frame states copy status for the album as a whole. The probe over the published
+  families is reported, not gated: `commerce` and `finance` lean 3 of 8 frames.
 - **The frame search is committed** (`experiments/frame_search_v8.py`): the R74 review
   found v7's search counts unreproducible. A test asserts it still picks the shipped
   frames and prints the counts DATASET.md quotes.
-- **Character naive Bayes readings gated for the new family**, one- and two-sided against
-  the exact orientation null (`char_nb_probe.readings(..., two_sided=True)`): three
-  readings on letters and three on letter pairs, every p at least 0.133. Its transfer reading now trains on every other family a
-  version carries, so adding a family does not empty an older version's training set;
-  v7's readings are unchanged.
+- **Character naive Bayes readings gated for the new family**, two- and one-sided against
+  the exact orientation null (`char_nb_probe.readings(..., two_sided=True)`), on letters
+  and letter pairs; every p is at least 0.363 one-sided and 0.727 two-sided. Transfer now trains
+  on every other family a version carries, so v7's readings are unchanged.
 - Every test that lists versions or random-marker families covers v8 (`test_marker_order`,
   `test_web`, the committed-split counts, the README unigram, bigram and family-count
   checks, the character n-gram audit, the letter-bag null); `test_dataset_v7.py`'s

@@ -419,9 +419,10 @@ dataset v7*
 ([details](docs/DATASET.md#dataset-v7--a-fourteenth-family-river_swim)).
 `v8` (Round 76) is v7 plus a fifteenth family, `photo_backup`, from personal data: a
 free cloud photo plan ends at midnight and deletes one of two albums, and the decider
-says only which album has a copy somewhere other than the cloud (600 dev / 360 test).
+says which album has a copy somewhere other than the cloud (600 dev / 360 test).
 Its logical form is the same as every family's; what it adds is a domain and a
-deciding predicate (whether a second copy exists) that no earlier family uses. Its
+deciding predicate (whether any second copy exists, stated eight different ways, with
+negation words balanced across the two sides) that no earlier family uses. Its
 first fourteen families are identical to v7's. **No LLM has been run on v8**
 ([details](docs/DATASET.md#dataset-v8--a-fifteenth-family-photo_backup)).
 
@@ -1081,6 +1082,10 @@ benchmark:
   a car, a pharmacy, school pickup, a pet, a house, a water supply, a parking notice,
   a river swim, a photo library. Interruption norms are culturally specific and
   this captures one culture's.
+- **Negation words lean in a few published families.** "Speak iff the marker's clause
+  alone is negated" is right on three of eight frames, and wrong on none, in `commerce`
+  and `finance` (`experiments/negation_probe.py`). v8's first frames leaned eight of
+  eight and were replaced; the new family is gated to balance.
 - **The 50/50 base rate is unrealistic.** Real deployments see far more quiet
   moments than loud ones. Balance makes the near-miss contrast legible; see
   [docs/DATASET.md](docs/DATASET.md) for reweighting to a realistic prior.

@@ -582,81 +582,144 @@ All 28 LLM runs are on v7 (Round 75; README, *On dataset v7*).
 family (600 dev / 360 test), from personal data, which none of the fourteen touches.
 The user is out for the evening. One shared body signal says a free cloud photo plan
 ends at midnight and one of two albums will be deleted, and that the other album is
-kept. The decider, a backup report from that morning, says only which of the two
-albums has a copy somewhere other than the cloud — *"Copied nowhere else is Lisbon.
-Copied somewhere else is Kyoto."* Speak when the album being deleted has no other copy,
-because midnight loses it for good; stay quiet when it has one, because nothing is
-lost. Both albums appear in the shared body and on both sides, and swap roles. Albums
-are named after cities, as trip albums usually are, from a pool of 40 single words,
-none of which appears in a frame, a body template, or another family's pool.
+kept. The decider, a backup report from that morning, says which of the two albums
+has a copy somewhere other than the cloud and which does not — *"Retrievable by no
+other means is Lisbon. Retrievable by some other means is Kyoto."* Speak when the album
+being deleted has no other copy, because midnight loses it for good; stay quiet when it
+has one, because nothing is lost. Both albums appear in the shared body and on both
+sides, and swap roles. Albums are named after cities, as trip albums usually are, from
+a pool of 40 single words, none of which appears in a frame, a body template, or
+another family's pool.
 
 **The logical form is the same as every family's.** The decider labels one album, and
 given the body that label settles it — the form the R74 review found in all fourteen
 earlier families, which rule 3 (two nouns swapping roles in one frame) forces. The
 skyline reads it the way it reads `water_notice`: the marker from the body, then the
-filling of the privileged template. What the family adds is a domain and a
-deciding predicate that no earlier family uses: whether a *second copy* of something
-exists. It is not about where something is now or was (`water_notice`,
-`street_cleaning`), which way something flows (`river_swim`), who holds a duty, or what
-is fragile, congested or unused. Turning it into the answer takes one ordinary step:
-deleting one copy of two loses nothing. No frame says anything about the deletion; no
-frame shares a content word with the body (`test_the_decider_says_nothing_about_deletion`).
+filling of the privileged template. What the family adds is a domain and a deciding
+predicate: whether *any* second copy of the album exists. It is not where something is
+now or was (`water_notice`, `street_cleaning`), which way something flows
+(`river_swim`), who holds a duty, or what is fragile, congested or unused. Every frame
+states it of the album as a whole, not of one device (R76 review, below). No frame says
+anything about the deletion, and no frame shares a content word with the body
+(`test_the_decider_says_nothing_about_deletion`).
+
+**What the frames test, after the R76 review.** The predicate is stated in several
+ways, so a reader has to work out which clause *means* "no other copy": as an absence
+(*"Retrievable by no other means"*, *"Lacking any duplicate"*), as a dependence
+(*"Restoring needs the online original"*, *"Dependent on a single instance"*), as a
+count (*"Copies total one"*), as a consequence (*"Closing the account forfeits all
+of"*), and as membership in every backup or none (*"Missing from every backup"* against
+*"Missing from no backup"*). A negation word sits on the no-copy side in two frames, on
+the copy side in three, and on both or neither in three. So polarity alone reads
+exactly half on dev and on held-out frames (gated below). It is still one predicate,
+read through ordinary English; no reasoning step beyond "one copy of two lost loses
+nothing" is required.
+
+**The first v8 frames were replaced after review.** The adversarial review of the first
+build found two defects, and both were fixed rather than disclosed:
+
+- *Polarity decided the family.* Every privileged clause carried a negation (*nowhere*,
+  *zero*, *no*, *lacks*, *absent*, *excluded*) and no other clause did. A policy legal
+  under rule 1 — generic negation and deletion lexicons, capitalisation, no generator
+  phrase (`experiments/negation_probe.py`) — read the family 100% on dev and 24 of 24
+  on held-out test, and grafted onto the heuristic moved its test ICS from 612.0 to
+  588.0. On the shipped frames it reads 50.0% on both and leaves the ICS at 612.0.
+  `test_polarity_does_not_decide_the_family` gates it, and putting the first frames
+  back fails it (`test_the_polarity_gate_would_catch_the_first_v8_frames`).
+- *Four clauses reported absence at one place only* (*"Office workstation lacks a copy
+  of"*, *"Memory stick contains no images from"*, *"Excluded from the weekly snapshot"*,
+  *"Server replica absent for"*, and the cloud is itself a server), which does not mean
+  no copy exists elsewhere. Every such candidate, 21 in all, was dropped.
+
+**The same probe on the published families** (not gated; the counts are the same on
+every version that carries a family). Of each family's eight frames, the number where
+"speak iff the marker's clause alone carries a negation" is right, and wrong; the rest
+tie: `commerce` 3 right / 0 wrong (70% dev, 67% held-out test; 71% on v1 dev),
+`finance` 3/0 (70%, 67%), `health` 2/0 (60%, 67%), `meeting_prep` 2/1 (50%, 67%),
+`home_security` 1/0 (60%, 50%), `quiet_hours` 1/0 (50%, 67%), `water_notice` 1/2 (40%,
+50%), `deadline` and `driving` 0/2 (40%, 33%: the negated rule reads 60% and 67%),
+`pet_care` and `childcare` 0/1, and `travel`, `street_cleaning` and `river_swim` 0/0. No
+published family has more than three frames on one side; the first v8 frames had all
+eight.
 
 Held to everything v7's new family is (`tests/test_dataset_v8.py`): every moment of
 the first fourteen families equals its v7 counterpart; unigram and bigram at 50% on ten
 seeds; order-balanced cells; both albums on both sides and the deleted album named
 first in about half of bodies; the six clause features, and vowel and consonant counts,
 at chance; the marker-aware order check; the single-letter gate; the skyline solves it
-and the heuristic does not. One check is new: the R74 review's character naive Bayes
-readings are gated at p ≥ 0.05, one- and two-sided, before shipping (below).
+and the heuristic does not. New: polarity balances, as above; and the R74 review's
+character naive Bayes readings are gated at p ≥ 0.05, one- and two-sided, before
+shipping (below).
 
 **Frames were chosen by a committed search**, `experiments/frame_search_v8.py`, so the
 counts here re-run (`test_the_frame_search_is_committed_and_reproduces_the_shipped_frames`
-asserts that the script still picks the shipped frames and prints these counts). 37
-candidate frames that meet the structural rules and read clearly as no copy against a
-copy elsewhere, searched for a dev set (frames 0-4) and a held-out set (5-7), lexically
-disjoint, on which all eight gated clause features balance exactly (5,207 such sets),
-then ranked by the strongest of 1005 cheap clause features (letters, letter pairs and
-triples, word prefixes and suffixes, word lengths, word count) reading the same way on
-both splits, then on dev alone. Nine frames were excluded before the search, each with
-its reason in the script: two about a *sync* (a phone's sync to the cloud would leave a
-copy on the phone, so a failed one reads backwards), *"Kept only on the phone"* (a copy
-on the phone is a copy), *"Archived once"* (one copy elsewhere is the other label),
-*"Copies held number one"* and *"Spare drive full of"* (idioms), a colour-coded status
-light, *"Lone surviving copy belongs to"*, and *"Exposed to permanent loss"* (states the
-conclusion, not the fact). On the shipped splits, of the 159 such features that differ
-between a frame's clauses, the best reading the same way on both reads 60% dev / 83%
-test (the letter pair *no*), and the best on dev alone 70% dev / 17% test (the letter
-*a*), which reverses. As for v5-v7, that scan informed the search and is not an
-independent check. The character 3-8-gram probe (Round 49) did not inform it; on v8 it
-fits dev at 88.7% and reads 52.5% on held-out test (`photo_backup` 58.3% of 24), and its
-verdict holds. The letter-count bag (Round 73) reads 0.0% dev→test (three frames, so as
-exploitable as 100% and as weak), and `photo_backup` (v8) reads 43.8% leaving one frame
-out, p=0.672 against the exact orientation null.
+asserts that the script still picks the shipped frames and prints these counts). 41
+candidate frames that meet the structural rules and state copy status for the album as
+a whole, searched for a dev set (frames 0-4) and a held-out set (5-7), lexically
+disjoint, on which the eight gated clause features and negation all balance exactly (2
+such sets), then ranked by the strongest of 904 cheap clause features (letters, letter
+pairs and triples, word prefixes and suffixes, word lengths, word count) reading the
+same way on both splits, then on dev alone; the two sets tie, and the order of the
+candidate list breaks it. Twelve frames were excluded before the search for clarity,
+each with its reason in the script: two about a *sync* (a phone's sync to the cloud
+would leave a copy on the phone, so a failed one reads backwards), *"Kept only on the
+phone"* (a copy on the phone is a copy), *"Archived once"* (one copy elsewhere is the
+other label), four idioms (*"Copies held number one"*, *"Spare drive full of"*, *"all
+there is"*, *"short of"*), a colour-coded status light, *"belongs to"*, *"Exposed to
+permanent loss"* (states the conclusion, not the fact), and one addressed to *you*,
+which is the marker in three other families. On the shipped splits, of the 115 such
+features that differ between a frame's clauses, the best reading the same way on both
+is the letter *o*: "speak iff the deleted album's clause has fewer" reads 70% dev / 67%
+test, just under the single-letter gate's 70%-on-both line. The best on dev alone, the
+letter *n*, reads 70% dev and reverses on test. As for v5-v7, that scan informed the
+search and is not an independent check. The character 3-8-gram probe (Round 49) did not
+inform it; on v8 it fits dev at 87.3% and reads 50.0% on held-out test (`photo_backup`
+54.2% of 24), and its verdict holds. The letter-count bag (Round 73) reads 33.3%
+dev→test, and `photo_backup` (v8) reads 43.8% leaving one frame out, p=0.688 against
+the exact orientation null.
 
-What the family does not resist, as for `street_cleaning`: every privileged clause
-carries an ordinary word of absence or negation (*nowhere*, *zero*, *unmirrored*,
-*absent*, *lacks*, *excluded*, *no*), and every other clause does not. That is what the
-letter pair *no* above picks up. A reader that locates the deleted album's clause and
-knows those words solves the family — that is reading the decider.
+What the family does not resist, as for every family: a reader that locates the
+deleted album's clause and knows which of the eight phrasings mean "no other copy"
+solves the family — that is reading the decider.
 
 **Character naive Bayes, measured before shipping** (`experiments/char_nb_probe.py`,
-the R74 review's probe). Fed the letters of the deleted album's clause and of the other
-clause, tagged by clause, it reads `photo_backup`'s held-out test at dev→test **0.0%** (p=1.000; two-sided p=0.133), leaving one frame out **18.8%** (p=0.914; two-sided p=0.203), and trained on the other fourteen families **50.0%** (p=0.637; two-sided p=1.000) of its eight frames. The one-sided p is the R74 figure; the two-sided one counts readings as far under a half as over it, since negating a learner is free. On letter pairs it reads 50.0%, 68.8% and 62.5% (one-sided p 0.625, 0.242 and 0.363; two-sided 1.000, 0.473 and 0.727). None is under 0.05; the dev→test readings, on three frames, cannot go under 0.125. The probe also generalises: transfer now trains on every other family the version carries, which leaves every v7 reading unchanged.
+the R74 review's probe), fed the characters of the deleted album's clause and of the
+other clause, tagged by clause. Two-sided p counts readings as far under a half as over
+it, since negating a learner is free; it is the one to read. The one-sided p is R74's
+form.
 
-**Positional.** The overall 20-seed form passes on v8, as on v7: 20-seed medians 51.6%
-against 52.7%, and 60-seed medians 51.83% against 52.33%. On the shipped seed the
+- letters, dev→test: **33.3%** (two-sided p=0.969; one-sided p=0.867)
+- letters, leaving one frame out: **37.5%** (two-sided p=0.781; one-sided p=0.738)
+- letters, trained on the other fourteen families: **62.5%** (two-sided p=0.727; one-sided p=0.363)
+- pairs, dev→test: **50.0%** (two-sided p=1.000; one-sided p=0.750)
+- pairs, leaving one frame out: **37.5%** (two-sided p=0.727; one-sided p=0.719)
+- pairs, trained on the other fourteen families: **37.5%** (two-sided p=0.727; one-sided p=0.855)
+
+None is under 0.05; dev→test, on three frames, cannot go under 0.125. Transfer now
+trains on every other family the version carries, which leaves every v7 reading
+unchanged.
+
+**Positional.** The overall 20-seed form passes on v8, as on v7: 20-seed medians 51.4%
+against 52.4%, and 60-seed medians 51.83% against 52.33%. On the shipped seed the
 overall reading is 52.7% against 52.2%, under the 60% bound. The family itself reads
 62.5% positional on the shipped seed against a null of 57.5% — above 60% on this seed.
-Over 60 seeds its median is 57.5% against 57.5%, and 35% of seeds read above 60%
-against 39% of null draws. The family test compares over 60 seeds, as v5's-v7's do.
+Over 60 seeds its median is 58.8% against 57.5%, and 37% of seeds read above 60%
+against 38% of null draws. The family test compares over 60 seeds, as v5's-v7's do.
 Positional is reported, not gated.
 
-**Weaker points.** *"Included in the weekly snapshot"* does not say where the snapshot
-is kept; it is read as a backup. Staying quiet when the deleted album has a copy is
-defensible but not unanimous: someone might still want to know that the cloud copy is
-going. The user is at a social evening (false-positive cost 2.0) and the positive is
-priced at value 2. Labels are constructed (`raters: 0`).
+**Body order against decider order, on the shipped seed.** "Speak iff the body's first
+album is the decider's first album" reads 60.0% on dev and 75.0% on held-out test. Both
+orders are drawn independently per pair, so this is chance: over 60 seeds the median is
+50% on each split, and 8% of seeds read held-out test at 75% or more either way. The
+marker-aware order check (exactly 50% within each label) is unaffected. Disclosed, not
+fixed: balancing it needs a change to how the body is drawn.
+
+**Weaker points.** *"Dependent on a single instance"* and *"Restoring needs the online
+original"* say the cloud copy is the only one by implication, not in so many words.
+Staying quiet when the deleted album has a copy is defensible but not unanimous:
+someone might still want to know that the cloud copy is going. The user is at a social
+evening (false-positive cost 2.0) and the positive is priced at value 2. Labels are
+constructed (`raters: 0`).
 
 **No LLM has been run on v8.**
 
@@ -843,16 +906,16 @@ enforces the invariants that make the benchmark meaningful:
 - **Character features transfer into `river_swim`.** A character naive Bayes trained on
   the other thirteen families reads 87.5% of its frames (p=0.035 against the exact
   null, the only one of 84 cells under 0.05; see the v7 section).
-- **`photo_backup`'s privileged clauses all carry a word of absence or negation**
-  (*nowhere*, *zero*, *no*, *lacks*, ...), so the letter pair *no* in the deleted
-  album's clause reads 60% dev / 83% test. Finding that clause and knowing those words
-  is reading the decider, as `street_cleaning`'s past-tense words are (see the v8
-  section).
+- **Negation polarity leans in four published families.** "Speak iff the marker's clause
+  alone carries a negation word" is right on three of eight frames, and wrong on none,
+  in `commerce` and `finance` on every version, and on two in `health` (see the v8
+  section, `experiments/negation_probe.py`). Not gated on published versions; v8's
+  `photo_backup` is gated to balance exactly.
 - **Letter-count combinations sit near the gate's line in one family.** A weighted bag
   of letter counts fit on dev reads held-out `home_security` (v4) at 83.3% and
   `street_cleaning` (v6) at 100.0%. Against the exact orientation null (Round 73)
   neither is significant: p=0.070 and p=0.430. `home_security` is the closest of the
-  fifteen families to the 5% line (`photo_backup`, v8: p=0.672).
+  fifteen families to the 5% line (`photo_backup`, v8: p=0.688).
 - **Independent moments.** Real interruption cost depends on how recently the user
   was last interrupted. Modeling fatigue requires session-level items.
 - **Western, knowledge-worker, English-only.** The scenarios assume a particular

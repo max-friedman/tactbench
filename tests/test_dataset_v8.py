@@ -473,22 +473,27 @@ def test_the_char_nb_readings_are_at_chance_against_the_null(rep):
 
 
 def test_the_char_nb_figures_stated_in_the_docs():
-    """The letters readings, pinned to the v8 section."""
+    """Both representations' readings, pinned to the v8 section, two-sided p first
+    (R76 review: a one-sided p=1.000 on a reading far under a half misleads)."""
     sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
     import char_nb_probe as nb
 
     section = _v8_section()
-    r = nb.readings(FAMILY, "letters", "v8")
-    two = nb.readings(FAMILY, "letters", "v8", two_sided=True)
-    for reading, label in (
-        ("dev->test", "dev→test"),
-        ("leave-one-frame-out", "leaving one frame out"),
-        ("transfer", "trained on the other fourteen families"),
-    ):
-        observed, p = r[reading]
-        p2 = two[reading][1]
-        figure = f"{label} **{observed:.1%}** (p={p:.3f}; two-sided p={p2:.3f})"
-        assert figure in section, figure
+    labels = {
+        "dev->test": "dev→test",
+        "leave-one-frame-out": "leaving one frame out",
+        "transfer": "trained on the other fourteen families",
+    }
+    for rep in ("letters", "pairs"):
+        one = nb.readings(FAMILY, rep, "v8")
+        two = nb.readings(FAMILY, rep, "v8", two_sided=True)
+        for reading, label in labels.items():
+            observed, p1 = one[reading]
+            p2 = two[reading][1]
+            figure = (
+                f"{rep}, {label}: **{observed:.1%}** (two-sided p={p2:.3f}; one-sided p={p1:.3f})"
+            )
+            assert figure in section, figure
 
 
 def test_the_frame_search_is_committed_and_reproduces_the_shipped_frames():
@@ -504,3 +509,55 @@ def test_the_frame_search_is_committed_and_reproduces_the_shipped_frames():
     assert f"{result['candidates']} candidate frames" in section
     assert f"({result['balanced']:,} such sets)" in section
     assert f"strongest of {result['features']} cheap clause features" in section
+
+
+def test_polarity_does_not_decide_the_family():
+    """R76 review: the first v8 frames put a negation word in every privileged clause and
+    in no other, so a rule-1-legal policy (generic negation and deletion lexicons, no
+    generator phrase) read photo_backup 100% on dev and 24 of 24 on held-out test. On
+    each split separately, the frames where "speak iff the deleted album's clause alone is
+    negated" is right must equal those where it is wrong (``experiments/negation_probe.py``);
+    so it reads exactly half, and the reviewer's policy reads half too."""
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    import negation_probe as neg
+
+    r = neg.frame_polarity(FAMILY, "v8")
+    for split in ("dev", "test"):
+        counts = r[split]
+        assert isinstance(counts, dict)
+        assert counts["right"] == counts["wrong"], (split, counts)
+        assert r[f"{split}_accuracy"] == 0.5, split
+        assert neg.policy_accuracy(load("v8", split)) == 0.5, split
+    assert r["test"]["right"] < 3 and r["test"]["wrong"] < 3  # type: ignore[index]
+
+
+#: The first v8 frames, which the R76 review caught: a negation in every privileged
+#: clause and in no other.
+FIRST_V8_FRAMES = [
+    ("Copied nowhere else is {who}", "Copied somewhere else is {who}"),
+    ("Offline duplicates number zero for {who}", "Offline duplicates number two for {who}"),
+    ("Unmirrored on any disk is {who}", "Mirrored on a disk is {who}"),
+    ("Server replica absent for {who}", "Server replica present for {who}"),
+    ("Office workstation lacks a copy of {who}", "Office workstation keeps a copy of {who}"),
+    ("Excluded from the weekly snapshot is {who}", "Included in the weekly snapshot is {who}"),
+    ("Memory stick contains no images from {who}", "Memory stick contains all images from {who}"),
+    ("Protected by no archive is {who}", "Protected by an archive is {who}"),
+]
+
+
+def test_the_polarity_gate_would_catch_the_first_v8_frames(monkeypatch):
+    """Put back the frames the review caught: the polarity rule and the reviewer's
+    policy must both read 100% on dev and on held-out test."""
+    sys.path.insert(0, str(Path(__file__).parents[1] / "experiments"))
+    import letter_bag_probe as bag
+    import negation_probe as neg
+
+    monkeypatch.setitem(LATER_FRAMES, FAMILY, FIRST_V8_FRAMES)
+    monkeypatch.setitem(bag.ALL_FRAMES, FAMILY, FIRST_V8_FRAMES)
+    items = generate(PAIRS, SEED, families=FAMILIES)
+    monkeypatch.setattr(neg, "load", lambda v, s: _split(items, held=(s == "test")))
+    r = neg.frame_polarity(FAMILY, "v8")
+    assert r["dev_accuracy"] == r["test_accuracy"] == 1.0
+    assert r["dev"]["right"] == 5 and r["test"]["right"] == 3  # type: ignore[index]
+    for held in (False, True):
+        assert neg.policy_accuracy(_split(items, held)) == 1.0

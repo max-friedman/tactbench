@@ -452,26 +452,28 @@ LATER_FRAMES: dict[str, list[tuple[str, str]]] = {
     ],
     "photo_backup": [
         # Privileged: the album has no copy outside the cloud; the other clause says it
-        # has one. Neither clause says anything about deletion -- the body fixes which
-        # album goes at midnight. Chosen by experiments/frame_search_v8.py (committed, so
-        # the counts re-run) over 37 candidate frames that meet the structural rules and
-        # read clearly as no-other-copy vs a-copy-elsewhere: every gated clause feature
-        # (chars, -er, -s, -ing, -ed, longest word, vowels, consonants) balances exactly
-        # on dev frames (0-4) and on held-out frames (5-7), and among the 5,207 such sets
-        # this one minimises the strongest of 1,005 cheap clause features read the same
-        # way on both splits (60%), then on dev alone (70%). The nine frames excluded
-        # before the search, with reasons, are listed in that script.
-        ("Copied nowhere else is {who}", "Copied somewhere else is {who}"),
-        ("Offline duplicates number zero for {who}", "Offline duplicates number two for {who}"),
-        ("Unmirrored on any disk is {who}", "Mirrored on a disk is {who}"),
-        ("Server replica absent for {who}", "Server replica present for {who}"),
-        ("Office workstation lacks a copy of {who}", "Office workstation keeps a copy of {who}"),
-        ("Excluded from the weekly snapshot is {who}", "Included in the weekly snapshot is {who}"),
-        (
-            "Memory stick contains no images from {who}",
-            "Memory stick contains all images from {who}",
-        ),
+        # has one. Each clause speaks of the album as a whole, not of one device (R76
+        # review), and neither says anything about deletion -- the body fixes which album
+        # goes at midnight. Chosen by experiments/frame_search_v8.py (committed, so the
+        # counts re-run) over 41 candidates that meet the structural rules: every gated
+        # clause feature (chars, -er, -s, -ing, -ed, longest word, vowels, consonants)
+        # and, since the R76 review, generic negation balances exactly on dev frames
+        # (0-4) and on held-out frames (5-7). The first v8 frames put a negation in
+        # every privileged clause and in no other, and a negation lexicon read the
+        # family 24 of 24 on held-out test; here the negation sits on the privileged
+        # side in two frames, on the other side in three, and on both or neither in
+        # three. The exclusions, with reasons, are listed in that script.
         ("Protected by no archive is {who}", "Protected by an archive is {who}"),
+        ("Retrievable by no other means is {who}", "Retrievable by some other means is {who}"),
+        ("Missing from every backup is {who}", "Missing from no backup is {who}"),
+        (
+            "Restoring needs the online original for {who}",
+            "Restoring needs no online original for {who}",
+        ),
+        ("Dependent on a single instance is {who}", "Dependent on no single instance is {who}"),
+        ("Lacking any duplicate is {who}", "Having a duplicate is {who}"),
+        ("Copies total one for {who}", "Copies total two for {who}"),
+        ("Closing the account forfeits all of {who}", "Closing the account forfeits none of {who}"),
     ],
 }
 #: Every family's frames, for iterating over. A snapshot: code that *reads* a family's

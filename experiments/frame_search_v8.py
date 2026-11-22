@@ -16,8 +16,12 @@ The search, as for ``water_notice``, ``street_cleaning`` and ``river_swim``:
 
 1. a dev set (frames 0-4) and a held-out set (5-7), lexically disjoint by stem
    (``TestFrameDisjointness``), on which each of the eight gated clause features --
-   chars, -er, -s, -ing, -ed, longest word, vowels, consonants -- has the privileged
-   clause win as often as it loses, on each split separately;
+   chars, -er, -s, -ing, -ed, longest word, vowels, consonants -- and, since the R76
+   review, a generic negation word (``negation_probe.negated``) has the privileged clause
+   win as often as it loses, on each split separately. The review found the first v8
+   frames negated in every privileged clause and no other; it also dropped every
+   candidate that reports absence at one device rather than for the album as a whole
+   (:data:`ONE_PLACE`);
 2. among those, rank by the strongest cheap clause feature (letter counts, letter pairs
    and triples, word prefixes and suffixes of one to three letters, word lengths, word
    count) that reads the same way on both splits, frame by frame (lowest first); then
@@ -33,18 +37,82 @@ import re
 import sys
 from itertools import combinations
 
+from negation_probe import negated
+
 from tactbench.dataset.generate import WHO, skeleton
 
 #: (privileged: no copy outside the cloud, other: a copy exists), in authoring order.
 CANDIDATES: list[tuple[str, str]] = [
-    ("Missing from the backup drive is {who}", "Present on the backup drive is {who}"),
+    # A negation on the privileged side (the album has no other copy).
     ("Copied nowhere else is {who}", "Copied somewhere else is {who}"),
     ("Offline duplicates number zero for {who}", "Offline duplicates number two for {who}"),
+    ("Data rescue would fail for {who}", "Data rescue would succeed for {who}"),
+    ("Unmirrored on any disk is {who}", "Mirrored on a disk is {who}"),
+    ("Protected by no archive is {who}", "Protected by an archive is {who}"),
+    ("Never downloaded was {who}", "Downloaded beforehand was {who}"),
+    ("Unsaved anywhere offline is {who}", "Saved somewhere offline is {who}"),
+    ("Unrecoverable after loss is {who}", "Recoverable after loss is {who}"),
+    ("Untouched by every backup is {who}", "Covered by every backup is {who}"),
+    ("Unarchived to date is {who}", "Archived to date is {who}"),
+    ("Lacking any duplicate is {who}", "Having a duplicate is {who}"),
+    ("Exported nowhere yet was {who}", "Exported elsewhere already was {who}"),
+    ("Unduplicated anywhere is {who}", "Duplicated elsewhere is {who}"),
+    ("Retrievable by no other means is {who}", "Retrievable by some other means is {who}"),
+    ("Second copies exist for none of {who}", "Second copies exist for all of {who}"),
+    ("Archived copies number zero for {who}", "Archived copies number three for {who}"),
+    ("Irreplaceable from other sources is {who}", "Replaceable from other sources is {who}"),
+    ("Elsewhere nothing duplicates {who}", "Elsewhere something duplicates {who}"),
+    ("Saved by nothing but the provider is {who}", "Saved by more than the provider is {who}"),
+    ("Backed up nowhere is {who}", "Backed up somewhere is {who}"),
+    # Neither clause negated (R76 review: polarity must not decide the family).
+    ("Lone original survives for {who}", "Spare duplicates survive for {who}"),
+    ("Single copy status applies to {who}", "Double copy status applies to {who}"),
+    ("Solitary in storage is {who}", "Duplicated in storage is {who}"),
+    ("One instance survives of {who}", "Two instances survive of {who}"),
+    ("Copies total one for {who}", "Copies total two for {who}"),
+    ("Stored in a single place is {who}", "Stored in multiple places too is {who}"),
+    ("Residing in one location is {who}", "Residing in two locations is {who}"),
+    ("Existing as one copy is {who}", "Existing as two copies is {who}"),
+    ("Existing online only is {who}", "Existing offline too is {who}"),
+    # Both clauses negated.
+    ("Without a duplicate anywhere is {who}", "Never without a duplicate is {who}"),
+    ("Missing from every backup is {who}", "Missing from no backup is {who}"),
+    ("Absent from all of the backups is {who}", "Absent from none of the backups is {who}"),
+    ("Absent from every archive is {who}", "Absent from no archive is {who}"),
+    # A negation on the other side (the album has a copy elsewhere).
+    (
+        "Restoring needs the online original for {who}",
+        "Restoring needs no online original for {who}",
+    ),
+    (
+        "Online version is truly the only one for {who}",
+        "Online version is not the only one for {who}",
+    ),
+    ("Dependent on a single instance is {who}", "Dependent on no single instance is {who}"),
+    (
+        "Losing the hosted pictures loses everything for {who}",
+        "Losing the hosted pictures loses nothing for {who}",
+    ),
+    (
+        "Restoration depends on the provider for {who}",
+        "Restoration depends on no provider for {who}",
+    ),
+    ("Closing the account forfeits all of {who}", "Closing the account forfeits none of {who}"),
+    ("Always reliant on the provider is {who}", "Never reliant on the provider is {who}"),
+    (
+        "Server failure would cost every picture of {who}",
+        "Server failure would cost no picture of {who}",
+    ),
+]
+
+#: R76 review: these say the album is absent from ONE place, not that no copy exists
+#: anywhere else, so the privileged clause does not settle the answer. Dropped from the
+#: candidates of the first v8 search.
+ONE_PLACE = [
+    ("Missing from the backup drive is {who}", "Present on the backup drive is {who}"),
     ("Spare laptop stores nothing from {who}", "Spare laptop stores everything from {who}"),
     ("Excluded from the weekly snapshot is {who}", "Included in the weekly snapshot is {who}"),
-    ("Data rescue would fail for {who}", "Data rescue would succeed for {who}"),
     ("Family computer lacks the pictures of {who}", "Family computer holds the pictures of {who}"),
-    ("Unmirrored on any disk is {who}", "Mirrored on a disk is {who}"),
     ("Skipped by the archive job was {who}", "Saved by the archive job was {who}"),
     ("Left out last month was {who}", "Backed up last month was {who}"),
     ("Memory stick contains no images from {who}", "Memory stick contains all images from {who}"),
@@ -52,31 +120,19 @@ CANDIDATES: list[tuple[str, str]] = [
         "Never received by the home server was {who}",
         "Received safely by the home server was {who}",
     ),
-    ("Protected by no archive is {who}", "Protected by an archive is {who}"),
-    ("Never downloaded was {who}", "Downloaded beforehand was {who}"),
     ("Absent from the old tablet is {who}", "Stored on the old tablet is {who}"),
     ("Backup status reads incomplete for {who}", "Backup status reads complete for {who}"),
-    ("Unsaved anywhere offline is {who}", "Saved somewhere offline is {who}"),
-    ("Unrecoverable after loss is {who}", "Recoverable after loss is {who}"),
     ("Spare phone gallery shows none of {who}", "Spare phone gallery shows all of {who}"),
     ("Omitted from the nightly mirror was {who}", "Written to the nightly mirror was {who}"),
     ("Burned onto no disc was {who}", "Burned onto a disc was {who}"),
-    ("Untouched by every backup is {who}", "Covered by every backup is {who}"),
     ("Thumb drive copy never made for {who}", "Thumb drive copy already made for {who}"),
     ("Desktop folder holds none of {who}", "Desktop folder holds all of {who}"),
-    ("Unarchived to date is {who}", "Archived to date is {who}"),
     ("Server replica absent for {who}", "Server replica present for {who}"),
-    ("Lacking any duplicate is {who}", "Having a duplicate is {who}"),
     ("Hard disk carries no trace of {who}", "Hard disk carries every file of {who}"),
-    ("Exported nowhere yet was {who}", "Exported elsewhere already was {who}"),
     ("Office workstation lacks a copy of {who}", "Office workstation keeps a copy of {who}"),
     ("Offsite vault received nothing from {who}", "Offsite vault received everything from {who}"),
-    ("Unduplicated anywhere is {who}", "Duplicated elsewhere is {who}"),
-    ("Retrievable by no other means is {who}", "Retrievable by some other means is {who}"),
-    ("Second copies exist for none of {who}", "Second copies exist for all of {who}"),
     ("Restore points cover none of {who}", "Restore points cover all of {who}"),
     ("Network share holds no copy of {who}", "Network share holds a copy of {who}"),
-    ("Archived copies number zero for {who}", "Archived copies number three for {who}"),
 ]
 
 #: Rejected before the search, with the reason. A careful human could read each one
@@ -107,6 +163,16 @@ EXCLUDED: dict[tuple[str, str], str] = {
     ("Lone surviving copy belongs to {who}", "Spare duplicate copy belongs to {who}"): (
         "'belongs to' an album is unclear"
     ),
+    ("One copy is simply all there is for {who}", "One copy is not all there is for {who}"): (
+        "'all there is' leans on an idiom"
+    ),
+    ("Always short of a duplicate is {who}", "Never short of a duplicate is {who}"): (
+        "'short of' leans on an idiom, and 'always short' reads oddly"
+    ),
+    (
+        "Lose the provider and you lose all of {who}",
+        "Lose the provider and you lose none of {who}",
+    ): ("'you' is the marker in three other families, and the heuristic reads it"),
     ("Status light red beside {who}", "Status light green beside {who}"): (
         "a colour code means whatever the app says it means"
     ),
@@ -160,7 +226,7 @@ def _consonants(c: str) -> int:
 
 
 #: The eight gated features, as ``clause_length_probe.FEATURES`` and the v8 test define
-#: them.
+#: them, and negation (R76).
 GATED = {
     "chars": len,
     "er": lambda c: sum(w.lower().rstrip("s").endswith("er") for w in c.split()),
@@ -170,6 +236,9 @@ GATED = {
     "longest": lambda c: max(len(w) for w in c.split()),
     "vowels": _vowels,
     "consonants": _consonants,
+    # R76 review: whether the clause carries a generic negation word
+    # (``negation_probe.negated``), so polarity balances like every other feature.
+    "negation": lambda c: int(negated(c)),
 }
 
 
@@ -201,7 +270,7 @@ def _sign(x: int) -> int:
 def search() -> dict:
     for pair in CANDIDATES:
         check_structure(pair)
-    assert not set(CANDIDATES) & set(EXCLUDED)
+    assert not set(CANDIDATES) & (set(EXCLUDED) | set(ONE_PLACE))
     n = len(CANDIDATES)
     texts = [(_text(a), _text(b)) for a, b in CANDIDATES]
     gated = [tuple(_sign(f(a) - f(b)) for f in GATED.values()) for a, b in texts]
@@ -258,6 +327,7 @@ def search() -> dict:
     return {
         "candidates": n,
         "excluded": len(EXCLUDED),
+        "one_place": len(ONE_PLACE),
         "balanced": len(ranked),
         "features": len(universe),
         "best": [CANDIDATES[i] for i in (*d, *h)],
