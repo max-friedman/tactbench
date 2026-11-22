@@ -496,6 +496,41 @@ a test fails the build if this table disagrees with that output. To rerun:
 | `llm:naive:qwen2.5-0.5b` | 636.0 | −89.3 | −167.2 | 0.500 | 0.976 | 0.391 | 28 | 246/252 | 0.0% | 2.4% |
 <!-- llm-results:end -->
 
+`pairs` is the share of matched pairs answered correctly on **both** sides. The two
+sides share a body and need opposite answers, so a policy that does not read the
+deciding signal scores 0% there however its ICS looks — a constant policy scores
+exactly 0%, a coin about 25%. `unparsed` is the share of answers with no readable
+decision, each scored as silence; above 5% the CLI reports a run as inconclusive.
+
+No hosted frontier model has been run — that costs money and has not been
+authorized. These are models of 8B parameters and under, 4-bit quantized, so the
+table bounds what small open models do here and says nothing about frontier ones.
+What it shows:
+
+- **No model reads the deciding signal.** The best `pairs` score is 10.3%, below
+  the ~25% a coin gets. Every model mostly gives both sides of a pair the same
+  answer, which is the one thing the pair design exists to catch.
+- **Some beat silence; none clears the pair-blind bar.** The best row, Gemma-3-4B
+  with the rubric, clears silence by +16.4 with zero hard violations, and is still
+  −18.1 against what a policy reading no decider at all can reach. Every run above
+  silence is there by speaking rarely: 54 of 252 moments at most.
+- **The rubric works by making models quieter.** For the models whose naive run
+  talks a lot, disclosing the costs cuts how often they speak and turns a loss into
+  a gain or a smaller loss — Gemma-3-4B from −6.5 to +16.4, Qwen2.5-7B from −19.9 to
+  +11.0. It does not make them discriminate: no run gets above 10.3% pairs under either
+  prompt, and Phi-3.5 makes the same speak-or-stay-quiet decision on all 252 moments under both. Llama-3.2-3B goes the other way,
+  silent under the rubric.
+- **No run that beats silence has a hard violation; every run that loses has
+  11–28.** There is nothing in between — no model trades a few hard violations for
+  a better ICS.
+- **Eight runs are constant policies** — four silent on every moment, four speaking
+  on every one — which the `pairs` and `spoke` columns show at a glance. Under the naive
+  prompt Qwen2.5-1.5B answers all 252 moments identically —
+  `{"surface": false, "confidence": 0.0, "intent": null}` — reading the response
+  template's field descriptions back as values.
+- Several models copy the template's `short_snake_case_label_or_null` placeholder
+  as their intent. Intent carries no weight in ICS, so this does not move a score.
+
 #### On dataset v2 — a replication
 
 The same 22 runs on `v2` (Round 37: 32 pairs per family, 360 dev moments, clause
@@ -728,41 +763,6 @@ loses to silence on both versions.
 | `llm:rubric:llama-3.2-1b` | 1140.0 | −78.1 | −137.5 | 0.500 | 1.000 | 0.009 | 40 | 480/480 | 0.0% | 0.0% |
 | `llm:naive:qwen2.5-0.5b` | 1145.0 | −78.9 | −138.5 | 0.498 | 0.929 | 0.378 | 40 | 448/480 | 0.4% | 6.7% |
 <!-- llm-results-v5:end -->
-
-`pairs` is the share of matched pairs answered correctly on **both** sides. The two
-sides share a body and need opposite answers, so a policy that does not read the
-deciding signal scores 0% there however its ICS looks — a constant policy scores
-exactly 0%, a coin about 25%. `unparsed` is the share of answers with no readable
-decision, each scored as silence; above 5% the CLI reports a run as inconclusive.
-
-No hosted frontier model has been run — that costs money and has not been
-authorized. These are models of 8B parameters and under, 4-bit quantized, so the
-table bounds what small open models do here and says nothing about frontier ones.
-What it shows:
-
-- **No model reads the deciding signal.** The best `pairs` score is 10.3%, below
-  the ~25% a coin gets. Every model mostly gives both sides of a pair the same
-  answer, which is the one thing the pair design exists to catch.
-- **Some beat silence; none clears the pair-blind bar.** The best row, Gemma-3-4B
-  with the rubric, clears silence by +16.4 with zero hard violations, and is still
-  −18.1 against what a policy reading no decider at all can reach. Every run above
-  silence is there by speaking rarely: 54 of 252 moments at most.
-- **The rubric works by making models quieter.** For the models whose naive run
-  talks a lot, disclosing the costs cuts how often they speak and turns a loss into
-  a gain or a smaller loss — Gemma-3-4B from −6.5 to +16.4, Qwen2.5-7B from −19.9 to
-  +11.0. It does not make them discriminate: no run gets above 10.3% pairs under either
-  prompt, and Phi-3.5 makes the same speak-or-stay-quiet decision on all 252 moments under both. Llama-3.2-3B goes the other way,
-  silent under the rubric.
-- **No run that beats silence has a hard violation; every run that loses has
-  11–28.** There is nothing in between — no model trades a few hard violations for
-  a better ICS.
-- **Eight runs are constant policies** — four silent on every moment, four speaking
-  on every one — which the `pairs` and `spoke` columns show at a glance. Under the naive
-  prompt Qwen2.5-1.5B answers all 252 moments identically —
-  `{"surface": false, "confidence": 0.0, "intent": null}` — reading the response
-  template's field descriptions back as values.
-- Several models copy the template's `short_snake_case_label_or_null` placeholder
-  as their intent. Intent carries no weight in ICS, so this does not move a score.
 
 #### On held-out `v1/test` — phrasings no dev moment uses
 

@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 69 complete — all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 70 complete — the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1287 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1288 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -341,7 +341,7 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
-U. **Move the v1 dev commentary under the v1 dev table** (new, R69 review). The
+U. **Move the v1 dev commentary under the v1 dev table — DONE in R70.** Original entry (R69 review): The
    "What it shows" bullets (252 moments, best pairs 10.3%, Gemma rubric +16.4) describe
    v1 dev but sit after the v5 table, where a reader takes them as v5's (v5's best
    pairs is 9.6%). Prose move only; the gating tests read by marker, so check none
@@ -3588,6 +3588,28 @@ model list, the best-row name, "loses to silence") were computed but not checked
 against the text, now pinned and each mutation-killed; the verdict test now
 distinguishes tie from loss. Queued (U): the v1 dev commentary sits under the v5
 table, pre-existing.
+
+**Loop:** nothing new.
+
+---
+
+## Round 70 — the v1 commentary was under the v5 table
+
+**Ending state: `shipped`.** Queue item U. **Before:** the "What it shows" bullets
+for v1 dev, and the `pairs`/`unparsed` definitions, sat after the v5 table, 235
+lines below the v1 table they describe. A reader takes them as v5's (v5's best
+`pairs` is 9.6%, not the quoted 10.3%). The v2-v5 sections used `pairs` before it
+was defined. Placed there in R39, when v2's section went between the v1 table and
+its commentary.
+
+**Built first:** `test_the_v1_commentary_sits_under_the_v1_table`. It requires the
+definition, "What it shows:" and the frontier-model caveat each to appear once,
+between the v1 table and the v2 section. It was red before the move.
+
+**After:** a pure move: 35 lines out, the same 35 in. The prose checks match against
+the whole README, so none depended on the old position. Gate 1288 passed.
+
+**Review:** none beyond the gate and the pure-move check, since no text changed.
 
 **Loop:** nothing new.
 

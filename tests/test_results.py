@@ -364,3 +364,20 @@ def test_the_char_ngram_audit_holds_on_v5():
     fit, acc = re.findall(r"(\d+\.\d)%", out.splitlines()[0])[:2]
     doc = " ".join((root / "docs" / "DATASET.md").read_text().split())
     assert f"on v5 it fits dev at {fit}% and reads {acc}% on held-out test" in doc
+
+
+def test_the_v1_commentary_sits_under_the_v1_table():
+    """R70: the v1 dev commentary (and the `pairs`/`unparsed` definitions every later
+    table uses) sat after the v5 table, where it read as v5's. It belongs between the
+    v1 table and the first replication section."""
+    text = (Path(__file__).resolve().parents[1] / "README.md").read_text()
+    v1_end = text.index("<!-- llm-results:end -->")
+    v2_section = text.index("#### On dataset v2")
+    for marker in (
+        "`pairs` is the share of matched pairs",
+        "What it shows:",
+        "No hosted frontier model",
+    ):
+        at = text.index(marker)
+        assert v1_end < at < v2_section, marker
+        assert text.count(marker) == 1, marker
