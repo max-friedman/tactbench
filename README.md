@@ -893,6 +893,15 @@ model, and every old-family decision is checked equal to v6's.
 | `llm:naive:qwen2.5-0.5b` | 1209.0 | −67.9 | −123.9 | 0.496 | 0.932 | 0.383 | 40 | 526/560 | 0.4% | 6.1% |
 <!-- llm-results-v7:end -->
 
+#### On dataset v8 — a fifteenth family
+
+All 28 runs on `v8` (Round 77): v7 plus `photo_backup` (Round 76), 600 dev moments. Each
+run's v8 cache was seeded from its v7 cache, so only the 40 new moments were sent to a
+model, and every old-family decision is checked equal to v7's.
+
+<!-- llm-results-v8:start -->
+<!-- llm-results-v8:end -->
+
 #### On held-out `v1/test` — phrasings no dev moment uses
 
 All 28 runs on v1's held-out split (Round 69): 108 moments whose deciders use frames
