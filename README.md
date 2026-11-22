@@ -77,6 +77,33 @@ costs were left as they are on purpose: speaking about a changed gate to an idle
 traveller on both sides of the pair really is better for the user than silence.
 What was wrong was the claim that beating silence shows comprehension.
 
+### Open-weight LLMs at a glance
+
+Fourteen open models of 8B parameters and under, each under a naive prompt and a
+cost-rubric prompt, on every split with committed runs (full tables and per-family
+findings under [Open-weight LLM results](#open-weight-llm-results)). *Beat silence*
+counts conclusive runs (at most 5% unparsed) with ICS better than saying nothing.
+
+<!-- llm-glance:start -->
+| split | families | moments | runs | beat silence | best vs silence | best vs pair-blind | best pairs-both-right |
+|---|---|---|---|---|---|---|---|
+| `v1/dev` | 9 | 252 | 22 | 6 | +16.4 (gemma-3-4b rubric) | −18.1 | 10.3% (llama-3.1-8b naive) |
+| `v1/test` | 9 | 108 | 28 | 7 | +18.1 (gemma-3-4b rubric) | −15.7 | 14.8% (llama-3.1-8b naive) |
+| `v2/dev` | 9 | 360 | 22 | 6 | +17.1 (gemma-3-4b rubric) | −17.1 | 8.9% (llama-3.1-8b naive) |
+| `v2para/dev` | 9 | 72 | 22 | 6 | +13.5 (qwen2.5-7b rubric) | −22.1 | 11.1% (gemma-3-4b rubric) |
+| `v3/dev` | 10 | 400 | 22 | 6 | +15.8 (gemma-3-4b rubric) | −15.3 | 9.5% (llama-3.1-8b naive) |
+| `v4/dev` | 11 | 440 | 28 | 7 | +14.1 (gemma-3-4b rubric) | −13.2 | 9.1% (llama-3.1-8b naive) |
+| `v5/dev` | 12 | 480 | 28 | 7 | +12.5 (gemma-3-4b rubric) | −16.7 | 9.6% (llama-3.1-8b naive) |
+| `v6/dev` | 13 | 520 | 28 | 7 | +11.8 (gemma-3-4b rubric) | −15.4 | 10.4% (llama-3.1-8b naive) |
+| `v7/dev` | 14 | 560 | 28 | 8 | +11.9 (gemma-3-4b rubric) | −17.4 | 9.6% (llama-3.1-8b naive) |
+| `v8/dev` | 15 | 600 | 28 | 8 | +11.1 (gemma-3-4b rubric) | −16.6 | 9.7% (llama-3.1-8b naive) |
+<!-- llm-glance:end -->
+
+No run on any split clears the pair-blind bar, and no run gets more than 14.8% of pairs
+right on both sides, where a coin gets about 25%. So the runs that beat silence do it
+without telling the two sides of a pair apart. Hosted frontier
+models have not been run (see [limitations](#honest-limitations)).
+
 ### How good does a system have to be?
 
 The leaderboard shows chance-precision policies losing to silence and a perfect
