@@ -14,13 +14,16 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
   search so every gated clause feature, and vowel and consonant counts, balance on dev
   and held-out frames separately; unigram and bigram 50.0%. A new check gates every
   single-letter count. The v5-form 20-seed overall positional comparison fails on v6
-  by 0.2 points for any thirteenth family tried, including `water_notice`'s shipped
-  frames; it is kept as a strict xfail and the 60-seed form is gated. No LLM has been
+  by 0.2 points, and so do `water_notice`'s and `home_security`'s shipped frames in the
+  thirteenth slot (`pet_care`'s pass); it is kept as a strict xfail and the 60-seed form is gated. No LLM has been
   run on v6.
 - Every test that lists versions or random-marker families covers v6
   (`test_marker_order`, `test_web`, the committed-split counts, the README unigram and
   bigram checks, the character n-gram audit); the README family-count check reads the
   newest dataset on disk instead of naming v5.
+- `experiments/letter_bag_probe.py`: a dev-fit bag of letter counts reads held-out
+  `street_cleaning` at 100.0% (three frames; 62.5% leaving one frame out) and v4
+  `home_security` at 83.3% (87.5%). Disclosed in DATASET.md; not gated.
 
 ### Added (Round 69)
 

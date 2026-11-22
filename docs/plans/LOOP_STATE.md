@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 70 complete — the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 71 complete — dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **1288 passed, 3 xfailed** (the R36 strict xfail, on `v1`, and its two R55 order-rule twins), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **1367 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -218,7 +218,7 @@ last round whose commit changed the file.
 
 | area | last touched | probe / status |
 |---|---|---|
-| `dataset/generate.py` | R52 | 12 families (`v5`); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v5 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
+| `dataset/generate.py` | R71 | 13 families (`v6`); letter combinations ungated (`experiments/letter_bag_probe.py`, queue V); prose frames as role permutations; every family 50.0% on unigram and bigram on v1-v6 (`tactbench audit`). Frames for R45+ families chosen by search over clause features (`experiments/clause_length_probe.py`) |
 | `metrics.py` | R8 | ICS, base-rate weighting, hard violations raw; ICS constants still unvalidated by humans (NEEDS-MAX 2) |
 | `policies/builtin.py` | R1 | heuristic near chance and does not solve, on every committed split (R61, `tests/test_heuristic_committed.py`): precision exactly 0.500 on all 11, ICS > 0. Before R61 only a fresh 10-pair v1 build and each new family were tested |
 | `policies/skyline.py` | R62 | resolver built from the frame templates **and the paraphrase frames** (R62); markers read from the body for five families; zero errors and zero hard violations on all 11 committed splits (`tests/test_invariants_committed.py`) |
@@ -340,6 +340,18 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
+
+W. **LLM runs on `v6`** (new, R71). 28 runs; old-family decisions seed from v5's
+   cache, so only `street_cleaning`'s 40 dev moments are queried (about 1,120 calls).
+   Check old-family decisions equal v5's, as R54 did against v4.
+
+V. **Gate letter-count combinations** (new, R71 review). The single-letter gate misses
+   a weighted bag: `experiments/letter_bag_probe.py` reads held-out `street_cleaning`
+   at 100.0% (three frames; 62.5% leaving one frame out) and v4 `home_security` at
+   83.3% (87.5%, 7 of 8). Before gating, state the null: with three test frames a
+   fixed learner gets 3 of 3 with probability 1/8, so a dev->test threshold alone is
+   noise; leave-one-frame-out against a label-swap null is the candidate. v4 is
+   published with runs, so a failing v4 is recorded, not regenerated.
 
 U. **Move the v1 dev commentary under the v1 dev table — DONE in R70.** Original entry (R69 review): The
    "What it shows" bullets (252 moments, best pairs 10.3%, Gemma rubric +16.4) describe
@@ -3615,6 +3627,52 @@ the whole README, so none depended on the old position. Gate 1288 passed.
 
 ---
 
+## Round 71 — dataset v6: a thirteenth family, `street_cleaning`
+
+**Ending state: `shipped`.** Queue item 8. **Before:** twelve families (`v5`), none
+about parking. **After:** `data/v6` (520 dev / 312 test) adds `street_cleaning`: a
+city notice says one of two streets is swept at 7am tomorrow and cars towed; the
+decider, a location signal, says which street the car is parked on now and which
+before. The user is at the gym (`EXERCISING`, false-positive cost 2.0). v1-v5
+byte-identical; v6's first twelve families equal v5's by id. DATASET.md says plainly
+that it adds a domain, not a new decision shape: it is `water_notice`'s structure.
+
+**Built by a subagent from a brief, reviewed by a second one** (neither
+§D-independent; the owner authorized merging). **Checks first:**
+`tests/test_dataset_v6.py` failed at collection, then 27 of 35 with generator code
+and no data. Frames chosen by search over 51 candidates so all eight gated clause
+features balance on dev and held-out frames separately. A new single-letter gate.
+Audit: unigram and bigram 50.0%. Character n-gram probe holds (89.2% fit, 52.2% test).
+Skyline ICS 0.0. Every hand-listed version/family test now covers v6. The family-count
+README check now finds the newest dataset on disk.
+
+**Deviation, disclosed:** v5's 20-seed overall positional comparison fails on v6 by
+0.2 points (51.9% vs 51.7%; one item is 0.19). `water_notice`'s and `home_security`'s
+shipped frames in the thirteenth slot fail the same way; `pet_care`'s pass. It is
+kept as a strict xfail and the 60-seed form is gated (52.12% vs 52.31%), chosen after
+the failure, as R52 did. Positional is reported, not gated, so no invariant moved.
+The reviewer re-ran the controls and judged it legitimate.
+
+**Review findings:** (MEDIUM) a dev-fit weighted bag of letter counts reads
+`street_cleaning`'s held-out test 24 of 24. That is three frames, so three coin flips;
+leaving one frame out reads 62.5%. The same probe reads v4 `home_security` 83.3% /
+87.5% (7 of 8), which is published. Committed as `experiments/letter_bag_probe.py`,
+pinned and disclosed in DATASET.md (v6 section, Known weaknesses); gating it is
+queue item V. (LOW) the single-letter gate had no mutation test, so one was added; the
+CHANGELOG's "any thirteenth family" was narrowed; the Known-weaknesses family list
+was completed. Frames 1 and 7 are resolvable only with their partner clause; this is
+noted, not changed.
+
+**Found on the way:** two stale README lines fixed (v5 "no LLM yet"; "Three versions").
+A rebuild check of mine without `--pairs` rewrote v2-v5; I restored it from git, and
+the documented commands reproduce every file.
+
+**Not done:** LLM runs on v6 (queue W); the letter-combination gate (V).
+
+**Loop:** #56 gains an instance (a per-letter gate named for "letter counts").
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -3632,7 +3690,7 @@ already covered or out of scope, and filing them would have wasted triage.
 | A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **folded into [#39](https://github.com/max-friedman/agentic-coding-loop/issues/39)** as the counter-argument section, since a naive fix to the first finding licenses exactly this error. Not filed separately. |
 | The gate needs a home outside one machine | R5 added CI and it failed on its first run — dev tooling was an extras group `uv run` never installs, so the suite had been green on exactly one laptop for five rounds. | filed — [issue #2](https://github.com/max-friedman/agentic-coding-loop/issues/2) |
 | The branch rule fires too late for attended rounds | R1–R4 went straight to `main`. The rule exists but is scoped to §D unattended runs, and even there fires after the work is already committed. | filed — [issue #3](https://github.com/max-friedman/agentic-coding-loop/issues/3) |
-| A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). R45 adds one: "equal skeletons" held clause *token* count equal and left *character* length free — a pet_care length rule read 90%. R47 adds another: the R45 length gate tested characters and missed an *-er* suffix rule at 90%. R55 adds one (commented on #56): a check over "every random-marker family" listed three by hand where the code's own table had five. |
+| A check named for a class tests an instance (filed R27) | R23: `TestNoKeywordExploit` / *"No keyword policy may beat silence"* tested four keyword sets; a fifth beats silence by +29.2. R23 again: every per-run gate covered only runs that exist, so a dropped run was invisible. R17–R19 had the same shape (a README gate covering five rows; a prose check covering none). The general form: **for every check, ask what it would say about an input that is absent or outside its enumerated cases.** | **filed — [issue #56](https://github.com/max-friedman/agentic-coding-loop/issues/56)** (R27). Checked against `LOOP.md` first: §5 step 5 (mutate the carrier) is about wiring between tested ends, not a check's scope, so not covered. Instances by then: R17–R19, R23 ×2, R26 ("one path" claimed, not checked). R45 adds one: "equal skeletons" held clause *token* count equal and left *character* length free — a pet_care length rule read 90%. R47 adds another: the R45 length gate tested characters and missed an *-er* suffix rule at 90%. R55 adds one (commented on #56): a check over "every random-marker family" listed three by hand where the code's own table had five. R71 adds one: a gate over "letter counts" tested each letter alone; a weighted combination reads held-out `street_cleaning` at 100%. |
 | A check that asks the subject to perform tests its ability too | R51's preflight asked a model to repeat a word to prove a system turn arrived; a 1B model that receives the turn failed 4 of 7 (R53). The first fix compared against no system turn and was confounded by a template default. A property check should measure the property (here, prompt length) rather than a behaviour that depends on it. | **candidate** — one instance, two steps. |
 | The audit cadence is never prompted | R28 ran the only loop audit until R52; §C's every-fifth-round and two-non-`nothing` triggers fired at R32-R33, R33, R36-R37, R38, R43 and R48 and no round noticed. Nothing in the round steps checks the cadence. | **filed — [issue #60](https://github.com/max-friedman/agentic-coding-loop/issues/60)** (R56), as a resubmission of the rejected #21 (another project, same cause) with the blast-radius section #21 lacked: a due marker plus an explicit defer. Locally, `**Loop audit due:**` in Current status, as #21's project did. |
 | A session stopped on a condition LOOP.md does not list | R31's report ended the loop saying every remaining item needed the owner or big compute; three did not (one was ten minutes of docs). The owner had to ask why. | **candidate** — one instance. Check LOOP.md's continuous-operation stop list first. |

@@ -361,15 +361,14 @@ def _letters(clause: str) -> Counter:
     return Counter(ch for ch in clause.lower() if ch.isalpha())
 
 
-def test_no_single_letter_count_reads_the_label_on_both_splits():
-    """R47's second review found "fewer e's" at 70% dev / 83% test on home_security;
-    R52 found vowels. Here every letter a-z is checked: "speak iff the swept street's
-    clause has more of letter x" may not reach 70% (or fall to 30%) on dev and test
-    both. Frame-determined, so the shipped splits are the whole reading."""
+def _letter_leaks(*splits) -> list[tuple[str, list[float]]]:
+    """Letters whose "speak iff the swept street's clause has more of it" reads 70% or
+    more (or 30% or less), the same way, on every split given."""
+    leaks = []
     for letter in "abcdefghijklmnopqrstuvwxyz":
         readings = []
-        for split in ("dev", "test"):
-            score_, items = 0.0, [i for i in load("v6", split) if i.moment.family == FAMILY]
+        for split_items in splits:
+            score_, items = 0.0, [i for i in split_items if i.moment.family == FAMILY]
             for item in items:
                 swept = _SWEPT_STREET.search(item.moment.signals[0].content).group(1)
                 clauses = [
@@ -382,8 +381,51 @@ def test_no_single_letter_count_reads_the_label_on_both_splits():
                 score_ += 0.5 if fm == fo else float((fm > fo) == item.label.should_surface)
             readings.append(score_ / len(items))
         exploit = [0.5 + abs(r - 0.5) for r in readings]
-        same_sign = (readings[0] - 0.5) * (readings[1] - 0.5) > 0
-        assert not (same_sign and min(exploit) >= 0.7), (letter, readings)
+        same_sign = all((r - 0.5) * (readings[0] - 0.5) > 0 for r in readings)
+        if same_sign and min(exploit) >= 0.7:
+            leaks.append((letter, readings))
+    return leaks
+
+
+def test_no_single_letter_count_reads_the_label_on_both_splits():
+    """R47's second review found "fewer e's" at 70% dev / 83% test on home_security;
+    R52 found vowels. Here every letter a-z is checked: "speak iff the swept street's
+    clause has more of letter x" may not reach 70% (or fall to 30%) on dev and test
+    both. Frame-determined, so the shipped splits are the whole reading. It checks one
+    letter at a time; a weighted combination of letters is not covered (DATASET.md,
+    experiments/letter_bag_probe.py)."""
+    assert _letter_leaks(load("v6", "dev"), load("v6", "test")) == []
+
+
+def test_the_single_letter_gate_would_catch_a_lean(monkeypatch):
+    """R71 review: the gate had never been shown able to fail. Add a "z" to every
+    privileged clause and it must name that letter."""
+    padded = [(a.replace(" {who}", "z {who}"), b) for a, b in ALL_FRAMES[FAMILY]]
+    monkeypatch.setitem(LATER_FRAMES, FAMILY, padded)
+    items = generate(PAIRS, SEED, families=FAMILIES)
+    assert "z" in [letter for letter, _ in _letter_leaks(items, items)]
+
+
+def test_the_letter_bag_figures_stated_in_the_docs():
+    """The R71 review's letter-combination finding, pinned against DATASET.md."""
+    import letter_bag_probe as bag
+
+    doc = " ".join((Path(__file__).parent.parent / "docs" / "DATASET.md").read_text().split())
+    figures = {f: bag.measure(f) for f in bag.FAMILIES}
+    for family, (_, lofo) in figures.items():
+        assert len(lofo) == 8, family
+    acc, lofo = figures["street_cleaning"]
+    hits = sum(a > 0.5 for a in lofo)
+    assert f"held-out test at **{acc:.1%}**" in doc and acc == 1.0
+    assert f"over all eight reads **{sum(lofo) / 8:.1%}** ({hits} of 8 frames above half)" in doc
+    acc, lofo = figures["home_security"]
+    hits = sum(a > 0.5 for a in lofo)
+    assert (
+        f"reads **{acc:.1%}** dev→test and **{sum(lofo) / 8:.1%}** "
+        f"leaving one frame out ({hits} of 8)" in doc
+    )
+    acc, lofo = figures["water_notice"]
+    assert f"it reads **{acc:.1%}** and **{sum(lofo) / 8:.1%}**" in doc
 
 
 def test_the_positional_figures_stated_in_the_docs():
