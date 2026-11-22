@@ -57,6 +57,10 @@
       "rubric": 1109.1
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 632.5,
+        "rubric": 607.1
+      },
       "v2": {
         "naive": null,
         "rubric": null
@@ -261,6 +265,10 @@
       "rubric": null
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 2981.4,
+        "rubric": 3135.4
+      },
       "v2": {
         "naive": null,
         "rubric": null
@@ -447,6 +455,10 @@
       "rubric": 1544.0
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 776.7,
+        "rubric": 775.4
+      },
       "v2": {
         "naive": 2806.9,
         "rubric": 2807.2
