@@ -1,14 +1,15 @@
 """Where the random marker sits in the decider, for every random-marker family. Round 55.
 
-Five families draw their marker at random -- the gate boarding moved away from, the
+Six families draw their marker at random -- the gate boarding moved away from, the
 item whose return window closes, the pet that skipped a meal, the zone with motion, the
-district under a boil-water notice -- so the token-positional probe cannot see which
-clause names it (R52 review). The check that can: read the marker from the body, as
-the skyline does, and ask whether the first decider clause names it. Within each label
-that must hold exactly half the time, so "speak iff the marker is named first" reads
-exactly 50%. R52 gated this for `water_notice`; here it covers all five, on every
-version that carries them. v1 fails it for `travel` and `commerce`, as it fails cell
-balance (R36's strict xfail): 20 pairs over 8 frames leave dev 9:5 by order.
+district under a boil-water notice, and (v6) the street swept tomorrow -- so the
+token-positional probe cannot see which clause names it (R52 review). The check that
+can: read the marker from the body, as the skyline does, and ask whether the first
+decider clause names it. Within each label that must hold exactly half the time, so
+"speak iff the marker is named first" reads exactly 50%. R52 gated this for
+`water_notice`; here it covers all of them, on every version that carries them. v1
+fails it for `travel` and `commerce`, as it fails cell balance (R36's strict xfail):
+20 pairs over 8 frames leave dev 9:5 by order.
 
 This is the privileged-first fraction read through the marker, so it is the same order
 property cell balance tests, made exact. It holds on the committed builds (32 pairs
@@ -28,6 +29,7 @@ from tactbench.policies.skyline import (
     _MOTION_ZONE,
     _RETURN_ITEM,
     _SKIPPED_PET,
+    _SWEPT_STREET,
 )
 
 #: The body regex the skyline reads each marker with; the first non-empty group.
@@ -37,10 +39,18 @@ MARKERS = {
     "pet_care": _SKIPPED_PET,
     "home_security": _MOTION_ZONE,
     "water_notice": _BOIL_DISTRICT,
+    "street_cleaning": _SWEPT_STREET,
 }
 #: First version carrying each family; every later version carries it unchanged.
-SINCE = {"travel": 1, "commerce": 1, "pet_care": 3, "home_security": 4, "water_notice": 5}
-LATEST = 5
+SINCE = {
+    "travel": 1,
+    "commerce": 1,
+    "pet_care": 3,
+    "home_security": 4,
+    "water_notice": 5,
+    "street_cleaning": 6,
+}
+LATEST = 6
 V1_IMBALANCE = pytest.mark.xfail(
     strict=True, reason="R36: v1's 20 pairs over 8 frames leave dev 9:5 by clause order"
 )
@@ -101,4 +111,4 @@ def test_the_order_check_would_catch_a_fixed_order(family, monkeypatch):
         return original(self, frame, rng, idx - idx % (2 * len(self.frames)))
 
     monkeypatch.setattr(Scenario, "render_frame", privileged_first)
-    assert order_rule(generate(32, 20260726, families=12), family) == 1.0
+    assert order_rule(generate(32, 20260726, families=13), family) == 1.0

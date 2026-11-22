@@ -22,7 +22,12 @@ from __future__ import annotations
 
 from tactbench.dataset.generate import ALL_FRAMES, HELD_OUT_FRAMES, WHO
 from tactbench.dataset.loader import load
-from tactbench.policies.skyline import _BOIL_DISTRICT, _MOTION_ZONE, _SKIPPED_PET
+from tactbench.policies.skyline import (
+    _BOIL_DISTRICT,
+    _MOTION_ZONE,
+    _SKIPPED_PET,
+    _SWEPT_STREET,
+)
 from tactbench.schema import Item
 
 
@@ -54,6 +59,8 @@ def _marker(item: Item) -> str:
         return _MOTION_ZONE.search(body).group(1)
     if item.moment.family == "water_notice":
         return _BOIL_DISTRICT.search(body).group(1)
+    if item.moment.family == "street_cleaning":
+        return _SWEPT_STREET.search(body).group(1)
     return next(g for g in _SKIPPED_PET.search(body).groups() if g)
 
 

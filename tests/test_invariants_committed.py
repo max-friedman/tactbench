@@ -31,7 +31,7 @@ def _pairs(items):
 
 
 def test_every_committed_split_is_listed():
-    assert len(SPLITS) == 11
+    assert len(SPLITS) == 13
 
 
 @pytest.mark.parametrize(("version", "split"), SPLITS)

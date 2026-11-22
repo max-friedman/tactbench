@@ -215,7 +215,7 @@ def audit_pairwise(version: str, seed: int = 0) -> dict:
 
 
 def main(argv: list[str]) -> None:
-    versions = [a for a in argv if not a.startswith("--")] or ["v2", "v3", "v4", "v5"]
+    versions = [a for a in argv if not a.startswith("--")] or ["v2", "v3", "v4", "v5", "v6"]
     results = [audit(v) for v in versions]
     if "--control" in argv:
         results += [audit(v, control=True) for v in versions]
