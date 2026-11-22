@@ -311,6 +311,10 @@
     "temperature": 0,
     "threads": 4,
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 650.8,
+        "rubric": 681.0
+      },
       "v4": {
         "naive": 3101.9,
         "rubric": 3050.3
