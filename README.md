@@ -981,6 +981,18 @@ model, and every old-family decision is checked equal to v7's.
 | `llm:naive:qwen2.5-0.5b` | 1249.0 | −64.3 | −115.3 | 0.496 | 0.937 | 0.384 | 40 | 566/600 | 0.3% | 5.7% |
 <!-- llm-results-v8:end -->
 
+#### On dataset v9 — a sixteenth family
+
+All 28 runs on `v9` (Round 81). v9 is v8 plus `dinner_booking` (Round 80); each run's
+fifteen old families are v8's decisions, checked equal one by one, so only the 40 new
+dev moments were sent to a model.
+
+<!-- v9-claims:start -->
+<!-- v9-claims:end -->
+
+<!-- llm-results-v9:start -->
+<!-- llm-results-v9:end -->
+
 #### On held-out `v1/test` — phrasings no dev moment uses
 
 All 28 runs on v1's held-out split (Round 69): 108 moments whose deciders use frames
