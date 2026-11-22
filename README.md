@@ -764,6 +764,70 @@ What it shows:
 - Several models copy the template's `short_snake_case_label_or_null` placeholder
   as their intent. Intent carries no weight in ICS, so this does not move a score.
 
+#### On held-out `v1/test` — phrasings no dev moment uses
+
+All 28 runs on v1's held-out split (Round 69): 108 moments whose deciders use frames
+5-7, which appear nowhere in dev. Until this round no model had been run on a held-out
+split.
+
+<!-- v1-test-claims:start -->
+- **Dev's verdicts against silence mostly hold on phrasings dev does not use.** 22
+  runs have a row on both v1 splits (Mistral-7B, Phi-4-mini and Granite-3.3-2B were
+  added after v1 dev was run). **21** of the 22 keep their verdict against silence.
+  The exception is Gemma-3-4B naive, **−6.5** on dev and **+2.1** on test, and that
+  margin is thin: it scores 141.0 against silence's 144.0, and staying quiet on any
+  one of its 3.0-point catches would tie it with silence. Of the 231 pairs of runs,
+  **5** are reversed by ICS. Every one is Gemma-3-4B naive moving past another run:
+  four that tie silence, and Qwen2.5-3B naive. Another **8** are tied on one split
+  and ordered on the other. The best row is the same on both: Gemma-3-4B with the
+  rubric, **+16.4** on dev and **+18.1** on test.
+- **Some beat silence; none clears the pair-blind bar; none reads the decider.**
+  **7** of the 28 runs beat silence, and the best is still **−15.7** against the
+  pair-blind bar. The best `pairs` score is **14.8%**, from Llama-3.1-8B naive, a
+  run that loses to silence; a coin gets about 25%. No run is inconclusive: the
+  highest unparsed rate is **1.9%**.
+- **One dev pattern does not carry over, narrowly.** On dev no run that beats
+  silence has a hard violation. On test Gemma-3-4B naive beats silence with **4**,
+  by the same thin margin.
+- **Read the agreement narrowly.** The held-out split asks whether reading the
+  decider survives new phrasings. These models do not read it on dev, so they had
+  little to lose. Matching dev is what decisions driven by what the two splits share
+  would look like. It is not evidence that comprehension generalises.
+<!-- v1-test-claims:end -->
+
+<!-- llm-results-v1-test:start -->
+| model | ICS ↓ | vs silence | vs pair-blind | prec@int ↑ | recall-hv ↑ | ECE ↓ | hard viol. ↓ | spoke | pairs ↑ | unparsed |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `llm:rubric:gemma-3-4b` | 118.0 | +18.1 | −15.7 | 0.552 | 0.296 | 0.275 | 0 | 29/108 | 7.4% | 0.0% |
+| `llm:rubric:qwen2.5-7b` | 127.0 | +11.8 | −24.5 | 0.500 | 0.204 | 0.194 | 0 | 22/108 | 1.9% | 0.0% |
+| `llm:naive:gemma-2-2b` | 130.0 | +9.7 | −27.5 | 0.500 | 0.185 | 0.448 | 0 | 20/108 | 0.0% | 0.0% |
+| `llm:naive:llama-3.2-3b` | 130.0 | +9.7 | −27.5 | 0.500 | 0.130 | 0.300 | 0 | 14/108 | 1.9% | 0.0% |
+| `llm:rubric:gemma-2-2b` | 130.0 | +9.7 | −27.5 | 0.474 | 0.167 | 0.458 | 0 | 19/108 | 3.7% | 0.0% |
+| `llm:naive:gemma-3-4b` | 141.0 | +2.1 | −38.2 | 0.525 | 0.593 | 0.319 | 4 | 61/108 | 11.1% | 0.0% |
+| `llm:rubric:llama-3.1-8b` | 141.0 | +2.1 | −38.2 | 0.500 | 0.056 | 0.319 | 0 | 6/108 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-1.5b` | 144.0 | +0.0 | −41.2 | — | 0.000 | 0.500 | 0 | 0/108 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-3b` | 144.0 | +0.0 | −41.2 | — | 0.000 | 0.300 | 0 | 0/108 | 0.0% | 0.0% |
+| `llm:rubric:mistral-7b` | 144.0 | +0.0 | −41.2 | — | 0.000 | 0.456 | 0 | 0/108 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-1.5b` | 144.0 | +0.0 | −41.2 | — | 0.000 | 0.137 | 0 | 0/108 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-3b` | 144.0 | +0.0 | −41.2 | — | 0.000 | 0.451 | 0 | 0/108 | 0.0% | 0.0% |
+| `llm:rubric:phi-4-mini` | 145.0 | −0.7 | −42.2 | 0.000 | 0.000 | 0.256 | 0 | 1/108 | 0.0% | 0.0% |
+| `llm:naive:mistral-7b` | 155.0 | −7.6 | −52.0 | 0.500 | 0.556 | 0.349 | 6 | 60/108 | 3.7% | 0.0% |
+| `llm:naive:qwen2.5-3b` | 157.0 | −9.0 | −53.9 | 0.506 | 0.778 | 0.425 | 6 | 83/108 | 1.9% | 1.9% |
+| `llm:naive:llama-3.1-8b` | 162.0 | −12.5 | −58.8 | 0.545 | 0.444 | 0.263 | 6 | 44/108 | 14.8% | 0.0% |
+| `llm:naive:phi-3.5-mini` | 168.0 | −16.7 | −64.7 | 0.500 | 0.889 | 0.417 | 6 | 96/108 | 0.0% | 0.0% |
+| `llm:rubric:phi-3.5-mini` | 168.0 | −16.7 | −64.7 | 0.500 | 0.889 | 0.452 | 6 | 96/108 | 0.0% | 0.0% |
+| `llm:rubric:granite-3.3-2b` | 170.0 | −18.1 | −66.7 | 0.519 | 0.500 | 0.406 | 7 | 52/108 | 5.6% | 0.0% |
+| `llm:naive:qwen2.5-7b` | 173.0 | −20.1 | −69.6 | 0.500 | 0.241 | 0.204 | 6 | 26/108 | 0.0% | 0.0% |
+| `llm:naive:phi-4-mini` | 180.0 | −25.0 | −76.5 | 0.506 | 0.722 | 0.343 | 6 | 77/108 | 3.7% | 0.0% |
+| `llm:naive:granite-3.3-2b` | 264.0 | −83.3 | −158.8 | 0.500 | 0.926 | 0.404 | 12 | 100/108 | 1.9% | 0.0% |
+| `llm:naive:llama-3.2-1b` | 270.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.144 | 12 | 108/108 | 0.0% | 0.0% |
+| `llm:naive:smollm2-1.7b` | 270.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.450 | 12 | 108/108 | 0.0% | 0.0% |
+| `llm:rubric:llama-3.2-1b` | 270.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.013 | 12 | 108/108 | 0.0% | 0.0% |
+| `llm:rubric:qwen2.5-0.5b` | 270.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.461 | 12 | 108/108 | 0.0% | 0.0% |
+| `llm:rubric:smollm2-1.7b` | 270.0 | −87.5 | −164.7 | 0.500 | 1.000 | 0.450 | 12 | 108/108 | 0.0% | 0.0% |
+| `llm:naive:qwen2.5-0.5b` | 273.0 | −89.6 | −167.6 | 0.495 | 0.981 | 0.406 | 12 | 107/108 | 0.0% | 0.9% |
+<!-- llm-results-v1-test:end -->
+
 #### On reworded moments — do decisions survive?
 
 `data/v2para/dev.jsonl` takes v2 dev's frame-0 slice — 36 pairs, 72 moments — and
@@ -909,8 +973,9 @@ benchmark:
   would: **private held-out frames** — given only the public frames, the same
   parser scores exactly what silence scores on the held-out ones. Measured in Round
   33 (`experiments/hidden_labels_probe.py`; pinned by `TestTheHeldOutSplitIsNotSecret`).
-- **The LLM results are one sample at temperature 0, on dev.** No variance across
-  seeds or prompts is reported, and no model has been run on the held-out split.
+- **The LLM results are one sample at temperature 0.** No variance across seeds or
+  prompts is reported. Only v1 has been run on its held-out split (Round 69); the
+  held-out splits of v2-v5 have not.
 
 The reference `heuristic` is restricted to structural features (user state, DND,
 signal age and source, contact metadata) and generic English lexicons. It may not

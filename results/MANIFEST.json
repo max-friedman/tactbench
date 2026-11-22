@@ -15,6 +15,10 @@
       "rubric": 877.3
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 511.9,
+        "rubric": 496.5
+      },
       "v2": {
         "naive": 1666.3,
         "rubric": 1714.4
@@ -53,6 +57,10 @@
       "rubric": 1109.1
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 632.5,
+        "rubric": 607.1
+      },
       "v2": {
         "naive": null,
         "rubric": null
@@ -87,6 +95,10 @@
     "temperature": 0,
     "threads": 4,
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 528.1,
+        "rubric": 529.3
+      },
       "v4": {
         "naive": 2206.4,
         "rubric": 2330.6
@@ -113,6 +125,10 @@
       "rubric": 1691.9
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 813.4,
+        "rubric": 826.7
+      },
       "v2": {
         "naive": 2995.9,
         "rubric": 2948.7
@@ -151,6 +167,10 @@
       "rubric": 481.5
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 165.5,
+        "rubric": 241.8
+      },
       "v2": {
         "naive": 542.4,
         "rubric": 817.4
@@ -189,6 +209,10 @@
       "rubric": 760.5
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 446.0,
+        "rubric": 488.6
+      },
       "v2": {
         "naive": 1524.1,
         "rubric": 1531.8
@@ -223,6 +247,10 @@
     "temperature": 0,
     "threads": 4,
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 832.3,
+        "rubric": 880.5
+      },
       "v4": {
         "naive": 4043.1,
         "rubric": 4335.4
@@ -249,6 +277,10 @@
       "rubric": null
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 2981.4,
+        "rubric": 3135.4
+      },
       "v2": {
         "naive": null,
         "rubric": null
@@ -283,6 +315,10 @@
     "temperature": 0,
     "threads": 4,
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 650.8,
+        "rubric": 681.0
+      },
       "v4": {
         "naive": 3101.9,
         "rubric": 3050.3
@@ -309,6 +345,10 @@
       "rubric": 457.2
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 187.7,
+        "rubric": 253.2
+      },
       "v2": {
         "naive": 675.9,
         "rubric": 905.1
@@ -347,6 +387,10 @@
       "rubric": 452.5
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 247.6,
+        "rubric": 251.7
+      },
       "v2": {
         "naive": 835.6,
         "rubric": 876.4
@@ -385,6 +429,10 @@
       "rubric": 785.0
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 464.2,
+        "rubric": 473.9
+      },
       "v2": {
         "naive": 1599.9,
         "rubric": 1606.7
@@ -423,6 +471,10 @@
       "rubric": 1544.0
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 776.7,
+        "rubric": 775.4
+      },
       "v2": {
         "naive": 2806.9,
         "rubric": 2807.2
@@ -461,6 +513,10 @@
       "rubric": 595.8
     },
     "wall_seconds_by_version": {
+      "v1-test": {
+        "naive": 306.6,
+        "rubric": 340.9
+      },
       "v2": {
         "naive": 1087.4,
         "rubric": 1124.4

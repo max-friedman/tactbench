@@ -5,6 +5,13 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 69)
+
+- **LLM results on a held-out split.** All 28 open-weight runs on `v1/test` (108
+  moments, phrasings no dev moment uses), committed in `results/v1-test/` and gated
+  like the dev tables. Dev's verdicts against silence hold for 21 of the 22 runs on
+  both splits; no run clears the pair-blind bar or reads the decider.
+
 ### Fixed (Round 62)
 
 - **The skyline solves the reworded slice.** It resolved deciders only against the
