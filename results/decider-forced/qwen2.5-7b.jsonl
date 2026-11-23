@@ -1,0 +1,15 @@
+{"moment_id": "childcare-near-0000", "family": "childcare", "options": ["collecting", "away"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 7.01}
+{"moment_id": "childcare-near-0001", "family": "childcare", "options": ["away", "collecting"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.42}
+{"moment_id": "childcare-near-0002", "family": "childcare", "options": ["collecting", "away"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.02}
+{"moment_id": "childcare-near-0003", "family": "childcare", "options": ["away", "collecting"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.67}
+{"moment_id": "childcare-near-0004", "family": "childcare", "options": ["away", "collecting"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.8}
+{"moment_id": "childcare-near-0008", "family": "childcare", "options": ["collecting", "away"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.8}
+{"moment_id": "childcare-near-0009", "family": "childcare", "options": ["away", "collecting"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.8}
+{"moment_id": "childcare-near-0010", "family": "childcare", "options": ["collecting", "away"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.77}
+{"moment_id": "childcare-near-0011", "family": "childcare", "options": ["collecting", "away"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.31}
+{"moment_id": "childcare-near-0012", "family": "childcare", "options": ["away", "collecting"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.58}
+{"moment_id": "childcare-near-0016", "family": "childcare", "options": ["away", "collecting"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.78}
+{"moment_id": "childcare-near-0017", "family": "childcare", "options": ["away", "collecting"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.64}
+{"moment_id": "childcare-near-0018", "family": "childcare", "options": ["collecting", "away"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.76}
+{"moment_id": "childcare-near-0019", "family": "childcare", "options": ["collecting", "away"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.22}
+{"moment_id": "childcare-near-0020", "family": "childcare", "options": ["collecting", "away"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.62}
