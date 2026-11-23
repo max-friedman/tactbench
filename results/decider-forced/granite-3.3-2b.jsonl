@@ -187,3 +187,10 @@
 {"moment_id": "driving-pos-0009", "family": "driving", "options": ["jammed", "clear"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.43}
 {"moment_id": "driving-pos-0010", "family": "driving", "options": ["jammed", "clear"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.37}
 {"moment_id": "driving-pos-0011", "family": "driving", "options": ["clear", "jammed"], "gold": "B", "response": "B) jammed", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.94}
+{"moment_id": "driving-pos-0012", "family": "driving", "options": ["jammed", "clear"], "gold": "A", "response": "B) clear", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.9}
+{"moment_id": "driving-pos-0016", "family": "driving", "options": ["jammed", "clear"], "gold": "A", "response": "B) clear", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.73}
+{"moment_id": "driving-pos-0017", "family": "driving", "options": ["clear", "jammed"], "gold": "B", "response": "B) jammed", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.95}
+{"moment_id": "driving-pos-0018", "family": "driving", "options": ["jammed", "clear"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.24}
+{"moment_id": "driving-pos-0019", "family": "driving", "options": ["jammed", "clear"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.55}
+{"moment_id": "driving-pos-0020", "family": "driving", "options": ["clear", "jammed"], "gold": "B", "response": "B) jammed", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.97}
+{"moment_id": "driving-pos-0024", "family": "driving", "options": ["clear", "jammed"], "gold": "B", "response": "B) jammed", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.05}
