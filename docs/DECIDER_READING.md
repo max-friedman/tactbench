@@ -490,3 +490,128 @@ and no continuity correction.
   one.
 - **Six local models of 8B and under**, the best of Round 82's fourteen. Says nothing
   about frontier models (NEEDS-MAX 1).
+
+## Round 84: forced-choice C
+
+Round 83 located the break at the composed question C but could not say what broke.
+Two confounds stood in the way. First, 19% of `mistral-7b`'s and 15% of
+`granite-3.3-2b`'s C replies did not parse, and most of those named an entity. Second,
+in 7 of 48 model-family cells at least 90% of the parsed C answers were one word,
+whatever the gold. This round asks the same C question with lettered options and a
+one-letter answer, on the same 640 moments and the same six models. The aim is to tell
+three things apart: "cannot compose", a format failure, and a word prior.
+
+Code: `experiments/decider_forced.py`. Results: `results/decider-forced/`. Gate:
+`tests/test_decider_forced.py`. Its results tests are marked strict `xfail` until the
+runs exist, so they cannot pass silently before then.
+
+### Design (Round 84)
+
+**The question.** Each family's C stem is Round 83's, word for word, with the two role
+words in the same order as the lettered options. Round 83's answer instruction is
+replaced. Every prompt is Round 82's preamble, the full rendered moment, then (for
+`dinner_booking`, with the speak word at A):
+
+<!-- decider-forced-prompt:start -->
+```
+According to the signals, is the booking for tonight's dinner unconfirmed or confirmed?
+A) unconfirmed
+B) confirmed
+Answer with one letter, A or B, and nothing else.
+```
+<!-- decider-forced-prompt:end -->
+
+The other fifteen families use their Round 83 C stem and role words (the Round 83
+questions table) in the same layout. Decoding is unchanged: greedy, 16 tokens, a single
+user turn. Prompt version `2026-11-23.2`. Nothing is seeded from Round 83's C answers;
+every model answers all 640 questions afresh.
+
+**Parsing is strict.** A reply parses only when its first non-space character is a
+capital `A` or `B` and no letter or digit follows it. So `B`, ` A.` and
+`A) unconfirmed` parse. `Answer: B`, `a`, `**A**`, `Absolutely` and a bare role word
+do not. Unparsed replies count as wrong in the decisive figure. Accuracy over parsed
+answers is also shown.
+
+**Counterbalancing.** The two sides of a pair share one option order. So their prompts
+carry the same tokens and have opposite gold letters, and any rule that reads only the
+prompt's tokens gets exactly one side of every pair right (tested). Within each family,
+the speak-side word is at A in exactly 10 of the 20 pairs. Pairs are ranked by Round 82's
+clause-order stratum, then by a `hashlib` digest, and alternate. As a result:
+
+- in every family × side cell (20 moments), the gold letter is A in exactly 10;
+- in every family (40 moments), each of the four (letter, role word) pairings is gold in
+  exactly 10;
+- "always A" and "always B" read exactly 50% in every family × side cell;
+- a constant role word reads exactly 50% in every family.
+
+**What cannot be balanced.** A constant role word cannot read 50% within a
+family × side cell. Within that cell the gold word is fixed by the label: the speak side's
+gold is always the speak word. Balancing it there would mean asking a different question
+on some items, for example about the other entity. That would change what C asks. So a
+constant word reads 100% on one side and 0% on the other. This is why the word-prior
+check below works per family (both sides pooled), and why the chain test is stratified
+by family × side.
+
+<!-- decider-forced-baselines:start -->
+| baseline | overall | per family: low / high | per family × side: low / high |
+|---|---|---|---|
+| always A | 50.0% | 50% / 50% | 50% / 50% |
+| always B | 50.0% | 50% / 50% | 50% / 50% |
+| always the speak word | 50.0% | 50% / 50% | 0% / 100% |
+| always the silent word | 50.0% | 50% / 50% | 0% / 100% |
+| role word named first in decider | 50.0% | 50% / 50% | 50% / 50% |
+<!-- decider-forced-baselines:end -->
+
+### Pre-registration (Round 84)
+
+These rules were written before any Round 84 model call. This file is committed before
+the runs start, so the order can be checked in history.
+
+- **Models.** The six from Round 83, run largest first: `llama-3.1-8b`, `qwen2.5-7b`,
+  `mistral-7b`, `gemma-3-4b`, `phi-4-mini`, `granite-3.3-2b`. 640 calls each, one per
+  moment.
+- **The decisive figure.** C_fc is the share of the 320 moments in the **eight
+  two-entity families** whose reply parses to the gold letter. Unparsed replies count as
+  wrong.
+- **Rule 1: C_fc high.** C_fc is *high* when it is **at least 70%** (224 of 320) and
+  above chance by an exact one-sided binomial test, Holm across the six models. Holm's
+  first step needs **182 of 320** (p = 0.0080), so the 70% bar is the binding one. A
+  model whose true C_fc is 75% reaches 224 98.2% of the time. At a true 72% it reaches
+  80.6%, at a true 70% 52.8%, and at a true 65% 3.3%. C_fc is *below 60%* under
+  **192 of 320**. A true 55% stays below that 96.0% of the time, a true 57% 84.8%, a
+  true 60% 47.6% and a true 65% 2.7%.
+- **Rule 2: the word-prior check.** In each two-entity family, take the parsed answers
+  and find the share naming the speak word. The family is a *word prior* when that
+  share is **at least 90% or at most 10%**. A model passes the check when **no more
+  than 1** of its 8 two-entity families is a word prior. A family with no parsed answers
+  counts as no prior. Because each family's gold is half each word, a model that
+  answers every question right says each word exactly half the time. And a word-prior
+  family caps that family's accuracy at 40% to 60% when all its answers parse. With no
+  lean, a family of 40 parsed answers is flagged with probability 1.9e-07. With a true
+  90% lean it is flagged 62.9% of the time, and with a true 75% lean 1.6%.
+- **Rule 3: the chain test.** Per model, on the two-entity moments: is C_fc more often
+  right when Round 83's R and J answers (as recorded) were both right? This is a
+  **Mantel–Haenszel** test stratified by **family × side** (16 strata), with **no
+  continuity correction**, matching Round 83's non-decisive figures. It is one-sided
+  at 0.05, with **Holm across the six models**. Strata with a zero margin are skipped.
+  For power, take 220 items with R and J both right and 100 not, C_fc at 50% on the
+  rest, and an unstratified approximation. A 15-point difference is then detected
+  81.3% of the time at 0.05, and 55.8% at Holm's first step (0.05/6). A 10-point
+  difference is detected 51.2% and 23.7% of the time. Rule 3 is reported beside each
+  reading and does not change it.
+- **Readings per model**, checked in this order:
+  1. The word-prior check fails: **word prior**.
+  2. C_fc high: **composes when the format is fixed**. Round 83's break was format.
+  3. C_fc below 60%: **break is composition**.
+  4. Anything else: **unresolved**, reported with its numbers.
+- **Stopping criterion for queue AD.** If **4 or more** of the six models read *break is
+  composition*, AD closes as **composition**. Otherwise it closes by the majority. If
+  more than half (4 or more) read *composes when the format is fixed*, it closes as
+  **format**. If not, it closes as **located at C, cause unresolved**. Either way, the
+  chain-probe line (Rounds 82-84) ends here unless the owner reopens it.
+- **Also reported, not decisive.** Unparsed counts. C_fc over parsed answers. The
+  share of parsed answers that are A. C_fc over all 16 families. Per-family counts.
+
+### Results (Round 84)
+
+Not yet run.
