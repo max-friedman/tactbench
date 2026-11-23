@@ -105,6 +105,46 @@ right on both sides, where a coin gets about 25%. So the runs that beat silence 
 without telling the two sides of a pair apart. Hosted frontier
 models have not been run (see [limitations](#honest-limitations)).
 
+### Can the models read the decider at all?
+
+No run tells the two sides of a pair apart, which leaves two explanations: the models
+cannot *read* the decider (which entity holds which role), or they read it and do not
+*use* it. Round 82 asked each model the reading question directly, with no interruption
+decision involved. It used one side of each v9 dev pair, so 320 two-option questions
+such as *"According to the last signal, which restaurant's booking is confirmed: Marzano
+or Corvino?"*, asked after the moment's full context. The option order is
+counterbalanced, so answering the first option, or the entity named first, scores
+exactly 50%. The rules were pre-registered. A model *reads* a family at a
+Holm-corrected one-sided exact binomial p < 0.05 over its 20 questions.
+
+<!-- decider-reading-findings:start -->
+**11 of 14** models answer above chance overall (exact one-sided binomial p < 0.05), at **60.3% to 78.8%**; the other 3 sit at 50.3% to 51.6%. No model reads the 9 or more families (b) needed: the most is **7 of 16** (`llama-3.1-8b`). By the pre-registered rule, **10** models support (a), **4** support neither, and **0** support (b).
+
+That verdict is weaker than it looks. The family test misses partial reading: its first Holm step needs 17 of 20, which a family read at a true 75% reaches only 22.5% of the time. *Exploratory, not pre-registered:* if a model's decisions followed its reading (and it read the body right), with errors independent across a pair's two sides, it would get both sides right about accuracy² of the time. For the 11 above-chance models that is 36.4% to 62.0%; their best pairs-both-right on v9 is 0.3% to 9.4%.
+<!-- decider-reading-findings:end -->
+
+<!-- decider-reading:start -->
+| model | right | accuracy | p (one-sided) | unparsed | families read | best pairs-both-right on v9 | verdict |
+|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 252/320 | 78.8% | <0.0001 | 0 | 7 of 16 | 9.4% | neither |
+| `qwen2.5-7b` | 235/320 | 73.4% | <0.0001 | 0 | 4 of 16 | 2.8% | neither |
+| `mistral-7b` | 222/320 | 69.4% | <0.0001 | 1 | 1 of 16 | 4.4% | (a) |
+| `gemma-3-4b` | 228/320 | 71.2% | <0.0001 | 1 | 4 of 16 | 4.7% | neither |
+| `phi-3.5-mini` | 222/320 | 69.4% | <0.0001 | 3 | 1 of 16 | 0.3% | (a) |
+| `phi-4-mini` | 226/320 | 70.6% | <0.0001 | 0 | 4 of 16 | 1.9% | neither |
+| `qwen2.5-3b` | 215/320 | 67.2% | <0.0001 | 0 | 2 of 16 | 4.1% | (a) |
+| `llama-3.2-3b` | 202/320 | 63.1% | <0.0001 | 6 | 1 of 16 | 1.9% | (a) |
+| `gemma-2-2b` | 193/320 | 60.3% | 0.0001 | 10 | 1 of 16 | 3.1% | (a) |
+| `granite-3.3-2b` | 222/320 | 69.4% | <0.0001 | 0 | 1 of 16 | 8.1% | (a) |
+| `smollm2-1.7b` | 165/320 | 51.6% | 0.3075 | 1 | 0 of 16 | 3.1% | (a) |
+| `qwen2.5-1.5b` | 197/320 | 61.6% | <0.0001 | 0 | 1 of 16 | 0.3% | (a) |
+| `llama-3.2-1b` | 165/320 | 51.6% | 0.3075 | 1 | 0 of 16 | 0.0% | (a) |
+| `qwen2.5-0.5b` | 161/320 | 50.3% | 0.4777 | 0 | 0 of 16 | 0.3% | (a) |
+<!-- decider-reading:end -->
+
+The questions, prompt, pre-registration and the per-model x per-family table are in
+[docs/DECIDER_READING.md](docs/DECIDER_READING.md).
+
 ### How good does a system have to be?
 
 The leaderboard shows chance-precision policies losing to silence and a perfect

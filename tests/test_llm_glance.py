@@ -19,7 +19,8 @@ def _block() -> str:
 
 
 def test_every_committed_split_is_a_row():
-    on_disk = {d.name for d in RESULTS_DIR.iterdir() if d.is_dir()}
+    # Round 82: results/decider-reading/ holds a reading probe, not a split's runs.
+    on_disk = {d.name for d in RESULTS_DIR.iterdir() if d.is_dir() and d.name != "decider-reading"}
     listed = {f"{v}-{s}" for v, s in llm_glance.SPLITS}
     assert listed == on_disk
 
