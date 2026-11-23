@@ -5,6 +5,15 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 84)
+
+- **Forced-choice C** (`experiments/decider_forced.py`). R83's composed question asked
+  again as a counterbalanced A/B choice on the same six models, under rules committed
+  before any call. Every reply parsed; C is 52-55% for all six; five models read *word
+  prior* and one *letter prior*, so the item closes as word prior by its pre-registered
+  stopping criterion. Parse failure is ruled out as R83's cause; composition is neither
+  shown nor excluded.
+
 ### Added (Round 83)
 
 - **Where the chain breaks** (`experiments/decider_chain.py`, `docs/DECIDER_READING.md`).

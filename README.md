@@ -204,9 +204,10 @@ Pooled over the eight two-entity families (n = 320), the 6 models answer the for
 | `granite-3.3-2b` | 170/320 (53.1%, p 0.1441) | 0 | 170/320 (53.1%) | 47% | 4: `home_security` 1.00, `pet_care` 0.07, `street_cleaning` 0.00, `travel` 0.03 | 0: none | no | 1.09 (0.4148) | no | word prior | 54.5% |
 <!-- decider-forced-summary:end -->
 
-Every reply parsed, and C stayed near chance: Round 83's break at C was not a format
+Every reply parsed, and C stayed near chance: Round 83's break at C was not a parse
 failure. Five of six models read *word prior* and one *letter prior*, so the
-pre-registered outcome is a word prior, not composition. Whether the priors displace a
+pre-registered outcome is *word prior* rather than the *break is composition* reading;
+the prior pre-empts that reading by rule. Whether the priors displace a
 composition the models made, or stand in for one they never made, these rules cannot
 say; the chain-probe line ends here unless reopened.
 Pre-registration, power and the comparison with Round 83:

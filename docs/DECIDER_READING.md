@@ -503,7 +503,8 @@ three things apart: "cannot compose", a format failure, and a word prior.
 
 Code: `experiments/decider_forced.py`. Results: `results/decider-forced/`. Gate:
 `tests/test_decider_forced.py`. Its results tests are marked strict `xfail` until the
-runs exist, so they cannot pass silently before then.
+runs exist, so they cannot pass silently before then (removed after the runs; see
+Results).
 
 ### Design (Round 84)
 
@@ -698,21 +699,32 @@ per model, the two-entity families flagged under either prior.
   guard, and none has C_fc high. By the stopping criterion, a reading shared by 4 or more
   models closes queue AD as that reading: AD closes as **word prior**, and the
   chain-probe line ends here unless the owner reopens it.
-- **Format is ruled out as the cause.** No reply failed the strict letter parse.
+- **Parse failure is ruled out as the cause.** No reply failed the strict letter parse.
   `mistral-7b` and `granite-3.3-2b`, whose free-text C was below 50% because of parse
   failures, rise to the others' level, and that level is still near chance (52.2% to
-  55.3%). Round 83's break at C was not a format failure.
+  55.3%). Over parsed answers their free-text C was already 55.4% and 52.0%. Round 83's
+  break at C was not a parse failure. The format itself is not ruled out: answers change
+  between formats on 27% to 47% of moments (below), and `llama-3.1-8b`'s letter prior
+  (it says `A` only 12% of the time) is an effect of the letter layout, so its
+  forced-choice run is format-confounded.
 - **Composition is not shown either, because the priors take its place.** In a
   word-prior family a model gives the same role word whatever the moment says, for
   example `new` for the passenger's gate, or `previous` for the swept street. That is
   consistent with not composing and falling back on the more plausible word, but the
   rule cannot tell that apart from a preference that overrides a composition the model
-  did make. In the families with no prior, C_fc is still only 53.1% to 58.0%.
+  did make. In the families with no prior, C_fc is still only 53.1% to 58.0%. That
+  figure selects on the answers (a word-prior family is held near 40% to 60% by
+  construction, so dropping them is not neutral); its highest is `gemma-3-4b`'s 116/200
+  (p 0.014, uncorrected).
 - **The chain test holds for no model.** C_fc is not measurably more often right when
   Round 83's R and J were both right (Mantel–Haenszel, one-sided, Holm). The best odds
   ratio is `phi-4-mini`'s 1.60 (p = 0.085), against 2.77 on Round 83's free-text C.
 - **The two formats disagree often.** Where both parsed, a model's C answer names a
   different role word under letters than under free text on 27% to 47% of the moments.
   An answer driven by the composed fact should not change with the answer format.
+- **The prior flag is conservative.** At 90% or more of one word (or letter), a true
+  75% lean is flagged only 1.6% of the time, so a model with a moderate lean in every
+  family could pass both prior checks and read *break is composition*. That had no
+  effect here: every model was flagged.
 - **Six local models of 8B and under**, one C wording per family. Says nothing about
   frontier models (NEEDS-MAX 1).
