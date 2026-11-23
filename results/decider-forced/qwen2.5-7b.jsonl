@@ -575,3 +575,7 @@
 {"moment_id": "travel-near-0020", "family": "travel", "options": ["old", "new"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.64}
 {"moment_id": "travel-near-0024", "family": "travel", "options": ["new", "old"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.33}
 {"moment_id": "travel-near-0025", "family": "travel", "options": ["old", "new"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.52}
+{"moment_id": "travel-near-0026", "family": "travel", "options": ["new", "old"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.78}
+{"moment_id": "travel-near-0027", "family": "travel", "options": ["old", "new"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.89}
+{"moment_id": "travel-near-0028", "family": "travel", "options": ["new", "old"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.85}
+{"moment_id": "travel-pos-0000", "family": "travel", "options": ["old", "new"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.82}
