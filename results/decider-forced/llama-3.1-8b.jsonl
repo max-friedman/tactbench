@@ -323,3 +323,5 @@
 {"moment_id": "meeting_prep-near-0002", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.88}
 {"moment_id": "meeting_prep-near-0003", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.04}
 {"moment_id": "meeting_prep-near-0004", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.95}
+{"moment_id": "meeting_prep-near-0008", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.15}
+{"moment_id": "meeting_prep-near-0009", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.18}
