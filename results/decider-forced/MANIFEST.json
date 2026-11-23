@@ -11,6 +11,18 @@
     "temperature": 0,
     "threads": 4
   },
+  "mistral-7b": {
+    "call_seconds": 2857.8,
+    "file": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+    "hf_repo": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
+    "max_tokens": 16,
+    "n_ctx": 2048,
+    "prompt_version": "2026-11-23.2",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "1270d22c0fbb3d092fb725d4d96c457b7b687a5f5a715abe1e818da303e562b6",
+    "temperature": 0,
+    "threads": 4
+  },
   "qwen2.5-7b": {
     "call_seconds": 2736.7,
     "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
