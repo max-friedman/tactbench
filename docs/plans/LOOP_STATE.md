@@ -17,7 +17,7 @@ findings** below.
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67, R72 and R77 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 82 complete — asked directly, 11 of 14 models read the decider above chance (60-79%), yet decisions are no more often right when they do (queue AB; AC next: the join); loop audit paused item 8. R81: all 28 LLM runs on `v9`; on `dinner_booking` the best reads 3 of 20 pairs with 4 backwards, nothing else moves (queue AA). R80: dataset `v9`, a sixteenth family (`dinner_booking`); review replaced ambiguous frames; char n-gram probe trains longer only when it cannot fit dev (queue AA: LLM runs on v9). R79: an at-a-glance LLM table (one row per split, ten splits) at the top of the README, generated and gated exactly. R78: negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 83 complete — where the chain breaks: six models find the relevant entity (J 88-98%) and read the role (R 68-78%), but answer the composed question at 44-57%; 4 meet the pre-registered composition reading, 2 unresolved; review showed parse failures and per-family word priors account for part of C, so the break is located at the C question, not shown to be composition (queue AC done; AD next: forced-choice C). asked directly, 11 of 14 models read the decider above chance (60-79%), yet decisions are no more often right when they do (queue AB; AC next: the join); loop audit paused item 8. R81: all 28 LLM runs on `v9`; on `dinner_booking` the best reads 3 of 20 pairs with 4 backwards, nothing else moves (queue AA). R80: dataset `v9`, a sixteenth family (`dinner_booking`); review replaced ambiguous frames; char n-gram probe trains longer only when it cannot fit dev (queue AA: LLM runs on v9). R79: an at-a-glance LLM table (one row per split, ten splits) at the top of the README, generated and gated exactly. R78: negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **2320 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **2357 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -341,12 +341,18 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
-AC. **Can the models join the role to the body?** (new, R82). The reading probe asked
-   which entity holds the decider's role; the decision also needs which entity the body
-   makes relevant (e.g. which restaurant is tonight's). Ask that second question the same
-   way (one side per pair, counterbalanced), then the composed question ("should the
-   user be told?" restated as which-entity), to locate where the chain breaks. Raise per
-   family n (both sides per pair) so the per-family test has power; state the power first.
+AD. **Forced-choice C** (new, R83). R83's composed question was free text; 19% of
+   mistral's and 15% of granite's C answers did not parse (most named an entity, i.e.
+   answered J), and 7 of 48 model-family cells answer C with one word ≥90% of the time.
+   Re-ask C as lettered options, counterbalanced so option position and word identity
+   are each 50% gold within family×side, on the same six models; pre-register a
+   word-prior check (per-family share) and the stratified (Mantel–Haenszel) chain test
+   as decisive. Stopping criterion: this is the last chain-probe round unless C on
+   forced choice still reads within 60% for ≥4 models *and* the word-prior check passes,
+   in which case the break is composition and the item closes; otherwise it closes as
+   'located at C, cause unresolved'. ~6h compute.
+
+AC. **Join and composition — DONE in R83.** Break located at the C question.
 
 AB. **Decider reading — DONE in R82.** Asked directly, 11 of 14 models read it above chance.
 
@@ -4079,6 +4085,38 @@ drafted, not filed (a new issue needs the owner to see the text). No other step 
 no unnamed ending state, no late stop condition.
 
 **Loop:** one candidate (open-ended items defeat the empty-queue stop). Next audit due R87.
+
+---
+
+## Round 83 — where does the chain break?
+
+**Ending state: `shipped`.** Queue item AC. **Question:** R82 found the models partly
+read the decider but their decisions do not follow; which step fails — finding the
+relevant entity (J), reading the role (R), or composing them (C)? **Built first and
+committed before any model call:** questions, power, thresholds and readings in
+`docs/DECIDER_READING.md` and `tests/test_decider_chain.py` (5cc829b,
+2026-11-23T01:13:46Z), which fixes R82's unverifiable ordering. 640 moments (both sides
+of every v9 dev pair), six models (the R82 readers at ≥69%), 1,600 calls each, 6h03m wall.
+
+**Result** (pooled over the eight two-entity families, n=320): J 87.8-97.8%, R
+67.5-78.4%, C 44.1-57.2% (above chance for three, uncorrected). Pre-registered
+readings: 4 composition (llama-3.1-8b, qwen2.5-7b, mistral-7b, gemma-3-4b), 2 unresolved
+(phi-4-mini and granite, R just under 70%). Pre-registered Fisher chain test holds for
+3 of 6; 2 under Holm.
+
+**Review (adversarial subagent; not §D-independent):** every figure reproduced by an
+independent script; nothing pre-registered changed after 5cc829b. Blocking: unparsed
+counts were pre-registered as reported and were not; they drive mistral's and granite's
+below-50% C (on parsed answers 55.4% and 52.0%; most unparsed replies name an entity).
+Should-fix, all done: speak-word share over parsed answers plus per-family word-prior
+cells (7 of 48 at ≥90% one word; qwen's pooled 50% averaged 1.00 and 0.03); Holm and a
+family×side Mantel–Haenszel test added as non-decisive (only phi survives the latter);
+README and docs claim narrowed from "fail at putting them together" to "break located
+at the C question, not shown to be composition as such"; findings test now binds its
+counts. Queue AD (forced-choice C) carries a stopping criterion, per R82's candidate.
+
+**Loop:** nothing new. R82's candidate (open-ended items) applied locally to AD as a
+stopping criterion; still unfiled pending the owner's sight of the text. Next audit due R87.
 
 ---
 

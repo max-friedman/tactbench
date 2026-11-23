@@ -246,3 +246,247 @@ many of the 320 moments that run spoke on.
   model and not by another is not evidence that the two differ.
 - **Fourteen local models of 8B and under, Q4_K_M, greedy.** Says nothing about
   frontier models (NEEDS-MAX 1).
+
+## Round 83: where does the chain break?
+
+Round 82 found partial reading (60-79% on the better models) and no link between a
+right reading and a right decision. The decision needs a chain of three steps:
+
+- **R, read:** which entity holds the decider's role. This is Round 82's question.
+- **J, join:** which entity the body makes relevant, e.g. that tonight's dinner is at
+  Marzano.
+- **C, compose:** the two together, e.g. that tonight's booking is unconfirmed.
+
+This round asks all three on **both sides of every v9 dev pair**, 640 moments and 40 per
+family. Code: `experiments/decider_chain.py`. Results: `results/decider-chain/`. Gate:
+`tests/test_decider_chain.py`, written before the probe existed (it failed at collection).
+
+### Design (Round 83)
+
+**R.** R is Round 82's question. On the side Round 82 asked, it is Round 82's own
+answer, which is not re-asked. On the other side, the same question is asked with the
+partner's option order reversed.
+
+**J.** J's options are the same two entities as R. Its gold is the family's *marker*,
+the entity the body makes relevant, on both sides of a pair. In **eight families the body
+names both entities**, drawn per pair from one pool. In those, J reads the body. In the
+other eight, the body names one entity or none: the relevant one is the user (`you`,
+`your route`, `your prescription`) or the one thing the body mentions (`checking`, the
+returnable item, the contract review). It is the same kind of entity on every item, so
+a constant answer can get J right there. **J high in those eight families is not
+evidence of reading the body**, and the pre-registered readings use the two-entity
+families only.
+
+**C.** C restates the decision as a fact about the relevant entity, with two *role
+words* as options. Example: "is the booking for tonight's dinner unconfirmed or
+confirmed?" The gold is the speak-side word on the speak side and the silent-side word on
+the silent side. The question names the entity only by what the body says about it, so
+answering it needs J and R together.
+
+This replaces the suggested "which entity, or 'neither'" form, for three reasons:
+
+- It keeps two options and a 50% chance, like R and J.
+- "Neither" would be the answer on every silent side. A model that hedges with "neither"
+  would then look like it composes.
+- Swapping the two role words exactly counterbalances position. With a third, fixed
+  "neither" option, position cannot be balanced.
+
+Both sides of a pair carry the same tokens and opposite C answers. Any rule that reads
+only the prompt's words, ignoring their order, therefore gets exactly one side of every
+pair right (tested). The role words appear only in the counterbalanced `{a} or {b}`
+slot, never in the question's own wording (tested).
+
+<!-- decider-chain-questions:start -->
+| family | entities the body names | J (body) | C (composed) | C options: speak / silent |
+|---|---|---|---|---|
+| `childcare` | one or none | According to the signals, which of the two is the user: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, for today's school pickup, is the user {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | collecting / away |
+| `commerce` | one or none | According to the signals, which item's return window is closing: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the item whose return window is closing {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | unopened / used |
+| `deadline` | one or none | According to the signals, which of the two is the user: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the user the {a} or the {b} person on call? Answer with one of the two, exactly as written, and nothing else. | main / backup |
+| `dinner_booking` | two | According to the signals, which restaurant is tonight's dinner at: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the booking for tonight's dinner {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | unconfirmed / confirmed |
+| `driving` | one or none | According to the signals, which road is the user's own: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the user's own route {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | jammed / clear |
+| `finance` | one or none | According to the signals, which account does the card autopay draw from tonight: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the account the card autopay draws from tonight {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | underfunded / covered |
+| `health` | one or none | According to the signals, which prescription is the user's own: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the user's own prescription {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | uncollected / collected |
+| `home_security` | two | According to the signals, where has the camera seen motion: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, at the place where the camera has seen motion, is a worker {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | unexpected / expected |
+| `meeting_prep` | one or none | According to the signals, which meeting is the revised vendor contract for: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the meeting the revised vendor contract is for {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | upcoming / started |
+| `pet_care` | two | According to the signals, which pet left its breakfast uneaten: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the pet that left its breakfast uneaten {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | fragile / healthy |
+| `photo_backup` | two | According to the signals, which album is deleted at midnight: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, when the album deleted at midnight goes, are its photos {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | lost / saved |
+| `quiet_hours` | one or none | According to the signals, which of the two is the user: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the user {a} or {b} from the hospital tonight? Answer with one of the two, exactly as written, and nothing else. | near / far |
+| `river_swim` | two | According to the signals, where is the sewage overflow: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the sewage overflow {a} or {b} of the club's swim? Answer with one of the two, exactly as written, and nothing else. | upstream / downstream |
+| `street_cleaning` | two | According to the signals, which street is swept at 7am tomorrow: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the street swept at 7am tomorrow the car's {a} or {b} spot? Answer with one of the two, exactly as written, and nothing else. | current / previous |
+| `travel` | two | According to the signals, which gate did the flight's gate change move away from: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the passenger right now at the {a} or the {b} gate? Answer with one of the two, exactly as written, and nothing else. | old / new |
+| `water_notice` | two | According to the signals, which district is under the boil-water notice: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the district under the boil-water notice the user's {a} or {b} home? Answer with one of the two, exactly as written, and nothing else. | current / former |
+<!-- decider-chain-questions:end -->
+
+Each question follows the moment's full rendered context and Round 82's preamble.
+Decoding is the same: greedy, 16 tokens, a single user turn, and an answer that names
+neither option or both is unparsed and scored wrong. Option order alternates in
+`hashlib` order within each (family, clause order) stratum, and a pair's two sides take
+opposite orders. So in every family the first option and the entity (or role word) named
+first in the decider each answer exactly 20 of the 40 questions of each kind (tested).
+*First-named in body* is not controlled. The body's own phrasings place the entities, and
+`travel` always names the old gate first.
+
+<!-- decider-chain-baselines:start -->
+| question | baseline | overall | lowest family | highest family |
+|---|---|---|---|---|
+| R | always first option | 50.0% | 50% | 50% |
+| R | first-named in decider | 50.0% | 50% | 50% |
+| J | always first option | 50.0% | 50% | 50% |
+| J | first-named in decider | 50.0% | 50% | 50% |
+| J | first-named in body | 60.3% | 30% | 100% |
+| C | always first option | 50.0% | 50% | 50% |
+| C | first-named in decider | 50.0% | 50% | 50% |
+| C | always the speak word | 50.0% | 50% | 50% |
+<!-- decider-chain-baselines:end -->
+
+### Pre-registration (Round 83)
+
+These rules were written before any Round 83 model call, and this file is committed
+before the runs start, so the order can be checked in history.
+
+- **Models.** These are the six with Round 82 accuracy of at least 69%: `llama-3.1-8b`,
+  `qwen2.5-7b`, `mistral-7b`, `gemma-3-4b`, `phi-4-mini` and `granite-3.3-2b`. They run
+  largest first. If the timing of the first model puts the total far past about 6 hours,
+  the smallest are dropped and named.
+- **Power.** Each model is tested per family on each of R, J and C, with n = 40, a
+  one-sided exact binomial and Holm across 16 families. The first Holm step needs
+  **30 of 40** (p = 0.0011), and a family read at a true 75% reaches it
+  58.4% of the time. A later step at p ≤ 0.05/8 needs **29 of 40**, which a true 75%
+  reaches 71.5% of the time. Per-family counts are reported but do not decide the
+  readings. The pooled figures below do.
+- **Pooled accuracy.** Each model's R, J and C accuracy is pooled over the **eight
+  two-entity families** (n = 320 per question). A step is *high* at **at least
+  70%** and *low* **below 60%**. The readings are checked in this
+  order:
+  1. J low: a **break in finding the relevant entity**.
+  2. Otherwise R low: a **break in reading the decider**.
+  3. R and J high but C low: a **break in composition**.
+  4. R, J and C all high: **no break before the decision**. The failure is in using the
+     composed fact to decide.
+  5. Anything else is **unresolved** and reported with its numbers.
+- **Per-item chain test.** On the two-entity items, compare
+  P(C right | R right and J right) against P(C right | otherwise) with a one-sided
+  **Fisher** exact test, p < 0.05 per model. If composition uses the two steps, C should
+  be right more often when both are right.
+- **Also reported, not decisive.** R, J and C over all 16 families; per-family counts
+  with the Holm marks; unparsed counts.
+
+### Results (Round 83)
+
+Run in Round 83, after the pre-registration above was committed (5cc829b): all six
+models, largest first, one llama.cpp server per model on 4 CPU threads, calls ordered
+moment by moment so the server reuses the shared prompt prefix. The calls took
+21,602 seconds in total (`call_seconds` per model in
+`results/decider-chain/MANIFEST.json`); wall time was about 6 h 03 min.
+
+<!-- decider-chain-findings:start -->
+Pooled over the eight two-entity families (n = 320 per question), the 6 models answer J at **87.8% to 97.8%** and R at **67.5% to 78.4%**. C is **44.1% to 57.2%**: above chance for 3 (55.0% to 57.2%, uncorrected), not for the rest. Pre-registered readings: **4** composition (`llama-3.1-8b`, `qwen2.5-7b`, `mistral-7b`, `gemma-3-4b`) and **2** unresolved (`phi-4-mini`, `granite-3.3-2b`). The pre-registered per-item chain test (C more often right when R and J are both right, one-sided Fisher p < 0.05) holds for 3 of 6 (`qwen2.5-7b`, `gemma-3-4b`, `phi-4-mini`); 2 survive Holm across the 6 models (`gemma-3-4b`, `phi-4-mini`).
+
+*Not pre-registered, not decisive.* Parse failures and word priors account for part of C's shortfall. Unparsed C answers are scored wrong, and the below-50% C of `mistral-7b` (62 unparsed, 54 of them naming an entity; 55.4% on parsed answers) and `granite-3.3-2b` (49 unparsed, 42 of them naming an entity; 52.0% on parsed answers) comes entirely from them. In 7 of the 48 model-family cells, at least 90% of parsed C answers are one word whatever the gold: a word prior. Stratified by family and side (Mantel–Haenszel), the chain test's odds ratios are `qwen2.5-7b` 1.08 (p = 0.8210); `gemma-3-4b` 1.59 (p = 0.0848); `phi-4-mini` 2.77 (p = 0.0014); only `phi-4-mini` survives. So the chain breaks at the C question, but that break is not shown to be composition as such.
+<!-- decider-chain-findings:end -->
+
+**Per model**, pooled over the eight two-entity families (n = 320 per question; exact
+one-sided binomial p against 50%). *C right, R and J right* and *C right, otherwise*
+are the two rows of the per-item chain test. *C says the speak word* is the share of
+two-entity C answers naming the speak-side role word, whatever the gold: 50% is no
+lean. The last column is the same three accuracies over all 16 families (n = 640),
+where J in eight families can be answered by a constant.
+
+<!-- decider-chain-summary:start -->
+| model | R | J | C | pre-registered reading | unparsed R / J / C | C right, R and J right | C right, otherwise | Fisher p | R / J / C, all 16 |
+|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 249/320 (77.8%, p <0.0001) | 306/320 (95.6%, p <0.0001) | 176/320 (55.0%, p 0.0415) | composition | 0 / 0 / 11 | 135/237 (57%) | 41/83 (49%) | 0.1437 | 77.2% / 88.0% / 57.2% |
+| `qwen2.5-7b` | 251/320 (78.4%, p <0.0001) | 313/320 (97.8%, p <0.0001) | 183/320 (57.2%, p 0.0059) | composition | 0 / 0 / 1 | 148/245 (60%) | 35/75 (47%) | 0.0247 | 74.5% / 94.7% / 55.5% |
+| `mistral-7b` | 232/320 (72.5%, p <0.0001) | 296/320 (92.5%, p <0.0001) | 143/320 (44.7%, p 0.9749) | composition | 0 / 0 / 62 | 98/213 (46%) | 45/107 (42%) | 0.2909 | 70.8% / 82.2% / 49.8% |
+| `gemma-3-4b` | 224/320 (70.0%, p <0.0001) | 303/320 (94.7%, p <0.0001) | 181/320 (56.6%, p 0.0109) | composition | 2 / 2 / 10 | 133/214 (62%) | 48/106 (45%) | 0.0031 | 70.2% / 90.3% / 52.7% |
+| `phi-4-mini` | 220/320 (68.8%, p <0.0001) | 300/320 (93.8%, p <0.0001) | 160/320 (50.0%, p 0.5223) | unresolved | 0 / 0 / 14 | 116/206 (56%) | 44/114 (39%) | 0.0017 | 69.8% / 83.3% / 52.2% |
+| `granite-3.3-2b` | 216/320 (67.5%, p <0.0001) | 281/320 (87.8%, p <0.0001) | 141/320 (44.1%, p 0.9855) | unresolved | 0 / 0 / 49 | 80/190 (42%) | 61/130 (47%) | 0.8333 | 67.0% / 80.8% / 50.9% |
+<!-- decider-chain-summary:end -->
+
+**Checks on C** (review, not pre-registered, not decisive). *C unparsed* counts two-entity
+C replies naming neither role word or both, with how many of them name an entity
+instead. *C on parsed answers* drops those. A family counts as a word prior when at
+least 90% of its parsed C answers are one word (share of the speak word shown). The
+Fisher chain test is Holm-corrected across the six models. The Mantel–Haenszel odds
+ratio stratifies the same 2×2 by family and side (16 strata), with a two-sided CMH test
+and no continuity correction.
+
+<!-- decider-chain-checks:start -->
+| model | C unparsed (naming an entity) | C on parsed answers | C says the speak word (parsed) | two-entity families with C ≥ 90% one word | Fisher survives Holm over models | Mantel–Haenszel OR (p), family × side |
+|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 11 (11) | 176/309 (57.0%) | 33% | 3: `river_swim` 0.00, `street_cleaning` 0.00, `water_notice` 0.03 | no | 1.34 (0.4485) |
+| `qwen2.5-7b` | 1 (0) | 183/319 (57.4%) | 50% | 2: `pet_care` 1.00, `travel` 0.03 | no | 1.08 (0.8210) |
+| `mistral-7b` | 62 (54) | 143/258 (55.4%) | 36% | 0: none | no | 1.35 (0.3035) |
+| `gemma-3-4b` | 10 (2) | 181/310 (58.4%) | 46% | 0: none | yes | 1.59 (0.0848) |
+| `phi-4-mini` | 14 (11) | 160/306 (52.3%) | 72% | 1: `photo_backup` 1.00 | yes | 2.77 (0.0014) |
+| `granite-3.3-2b` | 49 (42) | 141/271 (52.0%) | 64% | 1: `home_security` 0.97 | no | 1.26 (0.4501) |
+<!-- decider-chain-checks:end -->
+
+**Per family**, number right out of 40. **Bold** means the family passes Holm across 16
+(one-sided exact binomial, p < 0.05). Column heads as in Round 82's table.
+
+<!-- decider-chain-families:start -->
+| model | q | child | comm | dead | dine | drive | fin | hlth | home | meet | pet | photo | quiet | river | street | trav | water | read |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | R | **31** | 27 | **34** | **33** | **35** | **34** | **28** | **34** | 27 | **35** | 24 | **29** | **34** | 24 | **30** | **35** | 12 |
+| `llama-3.1-8b` | J | **28** | **31** | **38** | **40** | **38** | **33** | **31** | **40** | **30** | **34** | **39** | **28** | **40** | **33** | **40** | **40** | 16 |
+| `llama-3.1-8b` | C | 23 | 20 | 25 | **30** | **32** | 22 | 25 | 24 | 21 | 18 | 21 | 22 | 20 | 20 | 22 | 21 | 2 |
+| `qwen2.5-7b` | R | **30** | 28 | **32** | **32** | 24 | **29** | 23 | **30** | **34** | **39** | 28 | 26 | 28 | 26 | **34** | **34** | 9 |
+| `qwen2.5-7b` | J | **34** | **39** | **31** | **40** | **40** | **40** | **40** | **40** | **40** | **39** | **40** | **29** | **40** | **38** | **38** | **38** | 16 |
+| `qwen2.5-7b` | C | 21 | 21 | 20 | 26 | 28 | 19 | 21 | 23 | 20 | 20 | 19 | 22 | 22 | 25 | 21 | 27 | 0 |
+| `mistral-7b` | R | **29** | 27 | **30** | **31** | 26 | 24 | 23 | **32** | **34** | **34** | 24 | 28 | 27 | 23 | **33** | 28 | 7 |
+| `mistral-7b` | J | 21 | **39** | **29** | **38** | 16 | **35** | **30** | **35** | **37** | **30** | **37** | 23 | **38** | **39** | **39** | **40** | 13 |
+| `mistral-7b` | C | 24 | 21 | 17 | 24 | 18 | 27 | 23 | 22 | 24 | 11 | 20 | 22 | 20 | 19 | 13 | 14 | 0 |
+| `gemma-3-4b` | R | 25 | **34** | 24 | **29** | **31** | **35** | 22 | **29** | 27 | **32** | 22 | 27 | 26 | 25 | **29** | **32** | 8 |
+| `gemma-3-4b` | J | 23 | **36** | **31** | **36** | **40** | **37** | **36** | **36** | **39** | **36** | **39** | **33** | **40** | **37** | **39** | **40** | 15 |
+| `gemma-3-4b` | C | 23 | 22 | 19 | 24 | 13 | 18 | 18 | 23 | 20 | 21 | 22 | 23 | 21 | 20 | 25 | 25 | 0 |
+| `phi-4-mini` | R | 28 | **31** | 24 | **30** | **36** | **32** | **31** | 26 | 20 | **32** | 24 | 25 | 24 | 21 | **31** | **32** | 8 |
+| `phi-4-mini` | J | 13 | **35** | 23 | **40** | **36** | **40** | **31** | **34** | **38** | **35** | **35** | 17 | **40** | **38** | **39** | **39** | 13 |
+| `phi-4-mini` | C | 21 | 22 | 20 | 26 | **30** | 20 | 21 | 25 | 20 | 18 | 20 | 20 | 20 | 20 | 20 | 11 | 1 |
+| `granite-3.3-2b` | R | 27 | 25 | 28 | 27 | **30** | 24 | 25 | **29** | 25 | **30** | 18 | **29** | 24 | 28 | 24 | **36** | 5 |
+| `granite-3.3-2b` | J | 26 | **37** | 23 | **38** | 26 | **40** | **39** | **35** | **36** | 27 | **35** | 9 | **40** | **40** | **28** | **38** | 11 |
+| `granite-3.3-2b` | C | 23 | 19 | 26 | 28 | **33** | 19 | 23 | 21 | 22 | 11 | 18 | 20 | 19 | 14 | 9 | 21 | 1 |
+<!-- decider-chain-families:end -->
+
+### What Round 83 does and does not show
+
+- **The break is located at the C question, not shown to be composition.** Four of six
+  models meet the pre-registered composition reading (R and J high, C low) and two are
+  unresolved. C is 44-57%, above chance for three (55-57%, uncorrected), but parse
+  failures and per-family word priors account for part of it (the checks table below). Even on the items where both R and J were
+  right, the four composition models get C right only 46-62% of the time.
+- **J is an extractive lookup.** Each J question repeats the body's own phrase ("tonight's
+  dinner", "swept at 7am tomorrow"), so a model can answer it by matching words, not
+  understanding them. Naming the entity the body mentions first scores 51.9% on the
+  two-entity families, so J is not answered by position.
+- **C also hints at J.** C names the relevant entity by its description in the body
+  ("tonight's dinner", "the street swept at 7am tomorrow"), so it points the model toward
+  the J step instead of leaving it to find it. A model still has to hold the role it read
+  and apply it to that description. C near chance is not explained by a missing J step.
+- **C answers lean, and fail to parse.** Several models favour one role word whatever the
+  gold (*C says the speak word*, over parsed answers), as their interrupt decisions favour
+  speaking or silence. In 7 of the 48 model-family cells, C is at least 90% one word:
+  a word prior that holds that family at 50% whatever the model composed.
+  `qwen2.5-7b`'s pooled 50% averages opposite extremes (`pet_care` 1.00, `travel` 0.03).
+  `mistral-7b`'s and `granite-3.3-2b`'s below-50% C comes entirely from unparsed
+  answers scored wrong: on parsed answers they are at 55.4% and 52.0%. Most of those
+  unparsed replies name an entity, answering J instead of C.
+- **The chain dependence mostly does not survive stratification.** The Fisher test
+  holds for three models. Two survive Holm across the six. Stratified by family and side
+  (Mantel–Haenszel), `qwen2.5-7b`'s dependence disappears (odds ratio 1.08), `gemma-3-4b`'s
+  weakens (1.59, p = 0.085), and only `phi-4-mini`'s survives (2.77, p = 0.0014). Some of
+  the pooled dependence comes from families and sides where R, J and C are all easier.
+- **C's wording is one wording.** Each family's C uses one pair of role words
+  ("unconfirmed"/"confirmed", "old"/"new"). A role word the model maps differently onto
+  the decider's phrasing ("Standby status" as unconfirmed) is a reading error that shows
+  up in C and not in R, whose options are names. That is a limit on how cleanly C
+  isolates composition.
+- **Two models are unresolved** by the pre-registered rule: `phi-4-mini` and
+  `granite-3.3-2b` read the role at 68.8% and 67.5% pooled, just under the 70% bar, so
+  the composition reading cannot be assigned to them, though their pattern (J high, C at
+  or below 50%) matches the other four.
+- **Next step: a forced-choice C.** Asking C with lettered options (A or B) would remove
+  the parse confound. That would be a new pre-registered round, not a change to this
+  one.
+- **Six local models of 8B and under**, the best of Round 82's fourteen. Says nothing
+  about frontier models (NEEDS-MAX 1).

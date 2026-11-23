@@ -150,6 +150,8 @@ In order. Each is a self-contained increment.
    **Status:** eleven open-weight models (0.5B-8B) measured on v1-v4 (R23, R39, R46, R48),
    three more on v4 (R50); all fourteen on v5 (R54), held-out v1/test (R69), v6 (R72), v7 (R75), v8 (R77) and v9 (R81). R82: asked directly, 11 of 14 read the
    decider above chance (60-79%) yet their decisions are no more often right when they do;
+   R83: they find the relevant entity (88-98%) and read the role, but the composed question
+   reads 44-57% — the break is located at that question, partly parse failures and word priors;
    hosted frontier models not run — that needs a paid key (NEEDS-MAX 1).
 2. **Human-labeled subset** — a labeling CLI, multiple raters, reported κ. Measures
    how far construction drifts from what people actually want. **Status:** the CLI

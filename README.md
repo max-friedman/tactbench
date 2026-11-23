@@ -146,6 +146,40 @@ That rule is underpowered. At 20 questions per family a true 75% reaches the fir
 The questions, prompt, pre-registration and the per-model x per-family table are in
 [docs/DECIDER_READING.md](docs/DECIDER_READING.md).
 
+#### Where the chain breaks (Round 83)
+
+Deciding needs three steps: read which entity holds the decider's role (R), find which
+entity the body makes relevant (J, e.g. that tonight's dinner is at Marzano), and
+compose the two (C, e.g. that tonight's booking is unconfirmed). Round 83 asked all three
+on both sides of every v9 dev pair, for the six models with Round 82 accuracy of at
+least 69%, under rules committed before any model was run. C names the relevant entity
+by its description in the body ("tonight's dinner"), so it also hints at J.
+
+<!-- decider-chain-findings:start -->
+Pooled over the eight two-entity families (n = 320 per question), the 6 models answer J at **87.8% to 97.8%** and R at **67.5% to 78.4%**. C is **44.1% to 57.2%**: above chance for 3 (55.0% to 57.2%, uncorrected), not for the rest. Pre-registered readings: **4** composition (`llama-3.1-8b`, `qwen2.5-7b`, `mistral-7b`, `gemma-3-4b`) and **2** unresolved (`phi-4-mini`, `granite-3.3-2b`). The pre-registered per-item chain test (C more often right when R and J are both right, one-sided Fisher p < 0.05) holds for 3 of 6 (`qwen2.5-7b`, `gemma-3-4b`, `phi-4-mini`); 2 survive Holm across the 6 models (`gemma-3-4b`, `phi-4-mini`).
+
+*Not pre-registered, not decisive.* Parse failures and word priors account for part of C's shortfall. Unparsed C answers are scored wrong, and the below-50% C of `mistral-7b` (62 unparsed, 54 of them naming an entity; 55.4% on parsed answers) and `granite-3.3-2b` (49 unparsed, 42 of them naming an entity; 52.0% on parsed answers) comes entirely from them. In 7 of the 48 model-family cells, at least 90% of parsed C answers are one word whatever the gold: a word prior. Stratified by family and side (Mantel–Haenszel), the chain test's odds ratios are `qwen2.5-7b` 1.08 (p = 0.8210); `gemma-3-4b` 1.59 (p = 0.0848); `phi-4-mini` 2.77 (p = 0.0014); only `phi-4-mini` survives. So the chain breaks at the C question, but that break is not shown to be composition as such.
+<!-- decider-chain-findings:end -->
+
+<!-- decider-chain-summary:start -->
+| model | R | J | C | pre-registered reading | unparsed R / J / C | C right, R and J right | C right, otherwise | Fisher p | R / J / C, all 16 |
+|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 249/320 (77.8%, p <0.0001) | 306/320 (95.6%, p <0.0001) | 176/320 (55.0%, p 0.0415) | composition | 0 / 0 / 11 | 135/237 (57%) | 41/83 (49%) | 0.1437 | 77.2% / 88.0% / 57.2% |
+| `qwen2.5-7b` | 251/320 (78.4%, p <0.0001) | 313/320 (97.8%, p <0.0001) | 183/320 (57.2%, p 0.0059) | composition | 0 / 0 / 1 | 148/245 (60%) | 35/75 (47%) | 0.0247 | 74.5% / 94.7% / 55.5% |
+| `mistral-7b` | 232/320 (72.5%, p <0.0001) | 296/320 (92.5%, p <0.0001) | 143/320 (44.7%, p 0.9749) | composition | 0 / 0 / 62 | 98/213 (46%) | 45/107 (42%) | 0.2909 | 70.8% / 82.2% / 49.8% |
+| `gemma-3-4b` | 224/320 (70.0%, p <0.0001) | 303/320 (94.7%, p <0.0001) | 181/320 (56.6%, p 0.0109) | composition | 2 / 2 / 10 | 133/214 (62%) | 48/106 (45%) | 0.0031 | 70.2% / 90.3% / 52.7% |
+| `phi-4-mini` | 220/320 (68.8%, p <0.0001) | 300/320 (93.8%, p <0.0001) | 160/320 (50.0%, p 0.5223) | unresolved | 0 / 0 / 14 | 116/206 (56%) | 44/114 (39%) | 0.0017 | 69.8% / 83.3% / 52.2% |
+| `granite-3.3-2b` | 216/320 (67.5%, p <0.0001) | 281/320 (87.8%, p <0.0001) | 141/320 (44.1%, p 0.9855) | unresolved | 0 / 0 / 49 | 80/190 (42%) | 61/130 (47%) | 0.8333 | 67.0% / 80.8% / 50.9% |
+<!-- decider-chain-summary:end -->
+
+Four of six models meet the pre-registered composition reading and two are
+unresolved. C is 44-57%, above chance for three (55-57%, uncorrected), but parse
+failures and per-family word priors account for part of that, so the break is located at the C question and is not shown to be
+composition as such. A forced-choice C (lettered options) would remove the parse
+confound; that is a future pre-registered round.
+Questions, power, pre-registration and per-family tables:
+[docs/DECIDER_READING.md](docs/DECIDER_READING.md#round-83-where-does-the-chain-break).
+
 ### How good does a system have to be?
 
 The leaderboard shows chance-precision policies losing to silence and a perfect
@@ -1259,7 +1293,9 @@ benchmark:
   side of each v9 dev pair, 20 questions per family, so the family test is underpowered
   (see [the probe](#can-the-models-read-the-decider-at-all)). Its question names the
   last signal outright, which nothing in the interruption task does. Its link to the
-  decision is exploratory, and joining the role to the body was not tested.
+  decision is exploratory. Round 83's composed question (C) takes free-text answers, so
+  parse failures and word priors confound it; a forced-choice C, with lettered options,
+  would remove that, in a future pre-registered round.
 - **Cost is concentrated in `quiet_hours`** — **81%** of the `always`-versus-silence
   gap from 11% of the moments on `v1`, and **68%** from 8% on `v5`, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and
