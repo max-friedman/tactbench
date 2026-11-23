@@ -423,3 +423,6 @@
 {"moment_id": "photo_backup-pos-0002", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.14}
 {"moment_id": "photo_backup-pos-0003", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.63}
 {"moment_id": "photo_backup-pos-0004", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.65}
+{"moment_id": "photo_backup-pos-0008", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.82}
+{"moment_id": "photo_backup-pos-0009", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.78}
+{"moment_id": "photo_backup-pos-0010", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.59}
