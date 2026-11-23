@@ -248,3 +248,5 @@
 {"moment_id": "health-near-0010", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.92}
 {"moment_id": "health-near-0011", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.9}
 {"moment_id": "health-near-0012", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.94}
+{"moment_id": "health-near-0016", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.99}
+{"moment_id": "health-near-0017", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.37}
