@@ -223,3 +223,73 @@
 {"moment_id": "finance-pos-0002", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.81}
 {"moment_id": "finance-pos-0003", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " B) covered", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.31}
 {"moment_id": "finance-pos-0004", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.51}
+{"moment_id": "finance-pos-0008", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.4}
+{"moment_id": "finance-pos-0009", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " A) covered", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.1}
+{"moment_id": "finance-pos-0010", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.6}
+{"moment_id": "finance-pos-0011", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " A) covered", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.34}
+{"moment_id": "finance-pos-0012", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.47}
+{"moment_id": "finance-pos-0016", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.4}
+{"moment_id": "finance-pos-0017", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " B) covered", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.03}
+{"moment_id": "finance-pos-0018", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.47}
+{"moment_id": "finance-pos-0019", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " B) covered", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.29}
+{"moment_id": "finance-pos-0020", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.6}
+{"moment_id": "finance-pos-0024", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " A) covered", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.49}
+{"moment_id": "finance-pos-0025", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " B) covered", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.13}
+{"moment_id": "finance-pos-0026", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.53}
+{"moment_id": "finance-pos-0027", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " A) covered", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.53}
+{"moment_id": "finance-pos-0028", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.78}
+{"moment_id": "health-near-0000", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.47}
+{"moment_id": "health-near-0001", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.5}
+{"moment_id": "health-near-0002", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.4}
+{"moment_id": "health-near-0003", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B) uncollected", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.67}
+{"moment_id": "health-near-0004", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.34}
+{"moment_id": "health-near-0008", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.03}
+{"moment_id": "health-near-0009", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.5}
+{"moment_id": "health-near-0010", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.87}
+{"moment_id": "health-near-0011", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.09}
+{"moment_id": "health-near-0012", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.92}
+{"moment_id": "health-near-0016", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B) uncollected", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.97}
+{"moment_id": "health-near-0017", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.78}
+{"moment_id": "health-near-0018", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.09}
+{"moment_id": "health-near-0019", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.59}
+{"moment_id": "health-near-0020", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.35}
+{"moment_id": "health-near-0024", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.62}
+{"moment_id": "health-near-0025", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.5}
+{"moment_id": "health-near-0026", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.45}
+{"moment_id": "health-near-0027", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.5}
+{"moment_id": "health-near-0028", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.33}
+{"moment_id": "health-pos-0000", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.32}
+{"moment_id": "health-pos-0001", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.38}
+{"moment_id": "health-pos-0002", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.44}
+{"moment_id": "health-pos-0003", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B) uncollected", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.67}
+{"moment_id": "health-pos-0004", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.44}
+{"moment_id": "health-pos-0008", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.37}
+{"moment_id": "health-pos-0009", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.62}
+{"moment_id": "health-pos-0010", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.64}
+{"moment_id": "health-pos-0011", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B) uncollected", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.61}
+{"moment_id": "health-pos-0012", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.77}
+{"moment_id": "health-pos-0016", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.58}
+{"moment_id": "health-pos-0017", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.39}
+{"moment_id": "health-pos-0018", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.78}
+{"moment_id": "health-pos-0019", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.74}
+{"moment_id": "health-pos-0020", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.9}
+{"moment_id": "health-pos-0024", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.53}
+{"moment_id": "health-pos-0025", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.58}
+{"moment_id": "health-pos-0026", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.31}
+{"moment_id": "health-pos-0027", "family": "health", "options": ["uncollected", "collected"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.26}
+{"moment_id": "health-pos-0028", "family": "health", "options": ["collected", "uncollected"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.4}
+{"moment_id": "home_security-near-0000", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.78}
+{"moment_id": "home_security-near-0001", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.32}
+{"moment_id": "home_security-near-0002", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.49}
+{"moment_id": "home_security-near-0003", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.69}
+{"moment_id": "home_security-near-0004", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.64}
+{"moment_id": "home_security-near-0008", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.86}
+{"moment_id": "home_security-near-0009", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.75}
+{"moment_id": "home_security-near-0010", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.59}
+{"moment_id": "home_security-near-0011", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.62}
+{"moment_id": "home_security-near-0012", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.76}
+{"moment_id": "home_security-near-0016", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.87}
+{"moment_id": "home_security-near-0017", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.52}
+{"moment_id": "home_security-near-0018", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.69}
+{"moment_id": "home_security-near-0019", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": " B) unexpected", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.06}
+{"moment_id": "home_security-near-0020", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.55}
