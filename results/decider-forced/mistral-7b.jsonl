@@ -220,3 +220,6 @@
 {"moment_id": "finance-near-0028", "family": "finance", "options": ["covered", "underfunded"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.51}
 {"moment_id": "finance-pos-0000", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.49}
 {"moment_id": "finance-pos-0001", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " A) covered", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.12}
+{"moment_id": "finance-pos-0002", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.81}
+{"moment_id": "finance-pos-0003", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": " B) covered", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.31}
+{"moment_id": "finance-pos-0004", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.51}
