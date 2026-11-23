@@ -1328,7 +1328,9 @@ benchmark:
   last signal outright, which nothing in the interruption task does. Its link to the
   decision is exploratory. Round 84's forced-choice C removed parse failures, but in
   most models' answers one role word or one letter dominates several families, so these
-  probes cannot separate a failure to compose from a prior that overrides it.
+  probes cannot separate a failure to compose from a prior that overrides it. The prior
+  flag is conservative (90% one way; a true 75% lean is flagged 1.6% of the time), so a
+  moderate lean in every family could still read as *break is composition*.
 - **Cost is concentrated in `quiet_hours`** — **81%** of the `always`-versus-silence
   gap from 11% of the moments on `v1`, and **68%** from 8% on `v5`, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and

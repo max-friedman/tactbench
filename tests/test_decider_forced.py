@@ -484,11 +484,45 @@ def test_the_prose_figures(items, chain, ran):
     old = {m: ch.summarize(m, chain) for m in fc.MODELS}
     low = sorted(m for m, o in old.items() if o.pooled["c"] < 0.5)
     assert low == ["granite-3.3-2b", "mistral-7b"]
-    assert all(ran[m][0].pooled >= min(ran[n][0].pooled for n in fc.MODELS) for m in low)
+    # "rise to the others' level": each is inside the other four models' C_fc range.
+    others = [ran[n][0].pooled for n in fc.MODELS if n not in low]
+    assert len(others) == 4
+    for m in low:
+        assert min(others) <= ran[m][0].pooled <= max(others), m
+    # "Over parsed answers their free-text C was already 55.4% and 52.0%".
+    assert (
+        f"already {old['mistral-7b'].c_on_parsed:.1%} and {old['granite-3.3-2b'].c_on_parsed:.1%}"
+        in text
+    )
+    assert "Parse failure is ruled out as the cause" in text
+    assert "break at C was not a parse failure" in text
+    assert "break at C was not a parse failure" in readme
+    # llama's letter prior: "it says `A` only 12% of the time".
+    llama = ran["llama-3.1-8b"][0]
+    assert f"it says `A` only {llama.letter_a / llama.parsed:.0%} of the time" in text
+    assert llama.letter_prior_families and not llama.word_prior_families
+    assert (
+        "the pre-registered outcome is *word prior* rather than the *break is composition*"
+        in readme
+    )
+    assert "the prior pre-empts that reading by rule" in readme
+    assert "removed after the runs; see Results" in text
     # Families with no prior.
     cs = {m: fc.compare(m, items, chain) for m in fc.MODELS}
     clean = sorted(c["clean_right"] / c["clean_n"] for c in cs.values())
     assert f"C_fc is still only {clean[0]:.1%} to {clean[-1]:.1%}" in text
+    top = max(cs, key=lambda m: cs[m]["clean_right"] / cs[m]["clean_n"])
+    c = cs[top]
+    assert top == "gemma-3-4b"
+    assert (
+        f"`{top}`'s {c['clean_right']}/{c['clean_n']} "
+        f"(p {dr.binom_sf(c['clean_right'], c['clean_n']):.3f}, uncorrected)" in text
+    )
+    # The conservative flag: a 75% lean is flagged 1.6% of the time, and every model was.
+    lean = f"{dr.binom_sf_at(36, 40, 0.75):.1%}"
+    assert f"a true 75% lean is flagged only {lean} of the time" in text
+    assert f"a true 75% lean is flagged {lean} of the time" in readme
+    assert all(s.word_prior_families or s.letter_prior_families for s in ss)
     # The examples of a word prior: `new` for travel, `previous` for street_cleaning.
     assert fc.C_WORDS["travel"][1] == "new" and fc.C_WORDS["street_cleaning"][1] == "previous"
     for fam in ("travel", "street_cleaning"):
