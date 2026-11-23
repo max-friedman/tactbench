@@ -275,11 +275,8 @@ def test_prose_figures_in_the_docs(questions):
     assert set(manifest) == set(dr.models_run())
     assert f"The calls took {round(total):,} seconds in total" in text
     above = [s for s in (dr.summarize(m, questions) for m in dr.models_run()) if s.p < dr.ALPHA]
-    lo, hi = (min(s.correct / s.n for s in above), max(s.correct / s.n for s in above))
-    assert f"Reading at {round(lo * 100)}-{round(hi * 100)}%" in text
-    best = max(s.best_pairs for s in above)
-    assert f"the 0-{round(best * 100)}% of pairs" in text
-    assert "eleven answer the reading question well above chance" in text and len(above) == 11
+    assert "Eleven models answer the reading question well above chance" in text
+    assert len(above) == 11
     # "roughly two times in three": the median above-chance accuracy is within 60-73%.
     accs = sorted(s.correct / s.n for s in above)
     assert 0.6 <= accs[len(accs) // 2] <= 0.73
@@ -297,3 +294,43 @@ def test_preregistration_figures(questions):
     assert f"(**{dr.MOST} or more of 16**)" in text and f"(**{dr.FEW} or fewer**)" in text
     readme = " ".join(README.read_text().split())
     assert f"so {len(questions)} two-option questions" in readme
+
+
+def test_the_contrast_table_is_current(questions):
+    """Reading against decision, both prompt variants (review R82)."""
+    assert _block(DOC, "decider-reading-contrast") == dr.contrast_table(questions)
+    cs = dr.contrasts(questions)
+    assert len(cs) == 2 * len(dr.models_run())
+    # An independent count for one run.
+    c = dr.contrast("llama-3.1-8b", "rubric", questions)
+    assert c.read_right + c.read_wrong == 320
+    assert c.read_right == dr.summarize("llama-3.1-8b", questions).correct
+
+
+def test_the_preregistration_timing_is_not_overclaimed():
+    text = " ".join(DOC.read_text().split())
+    assert "committed to this file, before" not in text
+    assert "the timing cannot be verified from history" in text
+
+
+def test_the_four_inference_questions_are_named():
+    text = " ".join(DOC.read_text().split())
+    assert "Every question is answerable from the decider sentence alone" not in text
+    assert "Four need a small inference" in text
+    for fam in ("quiet_hours", "photo_backup", "pet_care", "childcare"):
+        assert f"`{fam}` asks" in text
+
+
+def test_the_verdict_column_says_it_is_underpowered(questions):
+    assert "pre-registered verdict (underpowered)" in dr.summary_table(questions)
+    readme = " ".join(README.read_text().split())
+    assert "the (a) labels are not evidence that a model cannot read" in readme
+
+
+def test_the_readme_limitation_for_the_probe(questions):
+    text = " ".join(README.read_text().split("## Honest limitations")[1].split())
+    assert "**The decider-reading probe is small and leads the model.**" in text
+    n = len(questions) // len(dr.QUESTIONS)
+    assert f"one side of each v9 dev pair, {n} questions per family" in text
+    assert "(#can-the-models-read-the-decider-at-all)" in README.read_text()
+    assert "### Can the models read the decider at all?" in README.read_text()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -19,8 +20,14 @@ def _block() -> str:
 
 
 def test_every_committed_split_is_a_row():
-    # Round 82: results/decider-reading/ holds a reading probe, not a split's runs.
-    on_disk = {d.name for d in RESULTS_DIR.iterdir() if d.is_dir() and d.name != "decider-reading"}
+    # Round 82: only split directories (``<version>-<split>``) are LLM runs; a probe's
+    # directory such as results/decider-reading/ is not a row.
+    on_disk = {
+        d.name
+        for d in RESULTS_DIR.iterdir()
+        if d.is_dir() and re.fullmatch(r"v\d+\w*-(dev|test)", d.name)
+    }
+    assert {"v1-test", "v2para-dev", "v9-dev"} <= on_disk
     listed = {f"{v}-{s}" for v, s in llm_glance.SPLITS}
     assert listed == on_disk
 

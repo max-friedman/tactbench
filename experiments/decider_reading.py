@@ -401,7 +401,7 @@ def _p(p: float) -> str:
 def summary_table(questions: list[Question]) -> str:
     lines = [
         "| model | right | accuracy | p (one-sided) | unparsed | families read "
-        "| best pairs-both-right on v9 | verdict |",
+        "| best pairs-both-right on v9 | pre-registered verdict (underpowered) |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for name in models_run():
@@ -439,6 +439,76 @@ def binom_sf_at(k: int, n: int, p: float) -> float:
     return sum(math.comb(n, i) * p**i * (1 - p) ** (n - i) for i in range(k, n + 1))
 
 
+VARIANTS = ("naive", "rubric")
+
+
+@dataclass
+class Contrast:
+    """On the moment a model was asked about: was its interrupt decision right more
+    often when its reading was right? One committed v9 run (one prompt variant)."""
+
+    model: str
+    variant: str
+    spoke: int  # of the 320 asked moments, how many the run spoke on
+    read_right: int
+    decision_right_when_read_right: int
+    read_wrong: int
+    decision_right_when_read_wrong: int
+
+    @property
+    def when_right(self) -> float:
+        return self.decision_right_when_read_right / self.read_right
+
+    @property
+    def when_wrong(self) -> float:
+        return self.decision_right_when_read_wrong / self.read_wrong
+
+
+def contrast(name: str, variant: str, questions: list[Question]) -> Contrast:
+    by_id = {q.moment_id: q for q in questions}
+    labels = {i.moment.id: i.label.should_surface for i in load(VERSION, SPLIT)}
+    path = ROOT / "results" / f"{VERSION}-{SPLIT}" / f"llm_{variant}_{name}-{SPLIT}.jsonl"
+    surface = {}
+    for line in path.read_text().splitlines():
+        if line.strip():
+            d = json.loads(line)
+            surface[d["moment_id"]] = bool(d["surface"])
+    counts = {True: [0, 0], False: [0, 0]}
+    for r in load_rows(name):
+        q = by_id[r["moment_id"]]
+        ok = r["answer"] == q.gold
+        counts[ok][0] += 1
+        counts[ok][1] += surface[q.moment_id] == labels[q.moment_id]
+    return Contrast(
+        model=name,
+        variant=variant,
+        spoke=sum(surface[q.moment_id] for q in questions),
+        read_right=counts[True][0],
+        decision_right_when_read_right=counts[True][1],
+        read_wrong=counts[False][0],
+        decision_right_when_read_wrong=counts[False][1],
+    )
+
+
+def contrasts(questions: list[Question]) -> list[Contrast]:
+    return [contrast(m, v, questions) for m in models_run() for v in VARIANTS]
+
+
+def contrast_table(questions: list[Question]) -> str:
+    lines = [
+        "| model | prompt | spoke on | reading right: decision right "
+        "| reading wrong: decision right |",
+        "|---|---|---|---|---|",
+    ]
+    for c in contrasts(questions):
+        lines.append(
+            f"| `{c.model}` | {c.variant} | {c.spoke}/320 "
+            f"| {c.decision_right_when_read_right}/{c.read_right} ({c.when_right:.0%}) "
+            f"| {c.decision_right_when_read_wrong}/{c.read_wrong} ({c.when_wrong:.0%}) |"
+        )
+    return "\n".join(lines)
+
+
 def findings(questions: list[Question]) -> str:
     """The published headline, generated so that every figure in it is recomputed."""
     ss = [summarize(name, questions) for name in models_run()]
@@ -447,10 +517,12 @@ def findings(questions: list[Question]) -> str:
     acc = sorted(s.correct / s.n for s in above)
     top = max(ss, key=lambda s: (s.families_read, s.correct))
     votes = {v: sum(s.verdict == v for s in ss) for v in ("(a)", "(b)", "neither")}
-    r2 = sorted((s.correct / s.n) ** 2 for s in above)
-    pairs = sorted(s.best_pairs for s in above)
     power = binom_sf_at(17, 20, 0.75)
     rest_acc = sorted(s.correct / s.n for s in rest)
+    cs = contrasts(questions)
+    right = sorted(c.when_right for c in cs)
+    wrong = sorted(c.when_wrong for c in cs)
+    better = sum(c.when_right > c.when_wrong for c in cs)
     return (
         f"**{len(above)} of {len(ss)}** models answer above chance overall (exact one-sided "
         f"binomial p < 0.05), at **{acc[0]:.1%} to {acc[-1]:.1%}**; the other {len(rest)} "
@@ -458,14 +530,16 @@ def findings(questions: list[Question]) -> str:
         f"families (b) needed: the most is **{top.families_read} of 16** (`{top.model}`). "
         f"By the pre-registered rule, **{votes['(a)']}** models support (a), "
         f"**{votes['neither']}** support neither, and **{votes['(b)']}** support (b).\n\n"
-        f"That verdict is weaker than it looks. The family test misses partial reading: "
-        f"its first Holm step needs 17 of 20, which a family read at a true 75% reaches "
-        f"only {power:.1%} of the time. *Exploratory, not pre-registered:* if a model's "
-        f"decisions followed its reading (and it read the body right), with errors "
-        f"independent across a pair's two sides, it would get both sides right about "
-        f"accuracy² of the time. For the {len(above)} above-chance models that is "
-        f"{r2[0]:.1%} to {r2[-1]:.1%}; their best "
-        f"pairs-both-right on v9 is {pairs[0]:.1%} to {pairs[-1]:.1%}."
+        f"That rule is underpowered. At 20 questions per family a true 75% reaches the "
+        f"first Holm step (17 of 20) only {power:.1%} of the time, so the (a) labels are not "
+        f"evidence that a model cannot read. *Exploratory, not pre-registered:* on the "
+        f"moment each model was asked about, its interrupt decision in the committed v9 runs "
+        f"(both prompts, {len(cs)} runs) was right {right[0]:.0%} to {right[-1]:.0%} of the "
+        f"time when its reading was right and {wrong[0]:.0%} to {wrong[-1]:.0%} when it was "
+        f"wrong; it was higher with a right reading in {better} of {len(cs)} runs. Getting "
+        f"the role right did not make the decision more often right. Whether a model can "
+        f"join the role to the body (which restaurant is tonight's) was not tested, so "
+        f'"reads but cannot join" and "reads but ignores" are not separated.'
     )
 
 

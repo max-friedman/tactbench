@@ -30,9 +30,14 @@ separate digest. So within every family:
 role the decider assigns. The two options are the two entities the pair swaps, so
 swapping them in this side's decider gives the partner side's decider (tested). Thirteen
 questions ask about the *privileged* role, the one whose occupant decides the label.
-Three ask about the other role because it is the plainer one to word. Every question
-is answerable from the decider sentence alone, without the body, the user state or
-world knowledge. `river_swim` asks only "further upstream", which its decider states
+Three ask about the other role because it is the plainer one to word. Every answer is
+in the decider sentence; none needs the body or the user state. Twelve questions restate
+the decider's role directly. Four need a small inference from the decider's wording:
+`quiet_hours` asks who "can get to the hospital quickly tonight" where the decider says
+"Nearby right now"; `photo_backup` asks about "a copy saved somewhere besides the cloud"
+where it says "archive"; `pet_care` asks which pet "has a health problem" where it says
+"daily tablets"; and `childcare` asks who is "getting the children from school" where it
+says "Pickup". `river_swim` asks only "further upstream", which its decider states
 directly.
 
 <!-- decider-reading-questions:start -->
@@ -96,7 +101,8 @@ checks that the wording of a question does not hand over its answer.
 
 ## Pre-registration
 
-These rules were written, and committed to this file, before any model was run.
+These rules were written before any model was run. They were first committed together
+with the results (one commit), so the timing cannot be verified from history.
 
 - **Null.** 50% per family: two options, counterbalanced.
 - **Reading a family.** A model *reads* a family if its 20 answers there are
@@ -128,7 +134,7 @@ Run in Round 82: all fourteen models, largest first, one llama.cpp server per mo
 <!-- decider-reading-findings:start -->
 **11 of 14** models answer above chance overall (exact one-sided binomial p < 0.05), at **60.3% to 78.8%**; the other 3 sit at 50.3% to 51.6%. No model reads the 9 or more families (b) needed: the most is **7 of 16** (`llama-3.1-8b`). By the pre-registered rule, **10** models support (a), **4** support neither, and **0** support (b).
 
-That verdict is weaker than it looks. The family test misses partial reading: its first Holm step needs 17 of 20, which a family read at a true 75% reaches only 22.5% of the time. *Exploratory, not pre-registered:* if a model's decisions followed its reading (and it read the body right), with errors independent across a pair's two sides, it would get both sides right about accuracy² of the time. For the 11 above-chance models that is 36.4% to 62.0%; their best pairs-both-right on v9 is 0.3% to 9.4%.
+That rule is underpowered. At 20 questions per family a true 75% reaches the first Holm step (17 of 20) only 22.5% of the time, so the (a) labels are not evidence that a model cannot read. *Exploratory, not pre-registered:* on the moment each model was asked about, its interrupt decision in the committed v9 runs (both prompts, 28 runs) was right 42% to 57% of the time when its reading was right and 38% to 61% when it was wrong; it was higher with a right reading in 15 of 28 runs. Getting the role right did not make the decision more often right. Whether a model can join the role to the body (which restaurant is tonight's) was not tested, so "reads but cannot join" and "reads but ignores" are not separated.
 <!-- decider-reading-findings:end -->
 
 **Per model.** *Right* counts all 320 questions. *Families read* applies the
@@ -136,7 +142,7 @@ pre-registered rule. *Best pairs-both-right* is the better of the model's naive 
 runs in `results/v9-dev/`.
 
 <!-- decider-reading:start -->
-| model | right | accuracy | p (one-sided) | unparsed | families read | best pairs-both-right on v9 | verdict |
+| model | right | accuracy | p (one-sided) | unparsed | families read | best pairs-both-right on v9 | pre-registered verdict (underpowered) |
 |---|---|---|---|---|---|---|---|
 | `llama-3.1-8b` | 252/320 | 78.8% | <0.0001 | 0 | 7 of 16 | 9.4% | neither |
 | `qwen2.5-7b` | 235/320 | 73.4% | <0.0001 | 0 | 4 of 16 | 2.8% | neither |
@@ -180,18 +186,59 @@ travel, `water` water_notice.
 | `qwen2.5-0.5b` | 11 | 9 | 8 | 9 | 10 | 12 | 12 | 9 | 11 | 7 | 11 | 12 | 10 | 11 | 10 | 9 | 0 |
 <!-- decider-reading-families:end -->
 
+**Reading against decision.** *Exploratory, not pre-registered.* For each of the 320
+asked moments, the reading answer is set beside the model's interrupt decision on the
+same moment in the committed v9 run, for both prompt variants. *Spoke on* counts how
+many of the 320 moments that run spoke on.
+
+<!-- decider-reading-contrast:start -->
+| model | prompt | spoke on | reading right: decision right | reading wrong: decision right |
+|---|---|---|---|---|
+| `llama-3.1-8b` | naive | 193/320 | 128/252 (51%) | 33/68 (49%) |
+| `llama-3.1-8b` | rubric | 12/320 | 123/252 (49%) | 35/68 (51%) |
+| `qwen2.5-7b` | naive | 51/320 | 123/235 (52%) | 42/85 (49%) |
+| `qwen2.5-7b` | rubric | 31/320 | 120/235 (51%) | 43/85 (51%) |
+| `mistral-7b` | naive | 139/320 | 107/222 (48%) | 50/98 (51%) |
+| `mistral-7b` | rubric | 1/320 | 118/222 (53%) | 41/98 (42%) |
+| `gemma-3-4b` | naive | 163/320 | 110/228 (48%) | 49/92 (53%) |
+| `gemma-3-4b` | rubric | 59/320 | 112/228 (49%) | 51/92 (55%) |
+| `phi-3.5-mini` | naive | 298/320 | 113/222 (51%) | 47/98 (48%) |
+| `phi-3.5-mini` | rubric | 300/320 | 112/222 (50%) | 48/98 (49%) |
+| `phi-4-mini` | naive | 273/320 | 110/226 (49%) | 53/94 (56%) |
+| `phi-4-mini` | rubric | 1/320 | 125/226 (55%) | 36/94 (38%) |
+| `qwen2.5-3b` | naive | 235/320 | 121/215 (56%) | 42/105 (40%) |
+| `qwen2.5-3b` | rubric | 1/320 | 97/215 (45%) | 64/105 (61%) |
+| `llama-3.2-3b` | naive | 96/320 | 84/202 (42%) | 68/118 (58%) |
+| `llama-3.2-3b` | rubric | 0/320 | 88/202 (44%) | 72/118 (61%) |
+| `gemma-2-2b` | naive | 30/320 | 91/193 (47%) | 73/127 (57%) |
+| `gemma-2-2b` | rubric | 34/320 | 81/193 (42%) | 77/127 (61%) |
+| `granite-3.3-2b` | naive | 300/320 | 104/222 (47%) | 60/98 (61%) |
+| `granite-3.3-2b` | rubric | 185/320 | 121/222 (55%) | 50/98 (51%) |
+| `smollm2-1.7b` | naive | 320/320 | 87/165 (53%) | 73/155 (47%) |
+| `smollm2-1.7b` | rubric | 314/320 | 88/165 (53%) | 74/155 (48%) |
+| `qwen2.5-1.5b` | naive | 0/320 | 111/197 (56%) | 49/123 (40%) |
+| `qwen2.5-1.5b` | rubric | 0/320 | 111/197 (56%) | 49/123 (40%) |
+| `llama-3.2-1b` | naive | 320/320 | 76/165 (46%) | 84/155 (54%) |
+| `llama-3.2-1b` | rubric | 320/320 | 76/165 (46%) | 84/155 (54%) |
+| `qwen2.5-0.5b` | naive | 306/320 | 91/161 (57%) | 71/159 (45%) |
+| `qwen2.5-0.5b` | rubric | 318/320 | 87/161 (54%) | 73/159 (46%) |
+<!-- decider-reading-contrast:end -->
+
 ### What this does and does not show
 
-- **Neither pre-registered reading holds cleanly.** Most of these models do not *fail*
-  to read the decider, in the strong sense (a) intends: eleven answer the reading
-  question well above chance. None reads it *reliably*, family by family, which is what
-  (b) required. The honest summary is **partial reading**. These models get the role
-  right roughly two times in three, which is far from the near-perfect reading a
-  decision could rest on.
-- **What they do read, they do not use.** This is exploratory, not pre-registered.
-  Reading at 60-79% would allow far more than the 0-9% of pairs these models get right
-  on both sides. Using the decider also needs the body (which restaurant is tonight's),
-  so this is an illustration, not a prediction. Even so, the gap is wide.
+- **Neither pre-registered reading holds cleanly.** Eleven models answer the reading
+  question well above chance, so (a) in its strong sense, cannot read at all, does not
+  describe them. None reads reliably family by family, which (b) required. The
+  measured result is **partial reading**: these models get the role right roughly two
+  times in three. The (a) labels in the table come from an underpowered family test
+  and are not evidence that a model cannot read.
+- **A right reading did not come with a right decision.** This is exploratory, not
+  pre-registered. On the moment where the model answered the reading question, its
+  interrupt decision was no more often right when its reading was right (table below).
+  Many runs are near-constant (see *spoke on*). For those, decision accuracy is set
+  by the label mix of each subset, not by anything the run read. Whether a model can
+  join the role to the body (which restaurant is tonight's) was not tested. So "reads
+  but cannot join" and "reads but ignores" are not separated.
 - **The reading is with full context and an explicit question.** In the interruption
   task, nothing points the model at the last signal. The question here does, so these
   accuracies are, if anything, generous to the models.
