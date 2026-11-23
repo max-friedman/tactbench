@@ -314,3 +314,6 @@
 {"moment_id": "home_security-pos-0019", "family": "home_security", "options": ["expected", "unexpected"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.36}
 {"moment_id": "home_security-pos-0020", "family": "home_security", "options": ["expected", "unexpected"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.64}
 {"moment_id": "home_security-pos-0024", "family": "home_security", "options": ["expected", "unexpected"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.9}
+{"moment_id": "home_security-pos-0025", "family": "home_security", "options": ["unexpected", "expected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.77}
+{"moment_id": "home_security-pos-0026", "family": "home_security", "options": ["expected", "unexpected"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.55}
+{"moment_id": "home_security-pos-0027", "family": "home_security", "options": ["unexpected", "expected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.37}
