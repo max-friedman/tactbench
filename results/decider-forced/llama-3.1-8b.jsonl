@@ -399,3 +399,5 @@
 {"moment_id": "pet_care-pos-0027", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.88}
 {"moment_id": "pet_care-pos-0028", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.87}
 {"moment_id": "photo_backup-near-0000", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.45}
+{"moment_id": "photo_backup-near-0001", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.4}
+{"moment_id": "photo_backup-near-0002", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.68}
