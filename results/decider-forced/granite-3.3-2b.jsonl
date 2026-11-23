@@ -615,3 +615,14 @@
 {"moment_id": "water_notice-near-0020", "family": "water_notice", "options": ["former", "current"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.82}
 {"moment_id": "water_notice-near-0024", "family": "water_notice", "options": ["former", "current"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.73}
 {"moment_id": "water_notice-near-0025", "family": "water_notice", "options": ["current", "former"], "gold": "B", "response": "B) former", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.34}
+{"moment_id": "water_notice-near-0026", "family": "water_notice", "options": ["current", "former"], "gold": "B", "response": "B) former", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.05}
+{"moment_id": "water_notice-near-0027", "family": "water_notice", "options": ["current", "former"], "gold": "B", "response": "B) former", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.08}
+{"moment_id": "water_notice-near-0028", "family": "water_notice", "options": ["current", "former"], "gold": "B", "response": "B) former", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.95}
+{"moment_id": "water_notice-pos-0000", "family": "water_notice", "options": ["current", "former"], "gold": "A", "response": "B) former", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.96}
+{"moment_id": "water_notice-pos-0001", "family": "water_notice", "options": ["current", "former"], "gold": "A", "response": "B) former", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.97}
+{"moment_id": "water_notice-pos-0002", "family": "water_notice", "options": ["former", "current"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.78}
+{"moment_id": "water_notice-pos-0003", "family": "water_notice", "options": ["former", "current"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.83}
+{"moment_id": "water_notice-pos-0004", "family": "water_notice", "options": ["current", "former"], "gold": "A", "response": "B) former", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.99}
+{"moment_id": "water_notice-pos-0008", "family": "water_notice", "options": ["former", "current"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.58}
+{"moment_id": "water_notice-pos-0009", "family": "water_notice", "options": ["former", "current"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.65}
+{"moment_id": "water_notice-pos-0010", "family": "water_notice", "options": ["current", "former"], "gold": "A", "response": "B) former", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.96}
