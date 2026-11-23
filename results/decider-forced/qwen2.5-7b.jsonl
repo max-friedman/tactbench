@@ -450,3 +450,5 @@
 {"moment_id": "quiet_hours-near-0012", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.67}
 {"moment_id": "quiet_hours-near-0016", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.16}
 {"moment_id": "quiet_hours-near-0017", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.53}
+{"moment_id": "quiet_hours-near-0018", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.47}
+{"moment_id": "quiet_hours-near-0019", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.16}
