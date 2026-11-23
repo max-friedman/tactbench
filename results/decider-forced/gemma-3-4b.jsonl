@@ -45,3 +45,8 @@
 {"moment_id": "commerce-near-0004", "family": "commerce", "options": ["used", "unopened"], "gold": "A", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.28}
 {"moment_id": "commerce-near-0008", "family": "commerce", "options": ["unopened", "used"], "gold": "B", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.16}
 {"moment_id": "commerce-near-0009", "family": "commerce", "options": ["unopened", "used"], "gold": "B", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.82}
+{"moment_id": "commerce-near-0010", "family": "commerce", "options": ["unopened", "used"], "gold": "B", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.23}
+{"moment_id": "commerce-near-0011", "family": "commerce", "options": ["unopened", "used"], "gold": "B", "response": "B\n", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.29}
+{"moment_id": "commerce-near-0012", "family": "commerce", "options": ["used", "unopened"], "gold": "A", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.29}
+{"moment_id": "commerce-near-0016", "family": "commerce", "options": ["used", "unopened"], "gold": "A", "response": "B\n", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.24}
+{"moment_id": "commerce-near-0017", "family": "commerce", "options": ["unopened", "used"], "gold": "B", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.11}
