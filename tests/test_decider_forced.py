@@ -5,9 +5,9 @@ did not always parse and some families drew one word whatever the gold.
 ``experiments/decider_forced.py`` asks the same question with lettered options. These
 tests were written before any Round 84 model call. They hold the question set to the
 committed data and its counterbalancing, the parser to its stated strictness, and the
-pre-registered rules and power figures to the code. The results tests are strict
-``xfail`` until the runs exist: once results are committed they pass, strict xfail turns
-that into a failure, and the marks have to come off.
+pre-registered rules and power figures to the code. The results tests were strict
+``xfail`` until the runs existed (the pre-registration commit, 7c1cefa); they now hold
+every published figure to a recomputation.
 """
 
 from __future__ import annotations
@@ -29,7 +29,6 @@ from tactbench.dataset.loader import load  # noqa: E402
 from tactbench.schema import pair_key  # noqa: E402
 
 DOC = ROOT / "docs" / "DECIDER_READING.md"
-NO_RESULTS = pytest.mark.xfail(strict=True, reason="Round 84 runs not yet committed")
 
 
 def _block(path: Path, name: str) -> str:
@@ -406,16 +405,14 @@ def test_the_chain_test_uses_round_83s_r_and_j(chain):
 
 
 # --------------------------------------------------------------------------- #
-# Results (strict xfail until the runs are committed)
+# Results
 # --------------------------------------------------------------------------- #
 
 
-@NO_RESULTS
 def test_all_six_models_ran():
     assert fc.models_run() == fc.MODELS
 
 
-@NO_RESULTS
 def test_results_are_complete_and_reparse(items):
     by_id = {f.moment_id: f for f in items}
     for name in fc.MODELS:
@@ -428,9 +425,82 @@ def test_results_are_complete_and_reparse(items):
             assert r["prompt_version"] == fc.PROMPT_VERSION
 
 
-@NO_RESULTS
 def test_results_tables_are_current(items, chain):
     assert _block(DOC, "decider-forced-summary") == fc.summary_table(items, chain)
     assert _block(DOC, "decider-forced-families") == fc.family_table(items, chain)
+    assert _block(DOC, "decider-forced-compare") == fc.compare_table(items, chain)
+    assert _block(DOC, "decider-forced-findings") == fc.findings(items, chain)
     readme = ROOT / "README.md"
     assert _block(readme, "decider-forced-summary") == fc.summary_table(items, chain)
+    assert _block(readme, "decider-forced-findings") == fc.findings(items, chain)
+
+
+@pytest.fixture(scope="module")
+def ran(items, chain):
+    return fc.readings(items, chain)
+
+
+def test_the_pre_registered_outcome(ran):
+    """Five word priors, one letter prior, nothing else; AD closes as word prior."""
+    got = {m: v[3] for m, v in ran.items()}
+    assert got == {
+        "llama-3.1-8b": fc.LETTER,
+        "qwen2.5-7b": fc.PRIOR,
+        "mistral-7b": fc.PRIOR,
+        "gemma-3-4b": fc.PRIOR,
+        "phi-4-mini": fc.PRIOR,
+        "granite-3.3-2b": fc.PRIOR,
+    }
+    assert fc.item_closes(list(got.values())) == fc.PRIOR
+    assert not any(v[1] for v in ran.values())  # no model's C_fc is high
+    assert not any(v[2] for v in ran.values())  # the chain test survives for none
+    assert all(v[0].unparsed == 0 for v in ran.values())
+
+
+def test_the_prose_figures(items, chain, ran):
+    import json
+
+    text = _r84()
+    readme = " ".join((ROOT / "README.md").read_text().split())
+    manifest = json.loads(fc.MANIFEST.read_text())
+    assert set(manifest) == set(fc.MODELS)
+    total = round(sum(v["call_seconds"] for v in manifest.values()))
+    assert f"The calls took {total:,} seconds in total" in text
+    ss = [v[0] for v in ran.values()]
+    pooled = sorted(s.pooled for s in ss)
+    assert f"near chance ({pooled[0]:.1%} to {pooled[-1]:.1%})" in text
+    words = [m for m, v in ran.items() if v[3] == fc.PRIOR]
+    letters = [m for m, v in ran.items() if v[3] == fc.LETTER]
+    assert len(words) == 5 and letters == ["llama-3.1-8b"]
+    assert "Five of six models fail the word-prior check and `llama-3.1-8b` fails" in text
+    assert "Five of six models read *word prior* and one *letter prior*" in readme
+    assert "AD closes as **word prior**" in text
+    # "No reply failed the strict letter parse"; "Every reply parsed".
+    assert sum(s.unparsed for s in ss) == 0 and all(
+        len(fc.load_rows(m)) == 640 and all(r["answer"] for r in fc.load_rows(m)) for m in fc.MODELS
+    )
+    assert "No reply failed the strict letter parse" in text and "Every reply parsed" in readme
+    # The two models whose free-text C was below 50% because of parse failures.
+    old = {m: ch.summarize(m, chain) for m in fc.MODELS}
+    low = sorted(m for m, o in old.items() if o.pooled["c"] < 0.5)
+    assert low == ["granite-3.3-2b", "mistral-7b"]
+    assert all(ran[m][0].pooled >= min(ran[n][0].pooled for n in fc.MODELS) for m in low)
+    # Families with no prior.
+    cs = {m: fc.compare(m, items, chain) for m in fc.MODELS}
+    clean = sorted(c["clean_right"] / c["clean_n"] for c in cs.values())
+    assert f"C_fc is still only {clean[0]:.1%} to {clean[-1]:.1%}" in text
+    # The examples of a word prior: `new` for travel, `previous` for street_cleaning.
+    assert fc.C_WORDS["travel"][1] == "new" and fc.C_WORDS["street_cleaning"][1] == "previous"
+    for fam in ("travel", "street_cleaning"):
+        assert sum(fam in s.word_prior_families and s.family_share[fam] <= 0.1 for s in ss) >= 3
+    # The chain test's best odds ratio, against Round 83's free-text figure.
+    best = max(ss, key=lambda s: s.mh[0])
+    assert best.model == "phi-4-mini"
+    assert f"`phi-4-mini`'s {best.mh[0]:.2f} (p = {best.mh[1]:.3f})" in text
+    assert f"against {old['phi-4-mini'].mh[0]:.2f} on Round 83's" in text
+    # Format disagreement.
+    diff = sorted(1 - c["same"] / c["both"] for c in cs.values())
+    assert f"on {diff[0]:.0%} to {diff[-1]:.0%} of the moments" in text
+    # README limitation: every model has at least two flagged families.
+    assert all(len(s.word_prior_families) + len(s.letter_prior_families) >= 2 for s in ss)
+    assert "one role word or one letter dominates several families" in readme

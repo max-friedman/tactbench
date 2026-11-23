@@ -509,7 +509,16 @@ def compare(name: str, items: list[ForcedItem], chain: list[ch.ChainItem]) -> di
         if word is not None and old is not None:
             both += 1
             same += word == old
+    s = summarize(name, items, chain)
+    clean = [
+        f
+        for f in sorted(TWO_ENTITY)
+        if f not in s.word_prior_families and f not in s.letter_prior_families
+    ]
     return {
+        "clean_families": len(clean),
+        "clean_right": sum(s.family_right[f] for f in clean),
+        "clean_n": 40 * len(clean),
         "r83_right": sum(r83[(f.moment_id, "c")]["answer"] == f.gold_word for f in two),
         "r83_unparsed": sum(r83[(f.moment_id, "c")]["answer"] is None for f in two),
         "both": both,
@@ -520,16 +529,19 @@ def compare(name: str, items: list[ForcedItem], chain: list[ch.ChainItem]) -> di
 def compare_table(items: list[ForcedItem], chain: list[ch.ChainItem]) -> str:
     lines = [
         "| model | Round 83 C (free text) | Round 83 unparsed | C_fc (letters) | C_fc unparsed "
-        "| same role word, both parsed |",
-        "|---|---|---|---|---|---|",
+        "| same role word, both parsed | C_fc in two-entity families with no prior |",
+        "|---|---|---|---|---|---|---|",
     ]
     for name in models_run():
         s = summarize(name, items, chain)
         c = compare(name, items, chain)
+        clean_p = dr.binom_sf(c["clean_right"], c["clean_n"])
         lines.append(
             f"| `{name}` | {c['r83_right']}/{N_TWO} ({c['r83_right'] / N_TWO:.1%}) "
             f"| {c['r83_unparsed']} | {s.right}/{N_TWO} ({s.pooled:.1%}) | {s.unparsed} "
-            f"| {c['same']}/{c['both']} ({c['same'] / c['both']:.0%}) |"
+            f"| {c['same']}/{c['both']} ({c['same'] / c['both']:.0%}) "
+            f"| {c['clean_right']}/{c['clean_n']} ({c['clean_right'] / c['clean_n']:.1%}, "
+            f"{c['clean_families']} families, p {dr._p(clean_p)}) |"
         )
     return "\n".join(lines)
 
@@ -553,6 +565,21 @@ def findings(items: list[ForcedItem], chain: list[ch.ChainItem]) -> str:
     shown = "; ".join(f"*{r}* {len(by[r])} ({_models(by[r])})" for r in READINGS if by[r])
     mh_ok = [n for n, v in rs.items() if v[2]]
     unp = sorted(s.unparsed for s in ss)
+    cs = {n: compare(n, items, chain) for n in rs}
+    cells = sum(len(s.word_prior_families) for s in ss)
+    lcells = sum(len(s.letter_prior_families) for s in ss)
+    r83 = [c["r83_right"] / N_TWO for c in cs.values()]
+    clean = [c["clean_right"] / c["clean_n"] for c in cs.values()]
+    same = [c["same"] / c["both"] for c in cs.values()]
+    old = {n: ch.summarize(n, chain) for n in rs}
+    old_cells = sum(len(o.word_prior_families) for o in old.values())
+    # The models whose free-text C lost the most to parse failures: over 10% unparsed.
+    lifted = [n for n, o in old.items() if o.unparsed_two["c"] > MAX_UNPARSED]
+    lift = "; ".join(
+        f"`{n}` {cs[n]['r83_right'] / N_TWO:.1%} to {rs[n][0].pooled:.1%}" for n in lifted
+    )
+    others = [n for n in rs if n not in lifted]
+    moved = [rs[n][0].pooled - cs[n]["r83_right"] / N_TWO for n in others]
     return (
         f"Pooled over the eight two-entity families (n = {N_TWO}), the {len(ss)} models answer "
         f"the forced-choice C at **{_span([s.pooled for s in ss])}** with unparsed replies "
@@ -561,7 +588,17 @@ def findings(items: list[ForcedItem], chain: list[ch.ChainItem]) -> str:
         f"Queue AD closes as **{item_closes([v[3] for v in rs.values()])}**. The chain test "
         f"(C_fc more often right when Round 83's R and J were both right; Mantel–Haenszel by "
         f"family and side, one-sided, Holm across the {len(ss)} models) holds for "
-        f"{len(mh_ok)} of {len(ss)} ({_models(mh_ok)})."
+        f"{len(mh_ok)} of {len(ss)} ({_models(mh_ok)}).\n\n"
+        f"*Not pre-registered, not decisive.* Letters removed every parse failure. That lifted "
+        f"the two models whose free-text C had most often failed to parse ({lift}), to the "
+        f"level of the rest; the other {len(others)} moved {min(moved) * 100:+.1f} to "
+        f"{max(moved) * 100:+.1f} points (free-text C on the same moments: {_span(r83)}). "
+        f"Priors grew: {cells} of the {len(ss) * 8} model-family cells are a word prior "
+        f"(Round 83: {old_cells}) and {lcells} a letter prior. In the two-entity families "
+        f"where a model shows neither prior, its C_fc is {_span(clean)}. Where both formats "
+        f"parsed, the two name the same role word {min(same):.0%} to {max(same):.0%} of the "
+        f"time. So no model reaches the high bar with the format fixed, and the format does "
+        f"not explain why C sits near chance."
     )
 
 

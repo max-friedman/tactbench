@@ -11,6 +11,18 @@
     "temperature": 0,
     "threads": 4
   },
+  "granite-3.3-2b": {
+    "call_seconds": 1311.7,
+    "file": "ibm-granite_granite-3.3-2b-instruct-Q4_K_M.gguf",
+    "hf_repo": "bartowski/ibm-granite_granite-3.3-2b-instruct-GGUF",
+    "max_tokens": 16,
+    "n_ctx": 2048,
+    "prompt_version": "2026-11-23.2",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "555b91485955bc96eb445b57dd4bbf8809aa7d8cce7c313f4f8bc5b2340896b4",
+    "temperature": 0,
+    "threads": 4
+  },
   "llama-3.1-8b": {
     "call_seconds": 2691.5,
     "file": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",

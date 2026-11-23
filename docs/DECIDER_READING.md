@@ -487,7 +487,7 @@ and no continuity correction.
   or below 50%) matches the other four.
 - **Next step: a forced-choice C.** Asking C with lettered options (A or B) would remove
   the parse confound. That would be a new pre-registered round, not a change to this
-  one.
+  one. *Done in Round 84 (below): no reply failed to parse, and C stayed near chance.*
 - **Six local models of 8B and under**, the best of Round 82's fourteen. Says nothing
   about frontier models (NEEDS-MAX 1).
 
@@ -633,4 +633,86 @@ the runs start, so the order can be checked in history.
 
 ### Results (Round 84)
 
-Not yet run.
+Run in Round 84, after the pre-registration above was committed (7c1cefa,
+2026-11-23T09:02:19Z): all six models, largest first, one llama.cpp server per model on
+4 CPU threads, in the same moment order as Round 83. The calls took 12,894 seconds in
+total (`call_seconds` per model in `results/decider-forced/MANIFEST.json`); wall time
+was about 3 h 39 min.
+
+<!-- decider-forced-findings:start -->
+Pooled over the eight two-entity families (n = 320), the 6 models answer the forced-choice C at **52.2% to 55.3%** with unparsed replies scored wrong, and at 52.2% to 55.3% over parsed replies. Unparsed: 0 to 0 of 320. Pre-registered readings: *word prior* 5 (`qwen2.5-7b`, `mistral-7b`, `gemma-3-4b`, `phi-4-mini`, `granite-3.3-2b`); *letter prior* 1 (`llama-3.1-8b`). Queue AD closes as **word prior**. The chain test (C_fc more often right when Round 83's R and J were both right; Mantel–Haenszel by family and side, one-sided, Holm across the 6 models) holds for 0 of 6 (none).
+
+*Not pre-registered, not decisive.* Letters removed every parse failure. That lifted the two models whose free-text C had most often failed to parse (`mistral-7b` 44.7% to 53.1%; `granite-3.3-2b` 44.1% to 53.1%), to the level of the rest; the other 4 moved -5.0 to +4.1 points (free-text C on the same moments: 44.1% to 57.2%). Priors grew: 15 of the 48 model-family cells are a word prior (Round 83: 7) and 5 a letter prior. In the two-entity families where a model shows neither prior, its C_fc is 53.1% to 58.0%. Where both formats parsed, the two name the same role word 53% to 73% of the time. So no model reaches the high bar with the format fixed, and the format does not explain why C sits near chance.
+<!-- decider-forced-findings:end -->
+
+**Per model**, pooled over the eight two-entity families (n = 320; exact one-sided
+binomial p against 50%). *Says A* is the share of parsed answers that are `A`: 50% is
+no lean. A family is listed under a prior with the share of its parsed answers naming
+the speak word (word prior) or that are `A` (letter prior). The Mantel–Haenszel odds
+ratio and one-sided p are rule 3's; *MH survives Holm* is across the six models.
+
+<!-- decider-forced-summary:start -->
+| model | C_fc (unparsed wrong) | unparsed | C_fc on parsed | says A (parsed) | families ≥ 90% one word | families ≥ 90% one letter | C_fc high | MH OR (one-sided p) | MH survives Holm | reading | C_fc, all 16 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 172/320 (53.8%, p 0.0992) | 0 | 172/320 (53.8%) | 12% | 0: none | 4: `photo_backup` 0.07, `river_swim` 0.05, `travel` 0.03, `water_notice` 0.07 | no | 1.44 (0.1086) | no | letter prior | 56.1% |
+| `qwen2.5-7b` | 167/320 (52.2%, p 0.2337) | 0 | 167/320 (52.2%) | 45% | 4: `pet_care` 0.95, `river_swim` 0.07, `street_cleaning` 0.05, `travel` 0.03 | 0: none | no | 1.20 (0.3321) | no | word prior | 53.3% |
+| `mistral-7b` | 170/320 (53.1%, p 0.1441) | 0 | 170/320 (53.1%) | 59% | 2: `home_security` 1.00, `photo_backup` 1.00 | 1: `river_swim` 1.00 | no | 1.19 (0.2815) | no | word prior | 55.8% |
+| `gemma-3-4b` | 177/320 (55.3%, p 0.0325) | 0 | 177/320 (55.3%) | 50% | 3: `home_security` 0.95, `street_cleaning` 0.00, `travel` 0.03 | 0: none | no | 1.25 (0.2683) | no | word prior | 57.3% |
+| `phi-4-mini` | 173/320 (54.1%, p 0.0811) | 0 | 173/320 (54.1%) | 52% | 2: `street_cleaning` 0.00, `water_notice` 0.00 | 0: none | no | 1.60 (0.0850) | no | word prior | 58.3% |
+| `granite-3.3-2b` | 170/320 (53.1%, p 0.1441) | 0 | 170/320 (53.1%) | 47% | 4: `home_security` 1.00, `pet_care` 0.07, `street_cleaning` 0.00, `travel` 0.03 | 0: none | no | 1.09 (0.4148) | no | word prior | 54.5% |
+<!-- decider-forced-summary:end -->
+
+**Beside Round 83** (not pre-registered, not decisive). Round 83's free-text C on the
+same 320 moments, scored as Round 83 scored it. *Same role word* counts the moments
+where both formats gave a parsed answer and named the same word. The last column drops,
+per model, the two-entity families flagged under either prior.
+
+<!-- decider-forced-compare:start -->
+| model | Round 83 C (free text) | Round 83 unparsed | C_fc (letters) | C_fc unparsed | same role word, both parsed | C_fc in two-entity families with no prior |
+|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 176/320 (55.0%) | 11 | 172/320 (53.8%) | 0 | 187/309 (61%) | 89/160 (55.6%, 4 families, p 0.0894) |
+| `qwen2.5-7b` | 183/320 (57.2%) | 1 | 167/320 (52.2%) | 0 | 232/319 (73%) | 85/160 (53.1%, 4 families, p 0.2384) |
+| `mistral-7b` | 143/320 (44.7%) | 62 | 170/320 (53.1%) | 0 | 136/258 (53%) | 110/200 (55.0%, 5 families, p 0.0895) |
+| `gemma-3-4b` | 181/320 (56.6%) | 10 | 177/320 (55.3%) | 0 | 188/310 (61%) | 116/200 (58.0%, 5 families, p 0.0141) |
+| `phi-4-mini` | 160/320 (50.0%) | 14 | 173/320 (54.1%) | 0 | 189/306 (62%) | 133/240 (55.4%, 6 families, p 0.0532) |
+| `granite-3.3-2b` | 141/320 (44.1%) | 49 | 170/320 (53.1%) | 0 | 171/271 (63%) | 86/160 (53.8%, 4 families, p 0.1923) |
+<!-- decider-forced-compare:end -->
+
+**Per family**, C_fc right out of 40 (unparsed wrong).
+
+<!-- decider-forced-families:start -->
+| model | child | comm | dead | dine | drive | fin | hlth | home | meet | pet | photo | quiet | river | street | trav | water |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 21 | 22 | 26 | 24 | 33 | 21 | 21 | 23 | 20 | 22 | 21 | 23 | 20 | 20 | 21 | 21 |
+| `qwen2.5-7b` | 21 | 21 | 26 | 23 | 27 | 18 | 22 | 25 | 20 | 20 | 17 | 19 | 21 | 20 | 21 | 20 |
+| `mistral-7b` | 26 | 20 | 21 | 22 | 30 | 21 | 23 | 20 | 21 | 21 | 20 | 25 | 20 | 21 | 24 | 22 |
+| `gemma-3-4b` | 25 | 19 | 26 | 28 | 32 | 25 | 21 | 20 | 21 | 21 | 23 | 21 | 20 | 20 | 21 | 24 |
+| `phi-4-mini` | 22 | 20 | 32 | 26 | 38 | 23 | 23 | 25 | 20 | 19 | 18 | 22 | 20 | 20 | 25 | 20 |
+| `granite-3.3-2b` | 20 | 21 | 21 | 26 | 33 | 18 | 20 | 20 | 23 | 23 | 19 | 23 | 20 | 20 | 21 | 21 |
+<!-- decider-forced-families:end -->
+
+### What Round 84 does and does not show
+
+- **The pre-registered outcome is *word prior*.** Five of six models fail the word-prior
+  check and `llama-3.1-8b` fails the letter-prior check. No model reaches the format
+  guard, and none has C_fc high. By the stopping criterion, a reading shared by 4 or more
+  models closes queue AD as that reading: AD closes as **word prior**, and the
+  chain-probe line ends here unless the owner reopens it.
+- **Format is ruled out as the cause.** No reply failed the strict letter parse.
+  `mistral-7b` and `granite-3.3-2b`, whose free-text C was below 50% because of parse
+  failures, rise to the others' level, and that level is still near chance (52.2% to
+  55.3%). Round 83's break at C was not a format failure.
+- **Composition is not shown either, because the priors take its place.** In a
+  word-prior family a model gives the same role word whatever the moment says, for
+  example `new` for the passenger's gate, or `previous` for the swept street. That is
+  consistent with not composing and falling back on the more plausible word, but the
+  rule cannot tell that apart from a preference that overrides a composition the model
+  did make. In the families with no prior, C_fc is still only 53.1% to 58.0%.
+- **The chain test holds for no model.** C_fc is not measurably more often right when
+  Round 83's R and J were both right (Mantel–Haenszel, one-sided, Holm). The best odds
+  ratio is `phi-4-mini`'s 1.60 (p = 0.085), against 2.77 on Round 83's free-text C.
+- **The two formats disagree often.** Where both parsed, a model's C answer names a
+  different role word under letters than under free text on 27% to 47% of the moments.
+  An answer driven by the composed fact should not change with the answer format.
+- **Six local models of 8B and under**, one C wording per family. Says nothing about
+  frontier models (NEEDS-MAX 1).
