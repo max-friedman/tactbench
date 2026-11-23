@@ -1,4 +1,16 @@
 {
+  "gemma-3-4b": {
+    "call_seconds": 1696.0,
+    "file": "google_gemma-3-4b-it-Q4_K_M.gguf",
+    "hf_repo": "bartowski/google_gemma-3-4b-it-GGUF",
+    "max_tokens": 16,
+    "n_ctx": 2048,
+    "prompt_version": "2026-11-23.2",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "4996030242583a40aa151ff93f49ed787ac8c25e4120c3ae4588b2e2a7d1ae94",
+    "temperature": 0,
+    "threads": 4
+  },
   "llama-3.1-8b": {
     "call_seconds": 2691.5,
     "file": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
