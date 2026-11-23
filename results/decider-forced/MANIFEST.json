@@ -35,6 +35,18 @@
     "temperature": 0,
     "threads": 4
   },
+  "phi-4-mini": {
+    "call_seconds": 1600.7,
+    "file": "microsoft_Phi-4-mini-instruct-Q4_K_M.gguf",
+    "hf_repo": "bartowski/microsoft_Phi-4-mini-instruct-GGUF",
+    "max_tokens": 16,
+    "n_ctx": 2048,
+    "prompt_version": "2026-11-23.2",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "01999f17c39cc3074afae5e9c539bc82d45f2dd7faa3917c66cbef76fce8c0c2",
+    "temperature": 0,
+    "threads": 4
+  },
   "qwen2.5-7b": {
     "call_seconds": 2736.7,
     "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
