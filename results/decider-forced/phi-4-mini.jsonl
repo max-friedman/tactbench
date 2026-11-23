@@ -455,3 +455,7 @@
 {"moment_id": "quiet_hours-near-0020", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.93}
 {"moment_id": "quiet_hours-near-0024", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.95}
 {"moment_id": "quiet_hours-near-0025", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.97}
+{"moment_id": "quiet_hours-near-0026", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.46}
+{"moment_id": "quiet_hours-near-0027", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.81}
+{"moment_id": "quiet_hours-near-0028", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A) near", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.29}
+{"moment_id": "quiet_hours-pos-0000", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.92}
