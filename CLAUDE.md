@@ -152,6 +152,8 @@ In order. Each is a self-contained increment.
    decider above chance (60-79%) yet their decisions are no more often right when they do;
    R83: they find the relevant entity (88-98%) and read the role, but the composed question
    reads 44-57% — the break is located at that question, partly parse failures and word priors;
+   R84: as a forced choice every reply parses, yet it stays at 52-55% with per-family word priors
+   (5 of 6 models); the chain-probe line closed there;
    hosted frontier models not run — that needs a paid key (NEEDS-MAX 1).
 2. **Human-labeled subset** — a labeling CLI, multiple raters, reported κ. Measures
    how far construction drifts from what people actually want. **Status:** the CLI

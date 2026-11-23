@@ -487,6 +487,244 @@ and no continuity correction.
   or below 50%) matches the other four.
 - **Next step: a forced-choice C.** Asking C with lettered options (A or B) would remove
   the parse confound. That would be a new pre-registered round, not a change to this
-  one.
+  one. *Done in Round 84 (below): no reply failed to parse, and C stayed near chance.*
 - **Six local models of 8B and under**, the best of Round 82's fourteen. Says nothing
   about frontier models (NEEDS-MAX 1).
+
+## Round 84: forced-choice C
+
+Round 83 located the break at the composed question C but could not say what broke.
+Two confounds stood in the way. First, 19% of `mistral-7b`'s and 15% of
+`granite-3.3-2b`'s C replies did not parse, and most of those named an entity. Second,
+in 7 of 48 model-family cells at least 90% of the parsed C answers were one word,
+whatever the gold. This round asks the same C question with lettered options and a
+one-letter answer, on the same 640 moments and the same six models. The aim is to tell
+three things apart: "cannot compose", a format failure, and a word prior.
+
+Code: `experiments/decider_forced.py`. Results: `results/decider-forced/`. Gate:
+`tests/test_decider_forced.py`. Its results tests are marked strict `xfail` until the
+runs exist, so they cannot pass silently before then (removed after the runs; see
+Results).
+
+### Design (Round 84)
+
+**The question.** Each family's C stem is Round 83's, word for word, with the two role
+words in the same order as the lettered options. Round 83's answer instruction is
+replaced. Every prompt is Round 82's preamble, the full rendered moment, then (for
+`dinner_booking`, with the speak word at A):
+
+<!-- decider-forced-prompt:start -->
+```
+According to the signals, is the booking for tonight's dinner unconfirmed or confirmed?
+A) unconfirmed
+B) confirmed
+Answer with one letter, A or B, and nothing else.
+```
+<!-- decider-forced-prompt:end -->
+
+The other fifteen families use their Round 83 C stem and role words (the Round 83
+questions table) in the same layout. Decoding is unchanged: greedy, 16 tokens, a single
+user turn. Prompt version `2026-11-23.2`. Nothing is seeded from Round 83's C answers;
+every model answers all 640 questions afresh.
+
+**Parsing is strict.** A reply parses only when its first non-space character is a
+capital `A` or `B` and no letter or digit follows it. So `B`, ` A.` and
+`A) unconfirmed` parse. `Answer: B`, `a`, `**A**`, `Absolutely` and a bare role word
+do not. Unparsed replies count as wrong in the decisive figure. Accuracy over parsed
+answers is also shown.
+
+**Counterbalancing.** The two sides of a pair share one option order. So their prompts
+carry the same tokens and have opposite gold letters, and any rule that reads only the
+prompt's tokens gets exactly one side of every pair right (tested). Within each family,
+the speak-side word is at A in exactly 10 of the 20 pairs. Pairs are ranked by Round 82's
+clause-order stratum, then by a `hashlib` digest, and alternate. As a result:
+
+- in every family × side cell (20 moments), the gold letter is A in exactly 10;
+- in every family (40 moments), each of the four (letter, role word) pairings is gold in
+  exactly 10;
+- "always A" and "always B" read exactly 50% in every family × side cell;
+- a constant role word reads exactly 50% in every family.
+
+**What cannot be balanced.** A constant role word cannot read 50% within a
+family × side cell. Within that cell the gold word is fixed by the label: the speak side's
+gold is always the speak word. Balancing it there would mean asking a different question
+on some items, for example about the other entity. That would change what C asks. So a
+constant word reads 100% on one side and 0% on the other. This is why the word-prior
+check below works per family (both sides pooled), and why the chain test is stratified
+by family × side.
+
+<!-- decider-forced-baselines:start -->
+| baseline | overall | per family: low / high | per family × side: low / high |
+|---|---|---|---|
+| always A | 50.0% | 50% / 50% | 50% / 50% |
+| always B | 50.0% | 50% / 50% | 50% / 50% |
+| always the speak word | 50.0% | 50% / 50% | 0% / 100% |
+| always the silent word | 50.0% | 50% / 50% | 0% / 100% |
+| role word named first in decider | 50.0% | 50% / 50% | 50% / 50% |
+<!-- decider-forced-baselines:end -->
+
+### Pre-registration (Round 84)
+
+These rules were written before any Round 84 model call. This file is committed before
+the runs start, so the order can be checked in history.
+
+- **Models.** The six from Round 83, run largest first: `llama-3.1-8b`, `qwen2.5-7b`,
+  `mistral-7b`, `gemma-3-4b`, `phi-4-mini`, `granite-3.3-2b`. 640 calls each, one per
+  moment.
+- **The decisive figure.** C_fc is the share of the 320 moments in the **eight
+  two-entity families** whose reply parses to the gold letter. Unparsed replies count as
+  wrong.
+- **Rule 1: C_fc high.** C_fc is *high* when it is **at least 70%** (224 of 320) and
+  above chance by an exact one-sided binomial test, Holm across the six models. Holm's
+  first step needs **182 of 320** (p = 0.0080), so the 70% bar is the binding one. A
+  model whose true C_fc is 75% reaches 224 98.2% of the time. At a true 72% it reaches
+  80.6%, at a true 70% 52.8%, and at a true 65% 3.3%. C_fc is *below 60%* under
+  **192 of 320**. A true 55% stays below that 96.0% of the time, a true 57% 84.8%, a
+  true 60% 47.6% and a true 65% 2.7%.
+- **Rule 2: the word-prior check.** In each two-entity family, take the parsed answers
+  and find the share naming the speak word. The family is a *word prior* when that
+  share is **at least 90% or at most 10%**. A model passes the check when **no more
+  than 1** of its 8 two-entity families is a word prior. A family with no parsed answers
+  counts as no prior. Because each family's gold is half each word, a model that
+  answers every question right says each word exactly half the time. And a word-prior
+  family caps that family's accuracy at 40% to 60% when all its answers parse. With no
+  lean, a family of 40 parsed answers is flagged with probability 1.9e-07. With a true
+  90% lean it is flagged 62.9% of the time, and with a true 75% lean 1.6%. Two or more
+  of 8 families flagged with no lean: probability 9.7e-13.
+- **Rule 2b: the letter-prior check.** The same check on letters. In each two-entity
+  family, take the parsed answers and find the share that are `A`. The family is a
+  *letter prior* when that share is **at least 90% or at most 10%**. A model passes when
+  **no more than 1** of its 8 two-entity families is a letter prior. This catches a
+  constant letter, which scores exactly 50% and would otherwise read as *break is
+  composition*; it is flagged in all 8 families. A model that answers every question
+  right says `A` exactly half the time in every family. With no lean, a family of 40
+  parsed answers is flagged with probability 1.9e-07, and two or more of 8 with
+  probability 9.7e-13.
+- **Rule 2c: the format guard.** A model with **more than 32 of 320** unparsed
+  two-entity answers (more than 10%) reads *format*, whatever its C_fc. This stops
+  letter-format failures from passing as *break is composition*, which was Round 83's
+  problem.
+- **Rule 3: the chain test.** Per model, on the two-entity moments: is C_fc more often
+  right when Round 83's R and J answers (as recorded) were both right? This is a
+  **Mantel–Haenszel** test stratified by **family × side** (16 strata), with **no
+  continuity correction**, matching Round 83's non-decisive figures. It is one-sided
+  at 0.05, with **Holm across the six models**. Strata with a zero margin are skipped.
+  For power, take 220 items with R and J both right and 100 not, C_fc at 50% on the
+  rest, and an unstratified approximation. A 15-point difference is then detected
+  81.3% of the time at 0.05, and 55.8% at Holm's first step (0.05/6). A 10-point
+  difference is detected 51.2% and 23.7% of the time. Rule 3 is reported beside each
+  reading and does not change it. A *break is composition* reading with a significant
+  chain test is reported as such: both stand, side by side.
+- **Readings per model**, checked in this order:
+  1. The word-prior check fails: **word prior**.
+  2. The letter-prior check fails: **letter prior**.
+  3. More than 32 unparsed: **format**.
+  4. C_fc high: **composes when the format is fixed**. Round 83's break was format.
+  5. C_fc below 60%: **break is composition**.
+  6. Anything else: **unresolved**, reported with its numbers.
+- **Stopping criterion for queue AD.** If **4 or more** of the six models share one
+  reading, AD closes as that reading: *break is composition* closes it as
+  **composition**, *composes when the format is fixed* closes it as that, and so on for
+  *format* and either prior. If no reading is shared by 4 or more models, AD closes as
+  **located at C, cause unresolved**. *Format* and either prior count toward that unless
+  4 or more models share them. Either way, the chain-probe line (Rounds 82-84) ends here
+  unless the owner reopens it.
+- **Also reported, not decisive.** C_fc over parsed answers. The share of parsed
+  answers that are A. C_fc over all 16 families. Per-family counts.
+
+### Results (Round 84)
+
+Run in Round 84, after the pre-registration above was committed (7c1cefa,
+2026-11-23T09:02:19Z): all six models, largest first, one llama.cpp server per model on
+4 CPU threads, in the same moment order as Round 83. The calls took 12,894 seconds in
+total (`call_seconds` per model in `results/decider-forced/MANIFEST.json`); wall time
+was about 3 h 39 min.
+
+<!-- decider-forced-findings:start -->
+Pooled over the eight two-entity families (n = 320), the 6 models answer the forced-choice C at **52.2% to 55.3%** with unparsed replies scored wrong, and at 52.2% to 55.3% over parsed replies. Unparsed: 0 to 0 of 320. Pre-registered readings: *word prior* 5 (`qwen2.5-7b`, `mistral-7b`, `gemma-3-4b`, `phi-4-mini`, `granite-3.3-2b`); *letter prior* 1 (`llama-3.1-8b`). Queue AD closes as **word prior**. The chain test (C_fc more often right when Round 83's R and J were both right; Mantel–Haenszel by family and side, one-sided, Holm across the 6 models) holds for 0 of 6 (none).
+
+*Not pre-registered, not decisive.* Letters removed every parse failure. That lifted the two models whose free-text C had most often failed to parse (`mistral-7b` 44.7% to 53.1%; `granite-3.3-2b` 44.1% to 53.1%), to the level of the rest; the other 4 moved -5.0 to +4.1 points (free-text C on the same moments: 44.1% to 57.2%). Priors grew: 15 of the 48 model-family cells are a word prior (Round 83: 7) and 5 a letter prior. In the two-entity families where a model shows neither prior, its C_fc is 53.1% to 58.0%. Where both formats parsed, the two name the same role word 53% to 73% of the time. So no model reaches the high bar with the format fixed, and the format does not explain why C sits near chance.
+<!-- decider-forced-findings:end -->
+
+**Per model**, pooled over the eight two-entity families (n = 320; exact one-sided
+binomial p against 50%). *Says A* is the share of parsed answers that are `A`: 50% is
+no lean. A family is listed under a prior with the share of its parsed answers naming
+the speak word (word prior) or that are `A` (letter prior). The Mantel–Haenszel odds
+ratio and one-sided p are rule 3's; *MH survives Holm* is across the six models.
+
+<!-- decider-forced-summary:start -->
+| model | C_fc (unparsed wrong) | unparsed | C_fc on parsed | says A (parsed) | families ≥ 90% one word | families ≥ 90% one letter | C_fc high | MH OR (one-sided p) | MH survives Holm | reading | C_fc, all 16 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 172/320 (53.8%, p 0.0992) | 0 | 172/320 (53.8%) | 12% | 0: none | 4: `photo_backup` 0.07, `river_swim` 0.05, `travel` 0.03, `water_notice` 0.07 | no | 1.44 (0.1086) | no | letter prior | 56.1% |
+| `qwen2.5-7b` | 167/320 (52.2%, p 0.2337) | 0 | 167/320 (52.2%) | 45% | 4: `pet_care` 0.95, `river_swim` 0.07, `street_cleaning` 0.05, `travel` 0.03 | 0: none | no | 1.20 (0.3321) | no | word prior | 53.3% |
+| `mistral-7b` | 170/320 (53.1%, p 0.1441) | 0 | 170/320 (53.1%) | 59% | 2: `home_security` 1.00, `photo_backup` 1.00 | 1: `river_swim` 1.00 | no | 1.19 (0.2815) | no | word prior | 55.8% |
+| `gemma-3-4b` | 177/320 (55.3%, p 0.0325) | 0 | 177/320 (55.3%) | 50% | 3: `home_security` 0.95, `street_cleaning` 0.00, `travel` 0.03 | 0: none | no | 1.25 (0.2683) | no | word prior | 57.3% |
+| `phi-4-mini` | 173/320 (54.1%, p 0.0811) | 0 | 173/320 (54.1%) | 52% | 2: `street_cleaning` 0.00, `water_notice` 0.00 | 0: none | no | 1.60 (0.0850) | no | word prior | 58.3% |
+| `granite-3.3-2b` | 170/320 (53.1%, p 0.1441) | 0 | 170/320 (53.1%) | 47% | 4: `home_security` 1.00, `pet_care` 0.07, `street_cleaning` 0.00, `travel` 0.03 | 0: none | no | 1.09 (0.4148) | no | word prior | 54.5% |
+<!-- decider-forced-summary:end -->
+
+**Beside Round 83** (not pre-registered, not decisive). Round 83's free-text C on the
+same 320 moments, scored as Round 83 scored it. *Same role word* counts the moments
+where both formats gave a parsed answer and named the same word. The last column drops,
+per model, the two-entity families flagged under either prior.
+
+<!-- decider-forced-compare:start -->
+| model | Round 83 C (free text) | Round 83 unparsed | C_fc (letters) | C_fc unparsed | same role word, both parsed | C_fc in two-entity families with no prior |
+|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 176/320 (55.0%) | 11 | 172/320 (53.8%) | 0 | 187/309 (61%) | 89/160 (55.6%, 4 families, p 0.0894) |
+| `qwen2.5-7b` | 183/320 (57.2%) | 1 | 167/320 (52.2%) | 0 | 232/319 (73%) | 85/160 (53.1%, 4 families, p 0.2384) |
+| `mistral-7b` | 143/320 (44.7%) | 62 | 170/320 (53.1%) | 0 | 136/258 (53%) | 110/200 (55.0%, 5 families, p 0.0895) |
+| `gemma-3-4b` | 181/320 (56.6%) | 10 | 177/320 (55.3%) | 0 | 188/310 (61%) | 116/200 (58.0%, 5 families, p 0.0141) |
+| `phi-4-mini` | 160/320 (50.0%) | 14 | 173/320 (54.1%) | 0 | 189/306 (62%) | 133/240 (55.4%, 6 families, p 0.0532) |
+| `granite-3.3-2b` | 141/320 (44.1%) | 49 | 170/320 (53.1%) | 0 | 171/271 (63%) | 86/160 (53.8%, 4 families, p 0.1923) |
+<!-- decider-forced-compare:end -->
+
+**Per family**, C_fc right out of 40 (unparsed wrong).
+
+<!-- decider-forced-families:start -->
+| model | child | comm | dead | dine | drive | fin | hlth | home | meet | pet | photo | quiet | river | street | trav | water |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 21 | 22 | 26 | 24 | 33 | 21 | 21 | 23 | 20 | 22 | 21 | 23 | 20 | 20 | 21 | 21 |
+| `qwen2.5-7b` | 21 | 21 | 26 | 23 | 27 | 18 | 22 | 25 | 20 | 20 | 17 | 19 | 21 | 20 | 21 | 20 |
+| `mistral-7b` | 26 | 20 | 21 | 22 | 30 | 21 | 23 | 20 | 21 | 21 | 20 | 25 | 20 | 21 | 24 | 22 |
+| `gemma-3-4b` | 25 | 19 | 26 | 28 | 32 | 25 | 21 | 20 | 21 | 21 | 23 | 21 | 20 | 20 | 21 | 24 |
+| `phi-4-mini` | 22 | 20 | 32 | 26 | 38 | 23 | 23 | 25 | 20 | 19 | 18 | 22 | 20 | 20 | 25 | 20 |
+| `granite-3.3-2b` | 20 | 21 | 21 | 26 | 33 | 18 | 20 | 20 | 23 | 23 | 19 | 23 | 20 | 20 | 21 | 21 |
+<!-- decider-forced-families:end -->
+
+### What Round 84 does and does not show
+
+- **The pre-registered outcome is *word prior*.** Five of six models fail the word-prior
+  check and `llama-3.1-8b` fails the letter-prior check. No model reaches the format
+  guard, and none has C_fc high. By the stopping criterion, a reading shared by 4 or more
+  models closes queue AD as that reading: AD closes as **word prior**, and the
+  chain-probe line ends here unless the owner reopens it.
+- **Parse failure is ruled out as the cause.** No reply failed the strict letter parse.
+  `mistral-7b` and `granite-3.3-2b`, whose free-text C was below 50% because of parse
+  failures, rise to the others' level, and that level is still near chance (52.2% to
+  55.3%). Over parsed answers their free-text C was already 55.4% and 52.0%. Round 83's
+  break at C was not a parse failure. The format itself is not ruled out: answers change
+  between formats on 27% to 47% of moments (below), and `llama-3.1-8b`'s letter prior
+  (it says `A` only 12% of the time) is an effect of the letter layout, so its
+  forced-choice run is format-confounded.
+- **Composition is not shown either, because the priors take its place.** In a
+  word-prior family a model gives the same role word whatever the moment says, for
+  example `new` for the passenger's gate, or `previous` for the swept street. That is
+  consistent with not composing and falling back on the more plausible word, but the
+  rule cannot tell that apart from a preference that overrides a composition the model
+  did make. In the families with no prior, C_fc is still only 53.1% to 58.0%. That
+  figure selects on the answers (a word-prior family is held near 40% to 60% by
+  construction, so dropping them is not neutral); its highest is `gemma-3-4b`'s 116/200
+  (p 0.014, uncorrected).
+- **The chain test holds for no model.** C_fc is not measurably more often right when
+  Round 83's R and J were both right (Mantel–Haenszel, one-sided, Holm). The best odds
+  ratio is `phi-4-mini`'s 1.60 (p = 0.085), against 2.77 on Round 83's free-text C.
+- **The two formats disagree often.** Where both parsed, a model's C answer names a
+  different role word under letters than under free text on 27% to 47% of the moments.
+  An answer driven by the composed fact should not change with the answer format.
+- **The prior flag is conservative.** At 90% or more of one word (or letter), a true
+  75% lean is flagged only 1.6% of the time, so a model with a moderate lean in every
+  family could pass both prior checks and read *break is composition*. That had no
+  effect here: every model was flagged.
+- **Six local models of 8B and under**, one C wording per family. Says nothing about
+  frontier models (NEEDS-MAX 1).
