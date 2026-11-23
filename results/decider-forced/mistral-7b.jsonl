@@ -480,3 +480,5 @@
 {"moment_id": "quiet_hours-pos-0028", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " B) far", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.64}
 {"moment_id": "river_swim-near-0000", "family": "river_swim", "options": ["downstream", "upstream"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.41}
 {"moment_id": "river_swim-near-0001", "family": "river_swim", "options": ["upstream", "downstream"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.61}
+{"moment_id": "river_swim-near-0002", "family": "river_swim", "options": ["upstream", "downstream"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.52}
+{"moment_id": "river_swim-near-0003", "family": "river_swim", "options": ["downstream", "upstream"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.79}
