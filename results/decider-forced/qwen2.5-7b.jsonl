@@ -157,3 +157,6 @@
 {"moment_id": "dinner_booking-pos-0025", "family": "dinner_booking", "options": ["unconfirmed", "confirmed"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.81}
 {"moment_id": "dinner_booking-pos-0026", "family": "dinner_booking", "options": ["unconfirmed", "confirmed"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.7}
 {"moment_id": "dinner_booking-pos-0027", "family": "dinner_booking", "options": ["confirmed", "unconfirmed"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.03}
+{"moment_id": "dinner_booking-pos-0028", "family": "dinner_booking", "options": ["confirmed", "unconfirmed"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.13}
+{"moment_id": "driving-near-0000", "family": "driving", "options": ["jammed", "clear"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.81}
+{"moment_id": "driving-near-0001", "family": "driving", "options": ["clear", "jammed"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.8}
