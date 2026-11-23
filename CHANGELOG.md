@@ -5,6 +5,24 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 82)
+
+- **Can the models read the decider at all?** (`experiments/decider_reading.py`,
+  `docs/DECIDER_READING.md`). One two-option reading question per v9 dev pair (320),
+  counterbalanced so first-option and first-named baselines read exactly 50%, asked
+  of all 14 models after the full moment. 11 of 14 answer above chance (60.3% to
+  78.8%); the pre-registered per-family rule is underpowered and supports neither
+  reading cleanly. On the asked moment, decisions were no more often right when the
+  reading was right (42-57% vs 38-61%). Whether the role is joined to the body is
+  untested.
+
+### Changed (Round 82)
+
+- Places that said no run "reads the decider" now say no run *separates the pairs*,
+  which is what was measured.
+- The families item (queue 8) is paused after a loop audit: seven new families left
+  the headline unchanged.
+
 ### Added (Round 81)
 
 - **All 28 LLM runs on `v9`**, seeded from each run's v8 cache (old-family decisions

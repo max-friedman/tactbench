@@ -148,7 +148,8 @@ In order. Each is a self-contained increment.
    project exists to produce: whether frontier models beat a few dozen lines of
    if-statements on interruption cost. Report it honestly whichever way it lands.
    **Status:** eleven open-weight models (0.5B-8B) measured on v1-v4 (R23, R39, R46, R48),
-   three more on v4 (R50); all fourteen on v5 (R54), held-out v1/test (R69), v6 (R72), v7 (R75), v8 (R77) and v9 (R81);
+   three more on v4 (R50); all fourteen on v5 (R54), held-out v1/test (R69), v6 (R72), v7 (R75), v8 (R77) and v9 (R81). R82: asked directly, 11 of 14 read the
+   decider above chance (60-79%) yet their decisions are no more often right when they do;
    hosted frontier models not run — that needs a paid key (NEEDS-MAX 1).
 2. **Human-labeled subset** — a labeling CLI, multiple raters, reported κ. Measures
    how far construction drifts from what people actually want. **Status:** the CLI
@@ -160,7 +161,7 @@ In order. Each is a self-contained increment.
    it can buy is realism, and a measurement: do a model's decisions survive the same
    moment reworded? Build it as that experiment.
    **Status (R42):** built — `data/v2para`, 22 runs. Decisions barely flip, but no
-   model reads the decider (≤4 of 36 pairs), so robustness of reading it is unmeasured.
+   model separates the pairs (≤4 of 36 pairs), so robustness of reading it is unmeasured.
 4. **Held-out test labels** — hidden behind a submission script so the leaderboard
    resists overfitting. **Round 33:** hiding the label file or the seed does nothing —
    `tactbench build` recovers every test label and a parser of the public templates

@@ -13,11 +13,11 @@ findings** below.
 
 ## Current status
 
-- **Loop audit due:** R82 (fifth round after R77's audit) — **or sooner**: a stop
+- **Loop audit due:** R87 (fifth round after R82's audit) — **or sooner**: a stop
   condition, or a second non-`nothing` Loop line in a row, pulls it to the next round;
   update this line when either happens (R62: R57-R58 did and nobody pulled it; R67, R72 and R77 ran on time). A round
   at or past it runs the audit or writes `deferred: <reason>` (proposed upstream, #60).
-- **Round:** 81 complete — all 28 LLM runs on `v9`; on `dinner_booking` the best reads 3 of 20 pairs with 4 backwards, nothing else moves (queue AA). R80: dataset `v9`, a sixteenth family (`dinner_booking`); review replaced ambiguous frames; char n-gram probe trains longer only when it cannot fit dev (queue AA: LLM runs on v9). R79: an at-a-glance LLM table (one row per split, ten splits) at the top of the README, generated and gated exactly. R78: negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
+- **Round:** 82 complete — asked directly, 11 of 14 models read the decider above chance (60-79%), yet decisions are no more often right when they do (queue AB; AC next: the join); loop audit paused item 8. R81: all 28 LLM runs on `v9`; on `dinner_booking` the best reads 3 of 20 pairs with 4 backwards, nothing else moves (queue AA). R80: dataset `v9`, a sixteenth family (`dinner_booking`); review replaced ambiguous frames; char n-gram probe trains longer only when it cannot fit dev (queue AA: LLM runs on v9). R79: an at-a-glance LLM table (one row per split, ten splits) at the top of the README, generated and gated exactly. R78: negation polarity gated against its exact null on every family; the published leans are p=0.25, so queue Z is closed without regeneration. R77: all 28 LLM runs on `v8`; on `photo_backup` the best reads 4 of 20 pairs, p=0.0625 (queue Y); loop audit on time. R76: dataset `v8`, a fifteenth family (`photo_backup`); review found negation polarity solved it, frames re-selected and a polarity gate added; `commerce`/`finance` lean recorded (queue Z). R75: all 28 LLM runs on `v7`; on `river_swim` the best reads 3 of 20 pairs (below a coin), so a relational decider fares no better (queue X). R74: dataset `v7`, a fourteenth family (`river_swim`); its "new decision shape" claim corrected in review to a relational word plus a world-knowledge step. R73: letter-count combinations gated against an exact orientation null; all 64 family-version cells pass (queue V). R72: all 28 LLM runs on `v6`; on `street_cleaning` 21 are constant and the best reads 5 of 20 pairs (a coin's expectation); nothing else moves; loop audit (on time). R71: dataset `v6`, a thirteenth family (`street_cleaning`); a letter-combination weakness disclosed in it and in v4. R70: the v1 dev commentary moved under the v1 table (item U). R69: all 28 LLM runs on held-out `v1/test`; dev's verdicts hold for 21 of 22, no run reads the decider (item T done). R68: the local runner can produce held-out (`test`) runs. R67: item S closed (two present-tense claims pinned); loop audit
   on time; R60's #56 instance filed. R66: the last four current-data README figures pinned. R65: README prose figures swept by mutation: 85 of 145 unpinned,
   75 after pinning the current-data ones; the cost list was missing two constants. R64: three stale README limitations corrected and pinned
   (`quiet_hours` 87% → 81%/68%). R63: the character n-gram audit is gated on v5 too (it holds).
@@ -51,7 +51,7 @@ findings** below.
   `tactbench label` / `agreement`, the human-labelling tool. R30 (#26): last ungated Results-prose figures gated. R28 (#24): §A audit of the pairs headline, `holds`; first loop audit.
   R26 (#22): policies no longer see `slices` or a label-bearing `id`. R22+R25
   merged as #21, R23+R24 as #20.
-- **Gate:** green — **2287 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
+- **Gate:** green — **2320 passed, 4 xfailed** (the R36 strict xfail, on `v1`, its two R55 order-rule twins, and R71's v5-form 20-seed positional on v6), `ruff check` **and** `ruff format --check` both
   clean, **enforced by CI** on py3.11-3.13.
   `TestReadmeResultsAreCurrent` fails the build when the README disagrees with
   `eval` — the results table (R17) and the figures quoted in prose (R18)
@@ -341,6 +341,15 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
+AC. **Can the models join the role to the body?** (new, R82). The reading probe asked
+   which entity holds the decider's role; the decision also needs which entity the body
+   makes relevant (e.g. which restaurant is tonight's). Ask that second question the same
+   way (one side per pair, counterbalanced), then the composed question ("should the
+   user be told?" restated as which-entity), to locate where the chain breaks. Raise per
+   family n (both sides per pair) so the per-family test has power; state the power first.
+
+AB. **Decider reading — DONE in R82.** Asked directly, 11 of 14 models read it above chance.
+
 AA. **LLM runs on `v9` — DONE in R81.** Original entry (R80): As R77: seed v9 caches from v8's, write
    `tests/test_results_v9.py` and the README section first (reuse check against v8,
    claims class, MARKERS, `llm_glance` SPLITS), then run. Only `dinner_booking`'s 40 dev
@@ -409,7 +418,7 @@ Q. **Marker-aware order checks for `pet_care` and `home_security` — DONE in R5
 P. **LLM runs on `v5` — DONE in R54.** 28 runs, old-family decisions checked equal
    to v4's one by one, table and claims gated (`tests/test_results_v5.py`).
 
-8. **More families still welcome — `pet_care` (R45, `v3`), `home_security` (R47,
+8. **PAUSED in R82 (audit).** Seven new families (v3-v9) each left the headline unchanged; resume when a model reads a decider, or with a stated reason a new domain would change the answer. Original entry: **More families still welcome — `pet_care` (R45, `v3`), `home_security` (R47,
    `v4`), `water_notice` (R52, `v5`).** Twelve is still one author's idea of a working life. No named candidate
    left; a new one should come from a domain none of the twelve touches. (Commute
    disruption was dropped in R45: `driving` already asks which route is blocked.)
@@ -4035,6 +4044,44 @@ status. The glance table's v9 row: best +10.5 vs silence, −15.5 vs the pair-bl
 
 ---
 
+## Round 82 — can the models read the decider at all? And a loop audit
+
+**Ending state: `shipped`.** Queue item AB, new this round. **Question:** no run separates
+a pair's two sides; is that because the models cannot read the decider, or because what
+they read does not reach the decision? **Built first:** `tests/test_decider_reading.py`,
+red at collection. 320 two-option questions (one side per v9 dev pair, 16 families × 20),
+counterbalanced so first-option, first-named and marker baselines read exactly 50.0% in
+every family; asked of all 14 models after the full moment, single user turn, ~3h wall.
+
+**Result:** 11 of 14 answer above chance (60.3% to 78.8%; Llama-3.1-8B best). The
+pre-registered per-family Holm rule supports neither reading cleanly (10 "(a)", 4
+neither, 0 "(b)"), and it is underpowered: a true 75% passes the first step 22.5% of
+the time at n=20. Exploratory: on the asked moment, decisions were right 42-57% when the
+reading was right and 38-61% when wrong (higher in 15 of 28 runs). So reading is partial
+and above chance, and getting it right does not make the decision right; the join to the
+body is untested (queue AC).
+
+**Review (adversarial subagent; not §D-independent):** no error in gold answers, parsing
+or data; cheap baselines (polarity match 55.0%, body salience 50.0%, nearest-to-tonight
+48.8%) nowhere near. Blocking: the docs said the rules were *committed* before the runs;
+git shows them first in the results commit, so that is now stated as unverifiable.
+Should-fix, all done: accuracy² yardstick replaced by the per-item contrast (near-constant
+runs made it meaningless); "do not use it" replaced by what was measured; four questions
+named as needing a small inference; verdict column marked underpowered; "reads the
+decider" → "separates the pairs" in five README places and CLAUDE.md; the glance test's
+name exclusion replaced by a split-name pattern.
+
+**Loop audit (due R82; R78-R81 Loop lines all `nothing`).** Disproportionate effort:
+queue item 8 (more families) is open-ended, so the empty-queue stop can never fire; seven
+families (R45-R80) plus their LLM rounds left the headline unchanged while every other
+live item was owner-blocked. Item 8 paused; method finding recorded as a candidate and
+drafted, not filed (a new issue needs the owner to see the text). No other step skipped,
+no unnamed ending state, no late stop condition.
+
+**Loop:** one candidate (open-ended items defeat the empty-queue stop). Next audit due R87.
+
+---
+
 ## Method findings — send upstream
 
 Durable lessons about running an agentic loop, as opposed to lessons about
@@ -4047,6 +4094,7 @@ already covered or out of scope, and filing them would have wasted triage.
 
 | finding | evidence from this project | disposition |
 |---|---|---|
+| An open-ended queue item disables the empty-queue stop (R82 audit) | Item 8, "more families still welcome", can never finish, so the queue was never empty. Seven family rounds (R45, R47, R52, R71, R74, R76, R80), each with a ~5 CPU-hour LLM round, left the headline unchanged; every other live item was owner-blocked. Each round ended `shipped`, `Loop: nothing` — accurately, which is why nothing flagged it. | **candidate** — drafted R82 (a stopping criterion required on any unfinishable item); not filed yet: a new issue needs the owner's sight of the text (§C filing). |
 | §D lets a session run 3 rounds but requires the reviewer be a different session | R16 shipped, then the sequence stopped: the only agent available to review its PR was the one that wrote it. Budget said 3 rounds remained; §D's independence requirement said 0. Provable from three lines of `LOOP.md` rather than from a run. | filed — [issue #29](https://github.com/max-friedman/agentic-coding-loop/issues/29). R48-R52 add evidence: the owner told one session to keep running and merge, so every round was reviewed by an in-session subagent. |
 | Nothing checks a round's summarizing sentence against its own evidence | R16–R21: six consecutive rounds shipped a summary wider than its evidence, every one caught by a reviewer and none by the gate or by §6. R21 alone produced ~10 across five review cycles, several *inside the sentence fixing the previous one* — ending with a sentence announcing counts would no longer be asserted, which asserted a count and got it wrong. The concrete harm is a **poisoned queue**: R21's widened claim became a queue item marked highest-risk that one `pytest -q` falsifies, which would have cost R22 a round. | filed — [issue #39](https://github.com/max-friedman/agentic-coding-loop/issues/39) |
 | A negative result on one instance is not a negative result | R21 mutated a property on one of nine families, measured *zero* effect, and the obvious action was to delete the assertion. Measuring the other eight showed it worth up to +16.1% and breaching a gate for one family. The loop's honesty rules cover claiming more than you measured; the mirror case — using a null result to justify **removing** a check — is the same error and is not named anywhere. It is more dangerous, because deleting a guard is silent and the gate stays green. | **folded into [#39](https://github.com/max-friedman/agentic-coding-loop/issues/39)** as the counter-argument section, since a naive fix to the first finding licenses exactly this error. Not filed separately. |

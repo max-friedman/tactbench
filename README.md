@@ -105,6 +105,47 @@ right on both sides, where a coin gets about 25%. So the runs that beat silence 
 without telling the two sides of a pair apart. Hosted frontier
 models have not been run (see [limitations](#honest-limitations)).
 
+### Can the models read the decider at all?
+
+No run tells the two sides of a pair apart, which leaves two explanations: the models
+cannot *read* the decider (which entity holds which role), or they read it and do not
+*use* it. Round 82 asked each model the reading question directly, with no interruption
+decision involved. It used one side of each v9 dev pair, so 320 two-option questions
+such as *"According to the last signal, which restaurant's booking is confirmed: Marzano
+or Corvino?"*, asked after the moment's full context. The option order is
+counterbalanced, so answering the first option, or the entity named first, scores
+exactly 50%. The rules were written before the runs but first committed with the
+results, so that order is not verifiable from history. A model *reads* a family at a
+Holm-corrected one-sided exact binomial p < 0.05 over its 20 questions.
+
+<!-- decider-reading-findings:start -->
+**11 of 14** models answer above chance overall (exact one-sided binomial p < 0.05), at **60.3% to 78.8%**; the other 3 sit at 50.3% to 51.6%. No model reads the 9 or more families (b) needed: the most is **7 of 16** (`llama-3.1-8b`). By the pre-registered rule, **10** models support (a), **4** support neither, and **0** support (b).
+
+That rule is underpowered. At 20 questions per family a true 75% reaches the first Holm step (17 of 20) only 22.5% of the time, so the (a) labels are not evidence that a model cannot read. *Exploratory, not pre-registered:* on the moment each model was asked about, its interrupt decision in the committed v9 runs (both prompts, 28 runs) was right 42% to 57% of the time when its reading was right and 38% to 61% when it was wrong; it was higher with a right reading in 15 of 28 runs. Getting the role right did not make the decision more often right. Whether a model can join the role to the body (which restaurant is tonight's) was not tested, so "reads but cannot join" and "reads but ignores" are not separated.
+<!-- decider-reading-findings:end -->
+
+<!-- decider-reading:start -->
+| model | right | accuracy | p (one-sided) | unparsed | families read | best pairs-both-right on v9 | pre-registered verdict (underpowered) |
+|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 252/320 | 78.8% | <0.0001 | 0 | 7 of 16 | 9.4% | neither |
+| `qwen2.5-7b` | 235/320 | 73.4% | <0.0001 | 0 | 4 of 16 | 2.8% | neither |
+| `mistral-7b` | 222/320 | 69.4% | <0.0001 | 1 | 1 of 16 | 4.4% | (a) |
+| `gemma-3-4b` | 228/320 | 71.2% | <0.0001 | 1 | 4 of 16 | 4.7% | neither |
+| `phi-3.5-mini` | 222/320 | 69.4% | <0.0001 | 3 | 1 of 16 | 0.3% | (a) |
+| `phi-4-mini` | 226/320 | 70.6% | <0.0001 | 0 | 4 of 16 | 1.9% | neither |
+| `qwen2.5-3b` | 215/320 | 67.2% | <0.0001 | 0 | 2 of 16 | 4.1% | (a) |
+| `llama-3.2-3b` | 202/320 | 63.1% | <0.0001 | 6 | 1 of 16 | 1.9% | (a) |
+| `gemma-2-2b` | 193/320 | 60.3% | 0.0001 | 10 | 1 of 16 | 3.1% | (a) |
+| `granite-3.3-2b` | 222/320 | 69.4% | <0.0001 | 0 | 1 of 16 | 8.1% | (a) |
+| `smollm2-1.7b` | 165/320 | 51.6% | 0.3075 | 1 | 0 of 16 | 3.1% | (a) |
+| `qwen2.5-1.5b` | 197/320 | 61.6% | <0.0001 | 0 | 1 of 16 | 0.3% | (a) |
+| `llama-3.2-1b` | 165/320 | 51.6% | 0.3075 | 1 | 0 of 16 | 0.0% | (a) |
+| `qwen2.5-0.5b` | 161/320 | 50.3% | 0.4777 | 0 | 0 of 16 | 0.3% | (a) |
+<!-- decider-reading:end -->
+
+The questions, prompt, pre-registration and the per-model x per-family table are in
+[docs/DECIDER_READING.md](docs/DECIDER_READING.md).
+
 ### How good does a system have to be?
 
 The leaderboard shows chance-precision policies losing to silence and a perfect
@@ -783,7 +824,7 @@ Most come from two runs with the naive prompt, Llama-3.1-8B (**8**) and Mistral-
 Adding the family changes no verdict: the same **7** runs beat silence on v4 and v5, and
 the same two are inconclusive. On this family speaking every time costs less than
 silence (**40** against **60**), so runs that mostly speak here gain on silence without
-reading the decider — Llama-3.2-3B naive speaks on **35** of the 40 and goes from
+separating the pairs — Llama-3.2-3B naive speaks on **35** of the 40 and goes from
 **+4.0** to **+6.7**. Qwen2.5-0.5B with the naive prompt goes from **5.7%** to **6.7%**
 unparsed, because **7** of its 40 `water_notice` answers are unreadable; its one split
 pair there comes from that fallback. Qwen2.5-3B naive goes from **6.4%** to **5.8%**. Of
@@ -834,7 +875,7 @@ to a model, and every old-family decision is checked equal to v5's.
 <!-- v6-claims:start -->
 - **On `street_cleaning` most runs are constant.** **21** of the 28 runs give every one
   of its 40 moments the same answer (**12** never speak, **9** always do).
-- **No run reads the decider there.** The best pairs-both-right score is **5** of 20
+- **No run separates the pairs there.** The best pairs-both-right score is **5** of 20
   pairs (Granite-3.3-2B with the rubric), which is what a coin expects. Its pairs split
   5 right and 1 backwards; at even odds that is p≈0.11, so it is not measurably better
   than a coin. Across all runs, of the **20** pairs answered differently on their two
@@ -1051,7 +1092,7 @@ split.
   four that tie silence, and Qwen2.5-3B naive. Another **8** are tied on one split
   and ordered on the other. The best row is the same on both: Gemma-3-4B with the
   rubric, **+16.4** on dev and **+18.1** on test.
-- **Some beat silence; none clears the pair-blind bar; none reads the decider.**
+- **Some beat silence; none clears the pair-blind bar; none separates the pairs.**
   **7** of the 28 runs beat silence, and the best is still **−15.7** against the
   pair-blind bar. The best `pairs` score is **14.8%**, from Llama-3.1-8B naive, a
   run that loses to silence; a coin gets about 25%. No run is inconclusive: the
@@ -1127,7 +1168,7 @@ the two decisions were unrelated at the observed speak rates.
 <!-- paraphrase-claims:end -->
 
 So the robustness question is not yet answerable with these models: it needs one that
-reads the decider. The reworded set and the script are in place for when one is run.
+separates the pairs. The reworded set and the script are in place for when one is run.
 
 Not yet on PyPI — the name is reserved and publishing waits until frontier LLM
 baselines land, so the first release has the result that makes it worth installing.
@@ -1211,9 +1252,14 @@ benchmark:
   isolating the leak is in `experiments/prose_decider_probe.py`.
 - **Paraphrase robustness is unmeasured in practice.** The reworded set (Round 42)
   is one alternative frame per family, written by the same author, on 72 moments.
-  The models run so far flip little under it, but they read the decider so rarely
+  The models run so far flip little under it, but they separate a pair's two sides so rarely
   (at most 4 of 36 pairs) that a rewording a model fails to understand cannot be
   told apart from one it never looked at.
+- **The decider-reading probe is small and leads the model.** Round 82 asks about one
+  side of each v9 dev pair, 20 questions per family, so the family test is underpowered
+  (see [the probe](#can-the-models-read-the-decider-at-all)). Its question names the
+  last signal outright, which nothing in the interruption task does. Its link to the
+  decision is exploratory, and joining the role to the body was not tested.
 - **Cost is concentrated in `quiet_hours`** — **81%** of the `always`-versus-silence
   gap from 11% of the moments on `v1`, and **68%** from 8% on `v5`, because a false positive while asleep under DND is
   the most expensive error the model prices. That concentration is deliberate, and
