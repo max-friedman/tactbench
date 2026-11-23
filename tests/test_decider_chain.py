@@ -195,7 +195,7 @@ def test_power_figures_are_the_binomials_own():
     text = " ".join(DOC.read_text().split())
     k = min(k for k in range(41) if dr.binom_sf(k, 40) <= dr.ALPHA / 16)
     assert k == ch.FIRST_HOLM_STEP == 30
-    assert f"**{k} of 40**" in text
+    assert f"**{k} of 40** (p = {dr.binom_sf(k, 40):.4f})" in text
     assert f"{dr.binom_sf_at(k, 40, 0.75):.1%}" in text
     k8 = min(k for k in range(41) if dr.binom_sf(k, 40) <= dr.ALPHA / 8)
     assert f"**{k8} of 40**" in text and f"{dr.binom_sf_at(k8, 40, 0.75):.1%}" in text
@@ -279,3 +279,40 @@ def test_questions_list_the_options_only_in_the_slot():
     for table in (ch.J_QUESTIONS, ch.C_QUESTIONS, dr.QUESTIONS):
         for q in table.values():
             assert q.count("{a}") == 1 and q.count("{b}") == 1
+
+
+def test_all_six_models_ran():
+    assert ch.models_run() == ch.MODELS
+
+
+def test_the_findings_wording_holds(chain):
+    """The words around the generated figures: "find", "well above chance", "near a coin"."""
+    ss = [ch.summarize(m, chain) for m in ch.models_run()]
+    assert all(s.pooled["j"] >= ch.HIGH for s in ss)
+    assert all(s.p("r") < 0.0001 for s in ss)
+    assert all(s.pooled["c"] < ch.LOW for s in ss)
+    readme = " ".join((ROOT / "README.md").read_text().split())
+    assert "do each step alone and fail at putting them together" in readme
+
+
+def test_prose_figures_in_the_round_83_docs(chain):
+    import json
+
+    text = " ".join(DOC.read_text().split("## Round 83")[1].split())
+    manifest = json.loads(ch.MANIFEST.read_text())
+    assert set(manifest) == set(ch.models_run())
+    total = sum(v["call_seconds"] for v in manifest.values())
+    assert f"The calls took {round(total):,} seconds in total" in text
+    ss = [ch.summarize(m, chain) for m in ch.models_run()]
+    r = sorted(s.pooled["r"] for s in ss)
+    assert f"read the role at {round(r[0] * 100)}-{round(r[-1] * 100)}% (R)" in text
+    both = sorted(s.chain_table[0] / (s.chain_table[0] + s.chain_table[1]) for s in ss)
+    assert f"C is right only {round(both[0] * 100)}-{round(both[-1] * 100)}% of the time" in text
+    unresolved = [s for s in ss if s.reading == "unresolved"]
+    assert len(unresolved) == 2 and "**Two models are unresolved**" in text
+    a, b = unresolved
+    assert f"`{a.model}` and `{b.model}` read the role at {a.pooled['r']:.1%} and" in text
+    assert f"and {b.pooled['r']:.1%} pooled" in text
+    assert all(ch.HIGH > s.pooled["r"] >= ch.LOW for s in unresolved)
+    assert sum(s.reading == "composition" for s in ss) == 4
+    assert "matches the other four" in text

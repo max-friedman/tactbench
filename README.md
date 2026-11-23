@@ -146,6 +146,34 @@ That rule is underpowered. At 20 questions per family a true 75% reaches the fir
 The questions, prompt, pre-registration and the per-model x per-family table are in
 [docs/DECIDER_READING.md](docs/DECIDER_READING.md).
 
+#### Where the chain breaks (Round 83)
+
+Deciding needs three steps: read which entity holds the decider's role (R), find which
+entity the body makes relevant (J, e.g. that tonight's dinner is at Marzano), and
+compose the two (C, e.g. that tonight's booking is unconfirmed). Round 83 asked all three
+on both sides of every v9 dev pair, for the six models with Round 82 accuracy of at
+least 69%, under rules committed before any model was run. C names the relevant entity
+by its description in the body ("tonight's dinner"), so it also hints at J.
+
+<!-- decider-chain-findings:start -->
+Pooled over the eight two-entity families (n = 320 per question), all 6 models find the entity the body makes relevant (J **87.8% to 97.8%**) and read the decider's role well above chance (R **67.5% to 78.4%**), but answer the composed question near a coin (C **44.1% to 57.2%**; 3 of 6 above 50% at p < 0.05). Pre-registered readings: **4** composition, **2** unresolved. The per-item chain test (C more often right when R and J are both right, one-sided Fisher p < 0.05) holds for 3 of 6: `qwen2.5-7b` (p = 0.025), `gemma-3-4b` (p = 0.003), `phi-4-mini` (p = 0.002).
+<!-- decider-chain-findings:end -->
+
+<!-- decider-chain-summary:start -->
+| model | R | J | C | pre-registered reading | C right, R and J right | C right, otherwise | Fisher p | C says the speak word | R / J / C, all 16 |
+|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 249/320 (77.8%, p <0.0001) | 306/320 (95.6%, p <0.0001) | 176/320 (55.0%, p 0.0415) | composition | 135/237 (57%) | 41/83 (49%) | 0.1437 | 32% | 77.2% / 88.0% / 57.2% |
+| `qwen2.5-7b` | 251/320 (78.4%, p <0.0001) | 313/320 (97.8%, p <0.0001) | 183/320 (57.2%, p 0.0059) | composition | 148/245 (60%) | 35/75 (47%) | 0.0247 | 50% | 74.5% / 94.7% / 55.5% |
+| `mistral-7b` | 232/320 (72.5%, p <0.0001) | 296/320 (92.5%, p <0.0001) | 143/320 (44.7%, p 0.9749) | composition | 98/213 (46%) | 45/107 (42%) | 0.2909 | 29% | 70.8% / 82.2% / 49.8% |
+| `gemma-3-4b` | 224/320 (70.0%, p <0.0001) | 303/320 (94.7%, p <0.0001) | 181/320 (56.6%, p 0.0109) | composition | 133/214 (62%) | 48/106 (45%) | 0.0031 | 45% | 70.2% / 90.3% / 52.7% |
+| `phi-4-mini` | 220/320 (68.8%, p <0.0001) | 300/320 (93.8%, p <0.0001) | 160/320 (50.0%, p 0.5223) | unresolved | 116/206 (56%) | 44/114 (39%) | 0.0017 | 69% | 69.8% / 83.3% / 52.2% |
+| `granite-3.3-2b` | 216/320 (67.5%, p <0.0001) | 281/320 (87.8%, p <0.0001) | 141/320 (44.1%, p 0.9855) | unresolved | 80/190 (42%) | 61/130 (47%) | 0.8333 | 54% | 67.0% / 80.8% / 50.9% |
+<!-- decider-chain-summary:end -->
+
+On these questions the models do each step alone and fail at putting them together.
+Questions, power, pre-registration and per-family tables:
+[docs/DECIDER_READING.md](docs/DECIDER_READING.md#round-83-where-does-the-chain-break).
+
 ### How good does a system have to be?
 
 The leaderboard shows chance-precision policies losing to silence and a perfect

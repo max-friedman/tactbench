@@ -309,6 +309,9 @@ def baselines_table(chain: list[ChainItem]) -> str:
 # Statistics and pre-registered readings
 # --------------------------------------------------------------------------- #
 
+#: Moments in the eight two-entity families (8 x 40): the pooled n per question.
+N_TWO = 320
+
 #: At n = 40 the first Holm step over 16 families needs p <= 0.05/16: 30 of 40.
 FIRST_HOLM_STEP = 30
 HIGH, LOW = 0.70, 0.60
@@ -343,8 +346,18 @@ def load_rows(name: str) -> list[dict]:
     return [json.loads(line) for line in result_path(name).read_text().splitlines() if line]
 
 
+#: Calls a complete run makes: J and C on all 640 moments, R on the 320 Round 82 did not ask.
+CALLS_PER_MODEL = 1600
+
+
 def models_run() -> list[str]:
-    return [m for m in MODELS if result_path(m).exists()]
+    """Models with a complete run; a run still in progress is not reported."""
+    return [
+        m
+        for m in MODELS
+        if result_path(m).exists()
+        and len({(r["moment_id"], r["kind"]) for r in load_rows(m)}) == CALLS_PER_MODEL
+    ]
 
 
 def answers(name: str, chain: list[ChainItem]) -> dict[tuple[str, str], bool]:
@@ -368,6 +381,13 @@ class ChainSummary:
     read: dict[str, dict[str, bool]]  # kind -> family -> Holm
     chain_table: tuple[int, int, int, int]  # two-entity: [[C ok, C bad] | R&J ok, else]
     unparsed: dict[str, int]
+    c_speak_share: float  # two-entity C answers naming the speak-side word
+
+    def right(self, kind: str) -> int:
+        return round(self.pooled[kind] * N_TWO)
+
+    def p(self, kind: str) -> float:
+        return dr.binom_sf(self.right(kind), N_TWO)
 
     @property
     def reading(self) -> str:
@@ -400,6 +420,8 @@ def summarize(name: str, chain: list[ChainItem]) -> ChainSummary:
     for r in load_rows(name):
         unparsed[r["kind"]] += r["answer"] is None
     unparsed["r"] += sum(r["answer"] is None for r in dr.load_rows(name))
+    c_rows = [r for r in load_rows(name) if r["kind"] == "c" and r["family"] in TWO_ENTITY]
+    speak = sum(r["answer"] == C_WORDS[r["family"]][0] for r in c_rows)
     return ChainSummary(
         model=name,
         pooled=pooled,
@@ -408,6 +430,7 @@ def summarize(name: str, chain: list[ChainItem]) -> ChainSummary:
         read=read,
         chain_table=(a, len(both) - a, cc, len(rest) - cc),
         unparsed=unparsed,
+        c_speak_share=speak / len(c_rows),
     )
 
 
@@ -415,18 +438,24 @@ def _ratio(x: int, n: int) -> str:
     return f"{x}/{n} ({x / n:.0%})" if n else "—"
 
 
+def _acc(s: ChainSummary, kind: str) -> str:
+    p = s.p(kind)
+    return f"{s.right(kind)}/{N_TWO} ({s.pooled[kind]:.1%}, p {dr._p(p)})"
+
+
 def summary_table(chain: list[ChainItem]) -> str:
     lines = [
-        "| model | R | J | C | reading (two-entity families) "
-        "| C right, R and J right | C right, otherwise | Fisher p | R / J / C, all 16 |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| model | R | J | C | pre-registered reading | C right, R and J right "
+        "| C right, otherwise | Fisher p | C says the speak word | R / J / C, all 16 |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for name in models_run():
         s = summarize(name, chain)
         a, b, c, d = s.chain_table
         lines.append(
-            f"| `{name}` | {s.pooled['r']:.1%} | {s.pooled['j']:.1%} | {s.pooled['c']:.1%} "
+            f"| `{name}` | {_acc(s, 'r')} | {_acc(s, 'j')} | {_acc(s, 'c')} "
             f"| {s.reading} | {_ratio(a, a + b)} | {_ratio(c, c + d)} | {s.chain_p:.4f} "
+            f"| {s.c_speak_share:.0%} "
             f"| {s.overall['r']:.1%} / {s.overall['j']:.1%} / {s.overall['c']:.1%} |"
         )
     return "\n".join(lines)
@@ -454,17 +483,28 @@ def family_table(chain: list[ChainItem]) -> str:
 
 
 def findings(chain: list[ChainItem]) -> str:
-    """Filled in once results exist (Round 83); every figure recomputed."""
+    """The published headline (Round 83); every figure in it is recomputed."""
     ss = [summarize(n, chain) for n in models_run()]
+
+    def span(kind: str) -> str:
+        v = sorted(s.pooled[kind] for s in ss)
+        return f"{v[0]:.1%} to {v[-1]:.1%}"
+
     counts: dict[str, int] = defaultdict(int)
     for s in ss:
         counts[s.reading] += 1
-    sig = sum(s.chain_p < dr.ALPHA for s in ss)
-    parts = ", ".join(f"{v} {k}" for k, v in sorted(counts.items()))
+    parts = ", ".join(f"**{v}** {k}" for k, v in sorted(counts.items()))
+    sig = [s for s in ss if s.chain_p < dr.ALPHA]
+    c_above = sum(s.p("c") < dr.ALPHA for s in ss)
+    named = ", ".join(f"`{s.model}` (p = {s.chain_p:.3f})" for s in sig) or "none"
     return (
-        f"Pre-registered readings over the {len(ss)} models: {parts}. The per-item chain "
-        f"test (C more often right when R and J are both right, one-sided Fisher p < 0.05) "
-        f"holds for {sig} of {len(ss)}."
+        f"Pooled over the eight two-entity families (n = {N_TWO} per question), all "
+        f"{len(ss)} models find the entity the body makes relevant (J **{span('j')}**) and "
+        f"read the decider's role well above chance (R **{span('r')}**), but answer the "
+        f"composed question near a coin (C **{span('c')}**; {c_above} of {len(ss)} above "
+        f"50% at p < 0.05). Pre-registered readings: {parts}. The per-item chain test (C "
+        f"more often right when R and J are both right, one-sided Fisher p < 0.05) holds "
+        f"for {len(sig)} of {len(ss)}: {named}."
     )
 
 

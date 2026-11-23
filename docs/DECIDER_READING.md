@@ -373,4 +373,86 @@ before the runs start, so the order can be checked in history.
 
 ### Results (Round 83)
 
-Not yet run.
+Run in Round 83, after the pre-registration above was committed (5cc829b): all six
+models, largest first, one llama.cpp server per model on 4 CPU threads, calls ordered
+moment by moment so the server reuses the shared prompt prefix. The calls took
+21,602 seconds in total (`call_seconds` per model in
+`results/decider-chain/MANIFEST.json`); wall time was about 6 h 03 min.
+
+<!-- decider-chain-findings:start -->
+Pooled over the eight two-entity families (n = 320 per question), all 6 models find the entity the body makes relevant (J **87.8% to 97.8%**) and read the decider's role well above chance (R **67.5% to 78.4%**), but answer the composed question near a coin (C **44.1% to 57.2%**; 3 of 6 above 50% at p < 0.05). Pre-registered readings: **4** composition, **2** unresolved. The per-item chain test (C more often right when R and J are both right, one-sided Fisher p < 0.05) holds for 3 of 6: `qwen2.5-7b` (p = 0.025), `gemma-3-4b` (p = 0.003), `phi-4-mini` (p = 0.002).
+<!-- decider-chain-findings:end -->
+
+**Per model**, pooled over the eight two-entity families (n = 320 per question; exact
+one-sided binomial p against 50%). *C right, R and J right* and *C right, otherwise*
+are the two rows of the per-item chain test. *C says the speak word* is the share of
+two-entity C answers naming the speak-side role word, whatever the gold: 50% is no
+lean. The last column is the same three accuracies over all 16 families (n = 640),
+where J in eight families can be answered by a constant.
+
+<!-- decider-chain-summary:start -->
+| model | R | J | C | pre-registered reading | C right, R and J right | C right, otherwise | Fisher p | C says the speak word | R / J / C, all 16 |
+|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 249/320 (77.8%, p <0.0001) | 306/320 (95.6%, p <0.0001) | 176/320 (55.0%, p 0.0415) | composition | 135/237 (57%) | 41/83 (49%) | 0.1437 | 32% | 77.2% / 88.0% / 57.2% |
+| `qwen2.5-7b` | 251/320 (78.4%, p <0.0001) | 313/320 (97.8%, p <0.0001) | 183/320 (57.2%, p 0.0059) | composition | 148/245 (60%) | 35/75 (47%) | 0.0247 | 50% | 74.5% / 94.7% / 55.5% |
+| `mistral-7b` | 232/320 (72.5%, p <0.0001) | 296/320 (92.5%, p <0.0001) | 143/320 (44.7%, p 0.9749) | composition | 98/213 (46%) | 45/107 (42%) | 0.2909 | 29% | 70.8% / 82.2% / 49.8% |
+| `gemma-3-4b` | 224/320 (70.0%, p <0.0001) | 303/320 (94.7%, p <0.0001) | 181/320 (56.6%, p 0.0109) | composition | 133/214 (62%) | 48/106 (45%) | 0.0031 | 45% | 70.2% / 90.3% / 52.7% |
+| `phi-4-mini` | 220/320 (68.8%, p <0.0001) | 300/320 (93.8%, p <0.0001) | 160/320 (50.0%, p 0.5223) | unresolved | 116/206 (56%) | 44/114 (39%) | 0.0017 | 69% | 69.8% / 83.3% / 52.2% |
+| `granite-3.3-2b` | 216/320 (67.5%, p <0.0001) | 281/320 (87.8%, p <0.0001) | 141/320 (44.1%, p 0.9855) | unresolved | 80/190 (42%) | 61/130 (47%) | 0.8333 | 54% | 67.0% / 80.8% / 50.9% |
+<!-- decider-chain-summary:end -->
+
+**Per family**, number right out of 40. **Bold** means the family passes Holm across 16
+(one-sided exact binomial, p < 0.05). Column heads as in Round 82's table.
+
+<!-- decider-chain-families:start -->
+| model | q | child | comm | dead | dine | drive | fin | hlth | home | meet | pet | photo | quiet | river | street | trav | water | read |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | R | **31** | 27 | **34** | **33** | **35** | **34** | **28** | **34** | 27 | **35** | 24 | **29** | **34** | 24 | **30** | **35** | 12 |
+| `llama-3.1-8b` | J | **28** | **31** | **38** | **40** | **38** | **33** | **31** | **40** | **30** | **34** | **39** | **28** | **40** | **33** | **40** | **40** | 16 |
+| `llama-3.1-8b` | C | 23 | 20 | 25 | **30** | **32** | 22 | 25 | 24 | 21 | 18 | 21 | 22 | 20 | 20 | 22 | 21 | 2 |
+| `qwen2.5-7b` | R | **30** | 28 | **32** | **32** | 24 | **29** | 23 | **30** | **34** | **39** | 28 | 26 | 28 | 26 | **34** | **34** | 9 |
+| `qwen2.5-7b` | J | **34** | **39** | **31** | **40** | **40** | **40** | **40** | **40** | **40** | **39** | **40** | **29** | **40** | **38** | **38** | **38** | 16 |
+| `qwen2.5-7b` | C | 21 | 21 | 20 | 26 | 28 | 19 | 21 | 23 | 20 | 20 | 19 | 22 | 22 | 25 | 21 | 27 | 0 |
+| `mistral-7b` | R | **29** | 27 | **30** | **31** | 26 | 24 | 23 | **32** | **34** | **34** | 24 | 28 | 27 | 23 | **33** | 28 | 7 |
+| `mistral-7b` | J | 21 | **39** | **29** | **38** | 16 | **35** | **30** | **35** | **37** | **30** | **37** | 23 | **38** | **39** | **39** | **40** | 13 |
+| `mistral-7b` | C | 24 | 21 | 17 | 24 | 18 | 27 | 23 | 22 | 24 | 11 | 20 | 22 | 20 | 19 | 13 | 14 | 0 |
+| `gemma-3-4b` | R | 25 | **34** | 24 | **29** | **31** | **35** | 22 | **29** | 27 | **32** | 22 | 27 | 26 | 25 | **29** | **32** | 8 |
+| `gemma-3-4b` | J | 23 | **36** | **31** | **36** | **40** | **37** | **36** | **36** | **39** | **36** | **39** | **33** | **40** | **37** | **39** | **40** | 15 |
+| `gemma-3-4b` | C | 23 | 22 | 19 | 24 | 13 | 18 | 18 | 23 | 20 | 21 | 22 | 23 | 21 | 20 | 25 | 25 | 0 |
+| `phi-4-mini` | R | 28 | **31** | 24 | **30** | **36** | **32** | **31** | 26 | 20 | **32** | 24 | 25 | 24 | 21 | **31** | **32** | 8 |
+| `phi-4-mini` | J | 13 | **35** | 23 | **40** | **36** | **40** | **31** | **34** | **38** | **35** | **35** | 17 | **40** | **38** | **39** | **39** | 13 |
+| `phi-4-mini` | C | 21 | 22 | 20 | 26 | **30** | 20 | 21 | 25 | 20 | 18 | 20 | 20 | 20 | 20 | 20 | 11 | 1 |
+| `granite-3.3-2b` | R | 27 | 25 | 28 | 27 | **30** | 24 | 25 | **29** | 25 | **30** | 18 | **29** | 24 | 28 | 24 | **36** | 5 |
+| `granite-3.3-2b` | J | 26 | **37** | 23 | **38** | 26 | **40** | **39** | **35** | **36** | 27 | **35** | 9 | **40** | **40** | **28** | **38** | 11 |
+| `granite-3.3-2b` | C | 23 | 19 | 26 | 28 | **33** | 19 | 23 | 21 | 22 | 11 | 18 | 20 | 19 | 14 | 9 | 21 | 1 |
+<!-- decider-chain-families:end -->
+
+### What Round 83 does and does not show
+
+- **Each step alone works; the combination does not.** On these questions, these models
+  name the relevant entity from the body almost always (J) and read the role at
+  68-78% (R), as Round 82 found. Yet asked the composed fact (C) they are near a coin.
+  Even on the items where they got both R and J right, C is right only 42-62% of the
+  time. That is the measured break: composing two facts the model has, not
+  reading either.
+- **C also hints at J.** C names the relevant entity by its description in the body
+  ("tonight's dinner", "the street swept at 7am tomorrow"), so it points the model toward
+  the J step instead of leaving it to find it. A model still has to hold the role it read
+  and apply it to that description. C near chance is not explained by a missing J step.
+- **C answers lean.** Several models favour one role word whatever the gold (see *C says
+  the speak word*), as their interrupt decisions favour speaking or silence. A lean
+  alone holds a balanced question at 50%, so C at chance could be a lean on top of no
+  composition, or composition that is right and wrong in equal measure. The chain test
+  separates these partly: where it holds, C is right more often when R and J are both
+  right, so some composition happens, but not enough to lift C far from a coin.
+- **C's wording is one wording.** Each family's C uses one pair of role words
+  ("unconfirmed"/"confirmed", "old"/"new"). A role word the model maps differently onto
+  the decider's phrasing ("Standby status" as unconfirmed) is a reading error that shows
+  up in C and not in R, whose options are names. That is a limit on how cleanly C
+  isolates composition.
+- **Two models are unresolved** by the pre-registered rule: `phi-4-mini` and
+  `granite-3.3-2b` read the role at 68.8% and 67.5% pooled, just under the 70% bar, so
+  the composition reading cannot be assigned to them, though their pattern (J high, C at
+  or below 50%) matches the other four.
+- **Six local models of 8B and under**, the best of Round 82's fourteen. Says nothing
+  about frontier models (NEEDS-MAX 1).
