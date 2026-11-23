@@ -426,3 +426,57 @@
 {"moment_id": "photo_backup-pos-0008", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.82}
 {"moment_id": "photo_backup-pos-0009", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.78}
 {"moment_id": "photo_backup-pos-0010", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.59}
+{"moment_id": "photo_backup-pos-0011", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.91}
+{"moment_id": "photo_backup-pos-0012", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.02}
+{"moment_id": "photo_backup-pos-0016", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.87}
+{"moment_id": "photo_backup-pos-0017", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.8}
+{"moment_id": "photo_backup-pos-0018", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.59}
+{"moment_id": "photo_backup-pos-0019", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.67}
+{"moment_id": "photo_backup-pos-0020", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.86}
+{"moment_id": "photo_backup-pos-0024", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.71}
+{"moment_id": "photo_backup-pos-0025", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.59}
+{"moment_id": "photo_backup-pos-0026", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.37}
+{"moment_id": "photo_backup-pos-0027", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.59}
+{"moment_id": "photo_backup-pos-0028", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.72}
+{"moment_id": "quiet_hours-near-0000", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 6.5}
+{"moment_id": "quiet_hours-near-0001", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.41}
+{"moment_id": "quiet_hours-near-0002", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B) far", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 6.23}
+{"moment_id": "quiet_hours-near-0003", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.42}
+{"moment_id": "quiet_hours-near-0004", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.27}
+{"moment_id": "quiet_hours-near-0008", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.65}
+{"moment_id": "quiet_hours-near-0009", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.68}
+{"moment_id": "quiet_hours-near-0010", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.57}
+{"moment_id": "quiet_hours-near-0011", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.51}
+{"moment_id": "quiet_hours-near-0012", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.33}
+{"moment_id": "quiet_hours-near-0016", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.43}
+{"moment_id": "quiet_hours-near-0017", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.45}
+{"moment_id": "quiet_hours-near-0018", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.47}
+{"moment_id": "quiet_hours-near-0019", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.05}
+{"moment_id": "quiet_hours-near-0020", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B) far", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.95}
+{"moment_id": "quiet_hours-near-0024", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B) far", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 6.06}
+{"moment_id": "quiet_hours-near-0025", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.35}
+{"moment_id": "quiet_hours-near-0026", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.17}
+{"moment_id": "quiet_hours-near-0027", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.49}
+{"moment_id": "quiet_hours-near-0028", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": " B) far", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 6.04}
+{"moment_id": "quiet_hours-pos-0000", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.25}
+{"moment_id": "quiet_hours-pos-0001", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.35}
+{"moment_id": "quiet_hours-pos-0002", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.43}
+{"moment_id": "quiet_hours-pos-0003", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.59}
+{"moment_id": "quiet_hours-pos-0004", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.44}
+{"moment_id": "quiet_hours-pos-0008", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.57}
+{"moment_id": "quiet_hours-pos-0009", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.54}
+{"moment_id": "quiet_hours-pos-0010", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.43}
+{"moment_id": "quiet_hours-pos-0011", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.42}
+{"moment_id": "quiet_hours-pos-0012", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.21}
+{"moment_id": "quiet_hours-pos-0016", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.56}
+{"moment_id": "quiet_hours-pos-0017", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.41}
+{"moment_id": "quiet_hours-pos-0018", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.53}
+{"moment_id": "quiet_hours-pos-0019", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.46}
+{"moment_id": "quiet_hours-pos-0020", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.34}
+{"moment_id": "quiet_hours-pos-0024", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " B) far", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.68}
+{"moment_id": "quiet_hours-pos-0025", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.36}
+{"moment_id": "quiet_hours-pos-0026", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.1}
+{"moment_id": "quiet_hours-pos-0027", "family": "quiet_hours", "options": ["far", "near"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.25}
+{"moment_id": "quiet_hours-pos-0028", "family": "quiet_hours", "options": ["near", "far"], "gold": "A", "response": " B) far", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.64}
+{"moment_id": "river_swim-near-0000", "family": "river_swim", "options": ["downstream", "upstream"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.41}
+{"moment_id": "river_swim-near-0001", "family": "river_swim", "options": ["upstream", "downstream"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.61}
