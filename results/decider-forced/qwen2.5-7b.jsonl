@@ -237,3 +237,8 @@
 {"moment_id": "finance-pos-0025", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.59}
 {"moment_id": "finance-pos-0026", "family": "finance", "options": ["underfunded", "covered"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.68}
 {"moment_id": "finance-pos-0027", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.97}
+{"moment_id": "finance-pos-0028", "family": "finance", "options": ["covered", "underfunded"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.79}
+{"moment_id": "health-near-0000", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.75}
+{"moment_id": "health-near-0001", "family": "health", "options": ["uncollected", "collected"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.64}
+{"moment_id": "health-near-0002", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.77}
+{"moment_id": "health-near-0003", "family": "health", "options": ["collected", "uncollected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.62}
