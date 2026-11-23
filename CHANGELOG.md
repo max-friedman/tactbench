@@ -5,6 +5,17 @@ Notable changes to TactBench. Format follows [Keep a Changelog](https://keepacha
 
 ## [Unreleased]
 
+### Added (Round 83)
+
+- **Where the chain breaks** (`experiments/decider_chain.py`, `docs/DECIDER_READING.md`).
+  Three questions per moment (read the role, find the relevant entity, compose them),
+  both sides of every v9 dev pair, six models, rules committed before any model call.
+  On the eight two-entity families: J 88-98%, R 68-78%, C 44-57%. Four models meet the
+  pre-registered composition reading, two are unresolved. Parse failures and per-family
+  word priors account for part of C, so the break is located at the C question and not
+  shown to be composition as such. Unparsed counts, a Holm correction and a stratified
+  Mantel–Haenszel check are reported alongside.
+
 ### Added (Round 82)
 
 - **Can the models read the decider at all?** (`experiments/decider_reading.py`,
