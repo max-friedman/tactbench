@@ -286,13 +286,68 @@ def test_all_six_models_ran():
 
 
 def test_the_findings_wording_holds(chain):
-    """The words around the generated figures: "find", "well above chance", "near a coin"."""
-    ss = [ch.summarize(m, chain) for m in ch.models_run()]
-    assert all(s.pooled["j"] >= ch.HIGH for s in ss)
-    assert all(s.p("r") < 0.0001 for s in ss)
-    assert all(s.pooled["c"] < ch.LOW for s in ss)
+    """Every count the findings and README sentences state, bound to the computed value."""
+    ss = {m: ch.summarize(m, chain) for m in ch.models_run()}
+    comp = [m for m, s in ss.items() if s.reading == "composition"]
+    unres = [m for m, s in ss.items() if s.reading == "unresolved"]
+    assert len(comp) == 4 and len(unres) == 2 and len(ss) == 6
     readme = " ".join((ROOT / "README.md").read_text().split())
-    assert "do each step alone and fail at putting them together" in readme
+    assert "Four of six models meet the pre-registered composition reading and two are" in readme
+    assert "do each step alone" not in readme
+    # "C is near a coin": no model's C clears the pre-registered high bar.
+    assert all(s.pooled["c"] < ch.LOW for s in ss.values())
+    # "above chance for 3 ... not for the rest"
+    assert sum(s.p("c") < 0.05 for s in ss.values()) == 3
+    # The below-50% C models: every one is at or above 50% on parsed answers, and most
+    # of their unparsed replies name an entity.
+    low = [s for s in ss.values() if s.pooled["c"] < 0.5]
+    assert {s.model for s in low} == {"mistral-7b", "granite-3.3-2b"}
+    for s in low:
+        assert s.c_on_parsed >= 0.5
+        assert s.c_unparsed_naming_entity > s.unparsed_two["c"] / 2
+    # Holm over models and Mantel-Haenszel: which survive.
+    holm = ch.holm_chain(chain)
+    assert sorted(m for m, ok in holm.items() if ok) == ["gemma-3-4b", "phi-4-mini"]
+    fisher = [s for s in ss.values() if s.chain_p < 0.05]
+    assert [s.model for s in fisher if s.mh[1] < 0.05] == ["phi-4-mini"]
+
+
+def test_cmh_against_hand_values():
+    # One stratum reduces to the uncorrected Pearson chi-square on that table.
+    odds, p = ch.cmh([(10, 5, 5, 10)])
+    assert odds == pytest.approx(4.0)
+    # Mantel-Haenszel: E[a] = 7.5, V = 15*15*15*15 / (30*30*29) = 1.9397; stat = 6.25/1.9397
+    assert p == pytest.approx(ch.chi2_sf_1df(6.25 / (15**4 / (30 * 30 * 29))))
+    assert ch.chi2_sf_1df(3.841458820694124) == pytest.approx(0.05, abs=1e-9)
+    # Identical strata pooled: same odds ratio as one.
+    assert ch.cmh([(10, 5, 5, 10)] * 3)[0] == pytest.approx(4.0)
+    # Degenerate strata are skipped.
+    assert ch.cmh([(10, 5, 5, 10), (4, 0, 0, 0)])[0] == pytest.approx(4.0)
+
+
+def test_the_reviewers_mantel_haenszel_figures(chain):
+    got = {m: ch.summarize(m, chain).mh for m in ("qwen2.5-7b", "gemma-3-4b", "phi-4-mini")}
+    assert round(got["qwen2.5-7b"][0], 2) == 1.08 and round(got["qwen2.5-7b"][1], 2) == 0.82
+    assert round(got["gemma-3-4b"][0], 2) == 1.59 and round(got["gemma-3-4b"][1], 3) == 0.085
+    assert round(got["phi-4-mini"][0], 2) == 2.77 and round(got["phi-4-mini"][1], 4) == 0.0014
+
+
+def test_the_checks_table_is_current(chain):
+    assert _block(DOC, "decider-chain-checks") == ch.checks_table(chain)
+
+
+def test_unparsed_counts_are_the_files_own(chain):
+    two = {c.moment_id for c in chain if c.family in ch.TWO_ENTITY}
+    for m in ch.models_run():
+        s = ch.summarize(m, chain)
+        rows = [r for r in ch.load_rows(m) if r["moment_id"] in two]
+        for k in "jc":
+            assert s.unparsed_two[k] == sum(r["answer"] is None for r in rows if r["kind"] == k)
+        r82 = [r for r in dr.load_rows(m) if r["moment_id"] in two]
+        assert s.unparsed_two["r"] == sum(r["answer"] is None for r in r82) + sum(
+            r["answer"] is None for r in rows if r["kind"] == "r"
+        )
+        assert s.right("c") == sum(r["answer"] == r["gold"] for r in rows if r["kind"] == "c")
 
 
 def test_prose_figures_in_the_round_83_docs(chain):
@@ -303,16 +358,50 @@ def test_prose_figures_in_the_round_83_docs(chain):
     assert set(manifest) == set(ch.models_run())
     total = sum(v["call_seconds"] for v in manifest.values())
     assert f"The calls took {round(total):,} seconds in total" in text
-    ss = [ch.summarize(m, chain) for m in ch.models_run()]
-    r = sorted(s.pooled["r"] for s in ss)
-    assert f"read the role at {round(r[0] * 100)}-{round(r[-1] * 100)}% (R)" in text
-    both = sorted(s.chain_table[0] / (s.chain_table[0] + s.chain_table[1]) for s in ss)
-    assert f"C is right only {round(both[0] * 100)}-{round(both[-1] * 100)}% of the time" in text
-    unresolved = [s for s in ss if s.reading == "unresolved"]
+    ss = {m: ch.summarize(m, chain) for m in ch.models_run()}
+    comp = [s for s in ss.values() if s.reading == "composition"]
+    both = sorted(s.chain_table[0] / (s.chain_table[0] + s.chain_table[1]) for s in comp)
+    assert (
+        f"the four composition models get C right only "
+        f"{round(both[0] * 100)}-{round(both[-1] * 100)}% of the time" in text
+    )
+    assert "Four of six models meet the pre-registered composition reading" in text
+    assert f"scores {ch.first_named_in_body_two(chain):.1%} on the two-entity families" in text
+    cells = sum(len(s.word_prior_families) for s in ss.values())
+    assert f"In {cells} of the {len(ss) * 8} model-family cells, C is at least 90%" in text
+    q = ss["qwen2.5-7b"]
+    assert q.c_speak_share == pytest.approx(0.5, abs=0.005)
+    assert (
+        f"(`pet_care` {q.c_family_share['pet_care']:.2f}, "
+        f"`travel` {q.c_family_share['travel']:.2f})" in text
+    )
+    m, g = ss["mistral-7b"], ss["granite-3.3-2b"]
+    assert f"at {m.c_on_parsed:.1%} and {g.c_on_parsed:.1%}" in text
+    fisher = [s for s in ss.values() if s.chain_p < 0.05]
+    assert len(fisher) == 3 and "The Fisher test holds for three models" in text
+    assert sum(ch.holm_chain(chain).values()) == 2 and "Two survive Holm across the six" in text
+    qo, go, po = ss["qwen2.5-7b"].mh, ss["gemma-3-4b"].mh, ss["phi-4-mini"].mh
+    assert f"disappears (odds ratio {qo[0]:.2f})" in text
+    assert f"weakens ({go[0]:.2f}, p = {go[1]:.3f})" in text
+    assert f"survives ({po[0]:.2f}, p = {po[1]:.4f})" in text
+    unresolved = [s for s in ss.values() if s.reading == "unresolved"]
     assert len(unresolved) == 2 and "**Two models are unresolved**" in text
     a, b = unresolved
     assert f"`{a.model}` and `{b.model}` read the role at {a.pooled['r']:.1%} and" in text
     assert f"and {b.pooled['r']:.1%} pooled" in text
     assert all(ch.HIGH > s.pooled["r"] >= ch.LOW for s in unresolved)
-    assert sum(s.reading == "composition" for s in ss) == 4
-    assert "matches the other four" in text
+    assert len(comp) == 4 and "matches the other four" in text
+
+
+def test_the_c_range_sentence(chain):
+    ss = [ch.summarize(m, chain) for m in ch.models_run()]
+    c = sorted(s.pooled["c"] for s in ss)
+    above = sorted(s.pooled["c"] for s in ss if s.p("c") < 0.05)
+    want = (
+        f"C is {int(c[0] * 100)}-{int(c[-1] * 100)}%, above chance for {len(above)} "
+        if len(above) != 3
+        else f"C is {int(c[0] * 100)}-{int(c[-1] * 100)}%, above chance for three "
+        f"({int(above[0] * 100)}-{int(above[-1] * 100)}%, uncorrected)"
+    )
+    for path in (DOC, ROOT / "README.md"):
+        assert want in " ".join(path.read_text().split()), path

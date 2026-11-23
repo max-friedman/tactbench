@@ -362,32 +362,102 @@ def models_run() -> list[str]:
 
 def answers(name: str, chain: list[ChainItem]) -> dict[tuple[str, str], bool]:
     """(moment_id, kind) -> right, R on the Round 82 side taken from Round 82's run."""
+    return {k: row["answer"] == row["gold"] for k, row in raw_answers(name, chain).items()}
+
+
+def raw_answers(name: str, chain: list[ChainItem]) -> dict[tuple[str, str], dict]:
+    """(moment_id, kind) -> {"answer", "gold", "response"} for every question asked."""
     by_id = {c.moment_id: c for c in chain}
     out = {}
     for r in dr.load_rows(name):
-        out[(r["moment_id"], "r")] = r["answer"] == by_id[r["moment_id"]].r.gold
+        gold = by_id[r["moment_id"]].r.gold
+        out[(r["moment_id"], "r")] = {
+            "answer": r["answer"],
+            "gold": gold,
+            "response": r["response"],
+        }
     for r in load_rows(name):
         q = getattr(by_id[r["moment_id"]], r["kind"])
-        out[(r["moment_id"], r["kind"])] = r["answer"] == q.gold
+        out[(r["moment_id"], r["kind"])] = {
+            "answer": r["answer"],
+            "gold": q.gold,
+            "response": r["response"],
+        }
     return out
+
+
+def chi2_sf_1df(x: float) -> float:
+    """Upper tail of a chi-square with one degree of freedom."""
+    return math.erfc(math.sqrt(max(x, 0.0) / 2))
+
+
+def cmh(tables: list[tuple[int, int, int, int]]) -> tuple[float, float]:
+    """Mantel-Haenszel common odds ratio and the two-sided CMH test p (no continuity correction).
+
+    Each table is [[a, b], [c, d]]; strata with a zero margin carry no information.
+    """
+    num = den = s_a = s_e = s_v = 0.0
+    for a, b, c, d in tables:
+        n = a + b + c + d
+        r1, r2, c1, c2 = a + b, c + d, a + c, b + d
+        if n < 2 or 0 in (r1, r2, c1, c2):
+            continue
+        num += a * d / n
+        den += b * c / n
+        s_a += a
+        s_e += r1 * c1 / n
+        s_v += r1 * r2 * c1 * c2 / (n * n * (n - 1))
+    odds = num / den if den else math.inf
+    stat = (s_a - s_e) ** 2 / s_v if s_v else 0.0
+    return odds, chi2_sf_1df(stat)
+
+
+#: A family's C answers count as one constant word at this share of parsed answers.
+WORD_PRIOR = 0.9
 
 
 @dataclass
 class ChainSummary:
     model: str
-    pooled: dict[str, float]  # two-entity families, n = 320 per kind
+    right_two: dict[str, int]  # two-entity families: right of N_TWO per kind
     overall: dict[str, float]  # all 16 families, n = 640 per kind
     per_family: dict[str, dict[str, int]]  # kind -> family -> right of 40
     read: dict[str, dict[str, bool]]  # kind -> family -> Holm
     chain_table: tuple[int, int, int, int]  # two-entity: [[C ok, C bad] | R&J ok, else]
-    unparsed: dict[str, int]
-    c_speak_share: float  # two-entity C answers naming the speak-side word
+    strata: list[tuple[int, int, int, int]]  # the same table per family x side
+    unparsed_two: dict[str, int]  # two-entity families, per kind
+    c_unparsed_naming_entity: int  # unparsed two-entity C replies that name an entity
+    c_parsed_right: int
+    c_speak_parsed: int  # parsed two-entity C answers naming the speak-side word
+    c_family_share: dict[str, float]  # two-entity family -> speak-word share of parsed C
+
+    @property
+    def pooled(self) -> dict[str, float]:
+        return {k: v / N_TWO for k, v in self.right_two.items()}
 
     def right(self, kind: str) -> int:
-        return round(self.pooled[kind] * N_TWO)
+        return self.right_two[kind]
 
     def p(self, kind: str) -> float:
-        return dr.binom_sf(self.right(kind), N_TWO)
+        return dr.binom_sf(self.right_two[kind], N_TWO)
+
+    @property
+    def c_parsed(self) -> int:
+        return N_TWO - self.unparsed_two["c"]
+
+    @property
+    def c_on_parsed(self) -> float:
+        return self.c_parsed_right / self.c_parsed
+
+    @property
+    def c_speak_share(self) -> float:
+        return self.c_speak_parsed / self.c_parsed
+
+    @property
+    def word_prior_families(self) -> list[str]:
+        return sorted(
+            f for f, v in self.c_family_share.items() if v >= WORD_PRIOR or v <= 1 - WORD_PRIOR
+        )
 
     @property
     def reading(self) -> str:
@@ -397,9 +467,14 @@ class ChainSummary:
     def chain_p(self) -> float:
         return fisher_greater(*self.chain_table)
 
+    @property
+    def mh(self) -> tuple[float, float]:
+        return cmh(self.strata)
+
 
 def summarize(name: str, chain: list[ChainItem]) -> ChainSummary:
-    ok = answers(name, chain)
+    raw = raw_answers(name, chain)
+    ok = {k: v["answer"] == v["gold"] for k, v in raw.items()}
     fams = sorted(dr.QUESTIONS)
     per = {k: {f: 0 for f in fams} for k in "rjc"}
     for c in chain:
@@ -410,28 +485,53 @@ def summarize(name: str, chain: list[ChainItem]) -> ChainSummary:
         for k in "rjc"
     }
     two = [c for c in chain if c.family in TWO_ENTITY]
-    pooled = {k: sum(ok[(c.moment_id, k)] for c in two) / len(two) for k in "rjc"}
+    right_two = {k: sum(ok[(c.moment_id, k)] for c in two) for k in "rjc"}
     overall = {k: sum(ok[(c.moment_id, k)] for c in chain) / len(chain) for k in "rjc"}
-    both = [c for c in two if ok[(c.moment_id, "r")] and ok[(c.moment_id, "j")]]
-    rest = [c for c in two if not (ok[(c.moment_id, "r")] and ok[(c.moment_id, "j")])]
-    a = sum(ok[(c.moment_id, "c")] for c in both)
-    cc = sum(ok[(c.moment_id, "c")] for c in rest)
-    unparsed = {k: 0 for k in "rjc"}
-    for r in load_rows(name):
-        unparsed[r["kind"]] += r["answer"] is None
-    unparsed["r"] += sum(r["answer"] is None for r in dr.load_rows(name))
-    c_rows = [r for r in load_rows(name) if r["kind"] == "c" and r["family"] in TWO_ENTITY]
-    speak = sum(r["answer"] == C_WORDS[r["family"]][0] for r in c_rows)
+
+    def table(items: list[ChainItem]) -> tuple[int, int, int, int]:
+        both = [c for c in items if ok[(c.moment_id, "r")] and ok[(c.moment_id, "j")]]
+        rest = [c for c in items if c not in both]
+        a = sum(ok[(c.moment_id, "c")] for c in both)
+        cc = sum(ok[(c.moment_id, "c")] for c in rest)
+        return a, len(both) - a, cc, len(rest) - cc
+
+    strata = [
+        table([c for c in two if c.family == f and c.speak == side])
+        for f in sorted(TWO_ENTITY)
+        for side in (True, False)
+    ]
+    unparsed_two = {k: sum(raw[(c.moment_id, k)]["answer"] is None for c in two) for k in "rjc"}
+    naming = sum(
+        any(key_in(o, raw[(c.moment_id, "c")]["response"]) for o in c.j.options)
+        for c in two
+        if raw[(c.moment_id, "c")]["answer"] is None
+    )
+    parsed = [c for c in two if raw[(c.moment_id, "c")]["answer"] is not None]
+    speak = [c for c in parsed if raw[(c.moment_id, "c")]["answer"] == C_WORDS[c.family][0]]
+    share = {}
+    for f in sorted(TWO_ENTITY):
+        fp = [c for c in parsed if c.family == f]
+        share[f] = sum(c in speak for c in fp) / len(fp) if fp else 0.5
     return ChainSummary(
         model=name,
-        pooled=pooled,
+        right_two=right_two,
         overall=overall,
         per_family=per,
         read=read,
-        chain_table=(a, len(both) - a, cc, len(rest) - cc),
-        unparsed=unparsed,
-        c_speak_share=speak / len(c_rows),
+        chain_table=table(two),
+        strata=strata,
+        unparsed_two=unparsed_two,
+        c_unparsed_naming_entity=naming,
+        c_parsed_right=sum(ok[(c.moment_id, "c")] for c in parsed),
+        c_speak_parsed=len(speak),
+        c_family_share=share,
     )
+
+
+def holm_chain(chain: list[ChainItem]) -> dict[str, bool]:
+    """Non-decisive: the per-model Fisher chain test, Holm-corrected across the models."""
+    ss = [summarize(n, chain) for n in models_run()]
+    return dict(zip([s.model for s in ss], dr.holm([s.chain_p for s in ss]), strict=True))
 
 
 def _ratio(x: int, n: int) -> str:
@@ -444,19 +544,44 @@ def _acc(s: ChainSummary, kind: str) -> str:
 
 
 def summary_table(chain: list[ChainItem]) -> str:
+    """The pre-registered figures, pooled over the two-entity families."""
     lines = [
-        "| model | R | J | C | pre-registered reading | C right, R and J right "
-        "| C right, otherwise | Fisher p | C says the speak word | R / J / C, all 16 |",
+        "| model | R | J | C | pre-registered reading | unparsed R / J / C "
+        "| C right, R and J right | C right, otherwise | Fisher p | R / J / C, all 16 |",
         "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for name in models_run():
         s = summarize(name, chain)
         a, b, c, d = s.chain_table
+        u = s.unparsed_two
         lines.append(
             f"| `{name}` | {_acc(s, 'r')} | {_acc(s, 'j')} | {_acc(s, 'c')} "
-            f"| {s.reading} | {_ratio(a, a + b)} | {_ratio(c, c + d)} | {s.chain_p:.4f} "
-            f"| {s.c_speak_share:.0%} "
+            f"| {s.reading} | {u['r']} / {u['j']} / {u['c']} "
+            f"| {_ratio(a, a + b)} | {_ratio(c, c + d)} | {s.chain_p:.4f} "
             f"| {s.overall['r']:.1%} / {s.overall['j']:.1%} / {s.overall['c']:.1%} |"
+        )
+    return "\n".join(lines)
+
+
+def checks_table(chain: list[ChainItem]) -> str:
+    """Not pre-registered, not decisive: what the C figure is made of (review R83)."""
+    holm = holm_chain(chain)
+    lines = [
+        "| model | C unparsed (naming an entity) | C on parsed answers "
+        "| C says the speak word (parsed) | two-entity families with C ≥ 90% one word "
+        "| Fisher survives Holm over models | Mantel–Haenszel OR (p), family × side |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for name in models_run():
+        s = summarize(name, chain)
+        fams = s.word_prior_families
+        listed = ", ".join(f"`{f}` {s.c_family_share[f]:.2f}" for f in fams) if fams else "none"
+        odds, p = s.mh
+        lines.append(
+            f"| `{name}` | {s.unparsed_two['c']} ({s.c_unparsed_naming_entity}) "
+            f"| {s.c_parsed_right}/{s.c_parsed} ({s.c_on_parsed:.1%}) "
+            f"| {s.c_speak_share:.0%} | {len(fams)}: {listed} "
+            f"| {'yes' if holm[name] else 'no'} | {odds:.2f} ({p:.4f}) |"
         )
     return "\n".join(lines)
 
@@ -482,29 +607,58 @@ def family_table(chain: list[ChainItem]) -> str:
     return "\n".join(lines)
 
 
+def first_named_in_body_two(chain: list[ChainItem]) -> float:
+    """J's first-named-in-body baseline over the two-entity families."""
+    bodies = _bodies()
+    two = [c for c in chain if c.family in TWO_ENTITY]
+    return sum(first_named_in_body(c, bodies[c.moment_id]) == c.j.gold for c in two) / len(two)
+
+
+def _models(ss: list[ChainSummary]) -> str:
+    return ", ".join(f"`{s.model}`" for s in ss)
+
+
+def _span(values: list[float]) -> str:
+    v = sorted(values)
+    return f"{v[0]:.1%} to {v[-1]:.1%}"
+
+
 def findings(chain: list[ChainItem]) -> str:
-    """The published headline (Round 83); every figure in it is recomputed."""
+    """The published headline (Round 83, revised in review); every figure recomputed."""
     ss = [summarize(n, chain) for n in models_run()]
-
-    def span(kind: str) -> str:
-        v = sorted(s.pooled[kind] for s in ss)
-        return f"{v[0]:.1%} to {v[-1]:.1%}"
-
-    counts: dict[str, int] = defaultdict(int)
-    for s in ss:
-        counts[s.reading] += 1
-    parts = ", ".join(f"**{v}** {k}" for k, v in sorted(counts.items()))
+    comp = [s for s in ss if s.reading == "composition"]
+    unres = [s for s in ss if s.reading == "unresolved"]
+    above = [s for s in ss if s.p("c") < dr.ALPHA]
     sig = [s for s in ss if s.chain_p < dr.ALPHA]
-    c_above = sum(s.p("c") < dr.ALPHA for s in ss)
-    named = ", ".join(f"`{s.model}` (p = {s.chain_p:.3f})" for s in sig) or "none"
+    holm = holm_chain(chain)
+    survive = [s for s in ss if holm[s.model]]
+    low = [s for s in ss if s.pooled["c"] < 0.5]
+    cells = sum(len(s.word_prior_families) for s in ss)
+    mh = "; ".join(f"`{s.model}` {s.mh[0]:.2f} (p = {s.mh[1]:.4f})" for s in sig)
+    mh_hold = [s for s in sig if s.mh[1] < dr.ALPHA]
+    low_txt = " and ".join(
+        f"`{s.model}` ({s.unparsed_two['c']} unparsed, {s.c_unparsed_naming_entity} of them "
+        f"naming an entity; {s.c_on_parsed:.1%} on parsed answers)"
+        for s in low
+    )
     return (
-        f"Pooled over the eight two-entity families (n = {N_TWO} per question), all "
-        f"{len(ss)} models find the entity the body makes relevant (J **{span('j')}**) and "
-        f"read the decider's role well above chance (R **{span('r')}**), but answer the "
-        f"composed question near a coin (C **{span('c')}**; {c_above} of {len(ss)} above "
-        f"50% at p < 0.05). Pre-registered readings: {parts}. The per-item chain test (C "
-        f"more often right when R and J are both right, one-sided Fisher p < 0.05) holds "
-        f"for {len(sig)} of {len(ss)}: {named}."
+        f"Pooled over the eight two-entity families (n = {N_TWO} per question), the "
+        f"{len(ss)} models answer J at **{_span([s.pooled['j'] for s in ss])}** and R at "
+        f"**{_span([s.pooled['r'] for s in ss])}**. C is **{_span([s.pooled['c'] for s in ss])}**"
+        f": above chance for {len(above)} ({_span([s.pooled['c'] for s in above])}, "
+        f"uncorrected), not for the rest. Pre-registered readings: **{len(comp)}** "
+        f"composition ({_models(comp)}) and **{len(unres)}** unresolved ({_models(unres)}). "
+        f"The pre-registered per-item chain test (C more often right when R and J are both "
+        f"right, one-sided Fisher p < 0.05) holds for {len(sig)} of {len(ss)} "
+        f"({_models(sig)}); {len(survive)} survive Holm across the {len(ss)} models "
+        f"({_models(survive)}).\n\n"
+        f"*Not pre-registered, not decisive.* Parse failures and word priors account for "
+        f"part of C's shortfall. Unparsed C answers are scored wrong, and the below-50% C of "
+        f"{low_txt} comes entirely from them. In {cells} of the {len(ss) * 8} model-family "
+        f"cells, at least {WORD_PRIOR:.0%} of parsed C answers are one word whatever the gold: "
+        f"a word prior. Stratified by family and side (Mantel–Haenszel), the chain test's "
+        f"odds ratios are {mh}; only {_models(mh_hold)} survives. So the chain breaks at the "
+        f"C question, but that break is not shown to be composition as such."
     )
 
 
@@ -586,7 +740,8 @@ def main() -> None:
         chain = build_items()
         print(f"## baselines\n{baselines_table(chain)}\n")
         if models_run():
-            print(f"## summary\n{summary_table(chain)}\n\n## families\n{family_table(chain)}\n")
+            print(f"## summary\n{summary_table(chain)}\n\n## checks\n{checks_table(chain)}\n")
+            print(f"## families\n{family_table(chain)}\n")
             print(findings(chain))
         return
     if not (args.models_dir and args.server_python):

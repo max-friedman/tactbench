@@ -380,7 +380,9 @@ moment by moment so the server reuses the shared prompt prefix. The calls took
 `results/decider-chain/MANIFEST.json`); wall time was about 6 h 03 min.
 
 <!-- decider-chain-findings:start -->
-Pooled over the eight two-entity families (n = 320 per question), all 6 models find the entity the body makes relevant (J **87.8% to 97.8%**) and read the decider's role well above chance (R **67.5% to 78.4%**), but answer the composed question near a coin (C **44.1% to 57.2%**; 3 of 6 above 50% at p < 0.05). Pre-registered readings: **4** composition, **2** unresolved. The per-item chain test (C more often right when R and J are both right, one-sided Fisher p < 0.05) holds for 3 of 6: `qwen2.5-7b` (p = 0.025), `gemma-3-4b` (p = 0.003), `phi-4-mini` (p = 0.002).
+Pooled over the eight two-entity families (n = 320 per question), the 6 models answer J at **87.8% to 97.8%** and R at **67.5% to 78.4%**. C is **44.1% to 57.2%**: above chance for 3 (55.0% to 57.2%, uncorrected), not for the rest. Pre-registered readings: **4** composition (`llama-3.1-8b`, `qwen2.5-7b`, `mistral-7b`, `gemma-3-4b`) and **2** unresolved (`phi-4-mini`, `granite-3.3-2b`). The pre-registered per-item chain test (C more often right when R and J are both right, one-sided Fisher p < 0.05) holds for 3 of 6 (`qwen2.5-7b`, `gemma-3-4b`, `phi-4-mini`); 2 survive Holm across the 6 models (`gemma-3-4b`, `phi-4-mini`).
+
+*Not pre-registered, not decisive.* Parse failures and word priors account for part of C's shortfall. Unparsed C answers are scored wrong, and the below-50% C of `mistral-7b` (62 unparsed, 54 of them naming an entity; 55.4% on parsed answers) and `granite-3.3-2b` (49 unparsed, 42 of them naming an entity; 52.0% on parsed answers) comes entirely from them. In 7 of the 48 model-family cells, at least 90% of parsed C answers are one word whatever the gold: a word prior. Stratified by family and side (Mantel–Haenszel), the chain test's odds ratios are `qwen2.5-7b` 1.08 (p = 0.8210); `gemma-3-4b` 1.59 (p = 0.0848); `phi-4-mini` 2.77 (p = 0.0014); only `phi-4-mini` survives. So the chain breaks at the C question, but that break is not shown to be composition as such.
 <!-- decider-chain-findings:end -->
 
 **Per model**, pooled over the eight two-entity families (n = 320 per question; exact
@@ -391,15 +393,34 @@ lean. The last column is the same three accuracies over all 16 families (n = 640
 where J in eight families can be answered by a constant.
 
 <!-- decider-chain-summary:start -->
-| model | R | J | C | pre-registered reading | C right, R and J right | C right, otherwise | Fisher p | C says the speak word | R / J / C, all 16 |
+| model | R | J | C | pre-registered reading | unparsed R / J / C | C right, R and J right | C right, otherwise | Fisher p | R / J / C, all 16 |
 |---|---|---|---|---|---|---|---|---|---|
-| `llama-3.1-8b` | 249/320 (77.8%, p <0.0001) | 306/320 (95.6%, p <0.0001) | 176/320 (55.0%, p 0.0415) | composition | 135/237 (57%) | 41/83 (49%) | 0.1437 | 32% | 77.2% / 88.0% / 57.2% |
-| `qwen2.5-7b` | 251/320 (78.4%, p <0.0001) | 313/320 (97.8%, p <0.0001) | 183/320 (57.2%, p 0.0059) | composition | 148/245 (60%) | 35/75 (47%) | 0.0247 | 50% | 74.5% / 94.7% / 55.5% |
-| `mistral-7b` | 232/320 (72.5%, p <0.0001) | 296/320 (92.5%, p <0.0001) | 143/320 (44.7%, p 0.9749) | composition | 98/213 (46%) | 45/107 (42%) | 0.2909 | 29% | 70.8% / 82.2% / 49.8% |
-| `gemma-3-4b` | 224/320 (70.0%, p <0.0001) | 303/320 (94.7%, p <0.0001) | 181/320 (56.6%, p 0.0109) | composition | 133/214 (62%) | 48/106 (45%) | 0.0031 | 45% | 70.2% / 90.3% / 52.7% |
-| `phi-4-mini` | 220/320 (68.8%, p <0.0001) | 300/320 (93.8%, p <0.0001) | 160/320 (50.0%, p 0.5223) | unresolved | 116/206 (56%) | 44/114 (39%) | 0.0017 | 69% | 69.8% / 83.3% / 52.2% |
-| `granite-3.3-2b` | 216/320 (67.5%, p <0.0001) | 281/320 (87.8%, p <0.0001) | 141/320 (44.1%, p 0.9855) | unresolved | 80/190 (42%) | 61/130 (47%) | 0.8333 | 54% | 67.0% / 80.8% / 50.9% |
+| `llama-3.1-8b` | 249/320 (77.8%, p <0.0001) | 306/320 (95.6%, p <0.0001) | 176/320 (55.0%, p 0.0415) | composition | 0 / 0 / 11 | 135/237 (57%) | 41/83 (49%) | 0.1437 | 77.2% / 88.0% / 57.2% |
+| `qwen2.5-7b` | 251/320 (78.4%, p <0.0001) | 313/320 (97.8%, p <0.0001) | 183/320 (57.2%, p 0.0059) | composition | 0 / 0 / 1 | 148/245 (60%) | 35/75 (47%) | 0.0247 | 74.5% / 94.7% / 55.5% |
+| `mistral-7b` | 232/320 (72.5%, p <0.0001) | 296/320 (92.5%, p <0.0001) | 143/320 (44.7%, p 0.9749) | composition | 0 / 0 / 62 | 98/213 (46%) | 45/107 (42%) | 0.2909 | 70.8% / 82.2% / 49.8% |
+| `gemma-3-4b` | 224/320 (70.0%, p <0.0001) | 303/320 (94.7%, p <0.0001) | 181/320 (56.6%, p 0.0109) | composition | 2 / 2 / 10 | 133/214 (62%) | 48/106 (45%) | 0.0031 | 70.2% / 90.3% / 52.7% |
+| `phi-4-mini` | 220/320 (68.8%, p <0.0001) | 300/320 (93.8%, p <0.0001) | 160/320 (50.0%, p 0.5223) | unresolved | 0 / 0 / 14 | 116/206 (56%) | 44/114 (39%) | 0.0017 | 69.8% / 83.3% / 52.2% |
+| `granite-3.3-2b` | 216/320 (67.5%, p <0.0001) | 281/320 (87.8%, p <0.0001) | 141/320 (44.1%, p 0.9855) | unresolved | 0 / 0 / 49 | 80/190 (42%) | 61/130 (47%) | 0.8333 | 67.0% / 80.8% / 50.9% |
 <!-- decider-chain-summary:end -->
+
+**Checks on C** (review, not pre-registered, not decisive). *C unparsed* counts two-entity
+C replies naming neither role word or both, with how many of them name an entity
+instead. *C on parsed answers* drops those. A family counts as a word prior when at
+least 90% of its parsed C answers are one word (share of the speak word shown). The
+Fisher chain test is Holm-corrected across the six models. The Mantel–Haenszel odds
+ratio stratifies the same 2×2 by family and side (16 strata), with a two-sided CMH test
+and no continuity correction.
+
+<!-- decider-chain-checks:start -->
+| model | C unparsed (naming an entity) | C on parsed answers | C says the speak word (parsed) | two-entity families with C ≥ 90% one word | Fisher survives Holm over models | Mantel–Haenszel OR (p), family × side |
+|---|---|---|---|---|---|---|
+| `llama-3.1-8b` | 11 (11) | 176/309 (57.0%) | 33% | 3: `river_swim` 0.00, `street_cleaning` 0.00, `water_notice` 0.03 | no | 1.34 (0.4485) |
+| `qwen2.5-7b` | 1 (0) | 183/319 (57.4%) | 50% | 2: `pet_care` 1.00, `travel` 0.03 | no | 1.08 (0.8210) |
+| `mistral-7b` | 62 (54) | 143/258 (55.4%) | 36% | 0: none | no | 1.35 (0.3035) |
+| `gemma-3-4b` | 10 (2) | 181/310 (58.4%) | 46% | 0: none | yes | 1.59 (0.0848) |
+| `phi-4-mini` | 14 (11) | 160/306 (52.3%) | 72% | 1: `photo_backup` 1.00 | yes | 2.77 (0.0014) |
+| `granite-3.3-2b` | 49 (42) | 141/271 (52.0%) | 64% | 1: `home_security` 0.97 | no | 1.26 (0.4501) |
+<!-- decider-chain-checks:end -->
 
 **Per family**, number right out of 40. **Bold** means the family passes Holm across 16
 (one-sided exact binomial, p < 0.05). Column heads as in Round 82's table.
@@ -429,22 +450,32 @@ where J in eight families can be answered by a constant.
 
 ### What Round 83 does and does not show
 
-- **Each step alone works; the combination does not.** On these questions, these models
-  name the relevant entity from the body almost always (J) and read the role at
-  68-78% (R), as Round 82 found. Yet asked the composed fact (C) they are near a coin.
-  Even on the items where they got both R and J right, C is right only 42-62% of the
-  time. That is the measured break: composing two facts the model has, not
-  reading either.
+- **The break is located at the C question, not shown to be composition.** Four of six
+  models meet the pre-registered composition reading (R and J high, C low) and two are
+  unresolved. C is 44-57%, above chance for three (55-57%, uncorrected), but parse
+  failures and per-family word priors account for part of it (the checks table below). Even on the items where both R and J were
+  right, the four composition models get C right only 46-62% of the time.
+- **J is an extractive lookup.** Each J question repeats the body's own phrase ("tonight's
+  dinner", "swept at 7am tomorrow"), so a model can answer it by matching words, not
+  understanding them. Naming the entity the body mentions first scores 51.9% on the
+  two-entity families, so J is not answered by position.
 - **C also hints at J.** C names the relevant entity by its description in the body
   ("tonight's dinner", "the street swept at 7am tomorrow"), so it points the model toward
   the J step instead of leaving it to find it. A model still has to hold the role it read
   and apply it to that description. C near chance is not explained by a missing J step.
-- **C answers lean.** Several models favour one role word whatever the gold (see *C says
-  the speak word*), as their interrupt decisions favour speaking or silence. A lean
-  alone holds a balanced question at 50%, so C at chance could be a lean on top of no
-  composition, or composition that is right and wrong in equal measure. The chain test
-  separates these partly: where it holds, C is right more often when R and J are both
-  right, so some composition happens, but not enough to lift C far from a coin.
+- **C answers lean, and fail to parse.** Several models favour one role word whatever the
+  gold (*C says the speak word*, over parsed answers), as their interrupt decisions favour
+  speaking or silence. In 7 of the 48 model-family cells, C is at least 90% one word:
+  a word prior that holds that family at 50% whatever the model composed.
+  `qwen2.5-7b`'s pooled 50% averages opposite extremes (`pet_care` 1.00, `travel` 0.03).
+  `mistral-7b`'s and `granite-3.3-2b`'s below-50% C comes entirely from unparsed
+  answers scored wrong: on parsed answers they are at 55.4% and 52.0%. Most of those
+  unparsed replies name an entity, answering J instead of C.
+- **The chain dependence mostly does not survive stratification.** The Fisher test
+  holds for three models. Two survive Holm across the six. Stratified by family and side
+  (Mantel–Haenszel), `qwen2.5-7b`'s dependence disappears (odds ratio 1.08), `gemma-3-4b`'s
+  weakens (1.59, p = 0.085), and only `phi-4-mini`'s survives (2.77, p = 0.0014). Some of
+  the pooled dependence comes from families and sides where R, J and C are all easier.
 - **C's wording is one wording.** Each family's C uses one pair of role words
   ("unconfirmed"/"confirmed", "old"/"new"). A role word the model maps differently onto
   the decider's phrasing ("Standby status" as unconfirmed) is a reading error that shows
@@ -454,5 +485,8 @@ where J in eight families can be answered by a constant.
   `granite-3.3-2b` read the role at 68.8% and 67.5% pooled, just under the 70% bar, so
   the composition reading cannot be assigned to them, though their pattern (J high, C at
   or below 50%) matches the other four.
+- **Next step: a forced-choice C.** Asking C with lettered options (A or B) would remove
+  the parse confound. That would be a new pre-registered round, not a change to this
+  one.
 - **Six local models of 8B and under**, the best of Round 82's fourteen. Says nothing
   about frontier models (NEEDS-MAX 1).
