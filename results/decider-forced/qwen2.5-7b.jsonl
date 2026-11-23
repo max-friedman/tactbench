@@ -510,3 +510,7 @@
 {"moment_id": "river_swim-pos-0012", "family": "river_swim", "options": ["upstream", "downstream"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.71}
 {"moment_id": "river_swim-pos-0016", "family": "river_swim", "options": ["upstream", "downstream"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.7}
 {"moment_id": "river_swim-pos-0017", "family": "river_swim", "options": ["downstream", "upstream"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.78}
+{"moment_id": "river_swim-pos-0018", "family": "river_swim", "options": ["upstream", "downstream"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.84}
+{"moment_id": "river_swim-pos-0019", "family": "river_swim", "options": ["downstream", "upstream"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.91}
+{"moment_id": "river_swim-pos-0020", "family": "river_swim", "options": ["downstream", "upstream"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.14}
+{"moment_id": "river_swim-pos-0024", "family": "river_swim", "options": ["downstream", "upstream"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.86}
