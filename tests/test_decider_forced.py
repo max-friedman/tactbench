@@ -225,10 +225,15 @@ def test_preregistration_precedes_results_and_states_the_rules():
         f"**{fc.COMPOSES}**",
         f"**{fc.COMPOSITION}**",
         "**unresolved**",
-        f"**{fc.CLOSE_AT} or more** of the six models read *{fc.COMPOSITION}*",
+        f"**{fc.CLOSE_AT} or more** of the six models share one reading",
         "closes as **located at C, cause unresolved**",
-        "closes as **format**",
-        "closes as **composition**",
+        "closes it as **composition**",
+        "share one reading, AD closes as that reading",
+        "*Format* and either prior count toward that unless 4 or more models share them",
+        f"**more than {fc.MAX_UNPARSED} of 320** unparsed",
+        "**letter prior**",
+        "**format**",
+        "A *break is composition* reading with a significant chain test is reported as such",
         "the chain-probe line (Rounds 82-84) ends here unless the owner reopens it",
         "Unparsed replies count as wrong",
     ):
@@ -251,6 +256,10 @@ def test_power_figures_are_the_binomials_own():
     assert f"{2 * dr.binom_sf(flag, 40):.1e}" in text
     assert f"{dr.binom_sf_at(flag, 40, 0.90):.1%}" in text
     assert f"{dr.binom_sf_at(flag, 40, 0.75):.1%}" in text
+    # Two or more of 8 flagged with no lean (both prior checks).
+    p = 2 * dr.binom_sf(flag, 40)
+    two = 1 - (1 - p) ** 8 - 8 * p * (1 - p) ** 7
+    assert text.count(f"{two:.1e}") == 2 and text.count(f"{p:.1e}") == 2
     # The chain test's approximate power.
     for diff in (0.15, 0.10):
         for alpha in (0.05, 0.05 / 6):
@@ -263,42 +272,105 @@ def test_mh_power_is_a_two_proportion_test():
     assert fc.mh_power(220, 100, 0.5, 0.3, 0.05) > 0.99
 
 
+def _read(c_high=False, c=0.5, word_ok=True, letter_ok=True, unparsed=0):
+    return fc.reading(c_high, c, word_ok, letter_ok, unparsed)
+
+
 def test_reading_rules():
-    assert fc.reading(c_high=True, c=0.80, prior_passes=True) == fc.COMPOSES
-    assert fc.reading(c_high=False, c=0.55, prior_passes=True) == fc.COMPOSITION
-    assert fc.reading(c_high=False, c=0.65, prior_passes=True) == fc.UNRESOLVED
+    assert _read(c_high=True, c=0.80) == fc.COMPOSES
+    assert _read(c=0.55) == fc.COMPOSITION
+    assert _read(c=0.65) == fc.UNRESOLVED
     # High by share but not above chance after Holm cannot happen at 70% of 320, but the
     # rule still needs both.
-    assert fc.reading(c_high=False, c=0.72, prior_passes=True) == fc.UNRESOLVED
+    assert _read(c=0.72) == fc.UNRESOLVED
+    # The format guard: more than 32 unparsed, whatever C_fc.
+    assert _read(c=0.55, unparsed=32) == fc.COMPOSITION
     for c_high, c in ((True, 0.8), (False, 0.5), (False, 0.65)):
-        assert fc.reading(c_high=c_high, c=c, prior_passes=False) == fc.PRIOR
+        assert _read(c_high=c_high, c=c, unparsed=33) == fc.FORMAT
+        # The priors come first, word before letter.
+        assert _read(c_high=c_high, c=c, letter_ok=False, unparsed=33) == fc.LETTER
+        assert _read(c_high=c_high, c=c, word_ok=False, letter_ok=False, unparsed=33) == fc.PRIOR
+    assert fc.READINGS == (
+        fc.PRIOR, fc.LETTER, fc.FORMAT, fc.COMPOSES, fc.COMPOSITION, fc.UNRESOLVED
+    )  # fmt: skip
+    assert fc.MAX_UNPARSED == 32 == round(0.10 * fc.N_TWO)
 
 
 def test_item_closes():
-    six = [fc.COMPOSITION] * 4 + [fc.UNRESOLVED] * 2
-    assert fc.item_closes(six) == "composition"
-    assert fc.item_closes([fc.COMPOSITION] * 3 + [fc.COMPOSES] * 3) == (
-        "located at C, cause unresolved"
+    rest = [fc.UNRESOLVED, fc.FORMAT]
+    assert fc.item_closes([fc.COMPOSITION] * 4 + rest) == "composition"
+    assert fc.item_closes([fc.COMPOSES] * 4 + rest) == fc.COMPOSES
+    for r in (fc.FORMAT, fc.PRIOR, fc.LETTER):
+        assert fc.item_closes([r] * 4 + [fc.COMPOSITION] * 2) == r
+    # No reading shared by 4: cause unresolved, however the rest split.
+    assert fc.item_closes([fc.COMPOSITION] * 3 + [fc.COMPOSES] * 3) == fc.CAUSE_UNRESOLVED
+    assert fc.item_closes([fc.COMPOSITION] * 3 + [fc.FORMAT] * 2 + [fc.PRIOR]) == (
+        fc.CAUSE_UNRESOLVED
     )
-    assert fc.item_closes([fc.COMPOSES] * 4 + [fc.PRIOR] * 2) == "format"
-    assert fc.item_closes([fc.PRIOR] * 6) == "located at C, cause unresolved"
+    assert fc.item_closes([fc.FORMAT] * 3 + [fc.LETTER] * 3) == fc.CAUSE_UNRESOLVED
 
 
-def test_word_prior_counts_families_at_either_extreme():
-    s = fc.ForcedSummary(
+def _summary(**kw) -> fc.ForcedSummary:
+    base = dict(
         model="m",
         right=0,
         unparsed=0,
         parsed_right=0,
         letter_a=0,
-        family_share={"a": 0.90, "b": 0.10, "c": 0.89, "d": 0.5},
+        family_share={},
+        family_a={},
         family_right={},
         overall=0.0,
         strata=[],
     )
-    assert s.word_prior_families == ["a", "b"] and not s.prior_passes
+    return fc.ForcedSummary(**(base | kw))
+
+
+def test_word_prior_counts_families_at_either_extreme():
+    s = _summary(family_share={"a": 0.90, "b": 0.10, "c": 0.89, "d": 0.5})
+    assert s.word_prior_families == ["a", "b"] and not s.word_ok
     s.family_share["b"] = 0.11
-    assert s.prior_passes
+    assert s.word_ok
+
+
+def test_letter_prior_counts_families_at_either_extreme():
+    s = _summary(family_a={"a": 0.90, "b": 0.10, "c": 0.89, "d": 0.5})
+    assert s.letter_prior_families == ["a", "b"] and not s.letter_ok
+    s.family_a["b"] = 0.11
+    assert s.letter_ok
+
+
+def _reading_of(responses, items, chain):
+    s = fc.summarize_responses("llama-3.1-8b", responses, items, chain)
+    high = s.pooled >= fc.HIGH and s.p <= 0.05 / 6
+    return s, fc.reading(high, s.pooled, s.word_ok, s.letter_ok, s.unparsed)
+
+
+def test_simulated_replies_get_the_intended_reading(items, chain):
+    """The guards do what they are for, on replies built from the real question set."""
+    # A constant letter scores exactly 50% and is a letter prior, not composition.
+    s, rd = _reading_of({f.moment_id: "A" for f in items}, items, chain)
+    assert s.pooled == 0.5 and s.word_ok and rd == fc.LETTER
+    # Always the speak word scores exactly 50% and is a word prior.
+    speak = {f.moment_id: fc.LETTERS[f.options.index(fc.C_WORDS[f.family][0])] for f in items}
+    s, rd = _reading_of(speak, items, chain)
+    assert s.pooled == 0.5 and s.letter_ok and rd == fc.PRIOR
+    # Answering with the word, not the letter: format, not composition.
+    s, rd = _reading_of({f.moment_id: f.gold_word for f in items}, items, chain)
+    assert s.unparsed == 320 and rd == fc.FORMAT
+    # Every answer right: composes, with no prior of either kind.
+    s, rd = _reading_of({f.moment_id: f.gold for f in items}, items, chain)
+    assert s.pooled == 1.0 and rd == fc.COMPOSES
+    assert set(s.family_a.values()) == {0.5} and set(s.family_share.values()) == {0.5}
+    # Right on exactly 55% of each family, no lean: composition.
+    replies = {}
+    for fam in fc.TWO_ENTITY | set(dr.QUESTIONS):
+        fs = sorted((f for f in items if f.family == fam), key=lambda f: f.moment_id)
+        for i, f in enumerate(fs):
+            wrong = "B" if f.gold == "A" else "A"
+            replies[f.moment_id] = f.gold if i % 20 < 11 else wrong
+    s, rd = _reading_of(replies, items, chain)
+    assert s.pooled == 0.55 and s.word_ok and s.letter_ok and rd == fc.COMPOSITION
 
 
 def test_mh_one_sided_against_hand_values():

@@ -341,16 +341,22 @@ E. **`driving`'s positional reading is fixed at 63.3% (new, R25).** Its deciders
 R. **The viewer on v2-v5 — DONE in R59.** Tests on every dataset on disk; the page
    now names its dataset version.
 
-AD. **Forced-choice C** (new, R83). R83's composed question was free text; 19% of
-   mistral's and 15% of granite's C answers did not parse (most named an entity, i.e.
-   answered J), and 7 of 48 model-family cells answer C with one word ≥90% of the time.
-   Re-ask C as lettered options, counterbalanced so option position and word identity
-   are each 50% gold within family×side, on the same six models; pre-register a
-   word-prior check (per-family share) and the stratified (Mantel–Haenszel) chain test
-   as decisive. Stopping criterion: this is the last chain-probe round unless C on
-   forced choice still reads within 60% for ≥4 models *and* the word-prior check passes,
-   in which case the break is composition and the item closes; otherwise it closes as
-   'located at C, cause unresolved'. ~6h compute.
+AD. **Forced-choice C** (new, R83; pre-registered R84). R83's composed question was free
+   text; 19% of mistral's and 15% of granite's C answers did not parse (most named an
+   entity, i.e. answered J), and 7 of 48 model-family cells answer C with one word ≥90%
+   of the time. Re-ask C as lettered options (A/B, strict first-letter parse, unparsed
+   wrong) on the same six models, 640 calls each; both sides of a pair share an option
+   order, so a constant letter reads 50% in every family×side cell and a constant word
+   50% in every family. Rules and readings in `docs/DECIDER_READING.md` ("Round 84"),
+   checked in order: word prior (>1 of 8 two-entity families ≥90% one word), letter
+   prior (>1 of 8 ≥90% one letter), format (>32 of 320 unparsed), *composes when the
+   format is fixed* (C_fc ≥70% and above chance, Holm over models), *break is
+   composition* (C_fc <60%), else unresolved. The Mantel–Haenszel chain test (family×side,
+   one-sided, Holm) is reported beside the readings, not in them. Stopping criterion: a
+   reading shared by ≥4 of the six models closes AD as that reading (composition if it
+   is *break is composition*); otherwise AD closes as 'located at C, cause unresolved'.
+   Either way this is the last chain-probe round unless the owner reopens it. ~3.5h
+   compute.
 
 AC. **Join and composition — DONE in R83.** Break located at the C question.
 

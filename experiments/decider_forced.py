@@ -212,17 +212,26 @@ def baselines_table(items: list[ForcedItem]) -> str:
 
 N_TWO = ch.N_TWO  # 320: 8 two-entity families x 40
 HIGH, LOW = 0.70, 0.60
-#: A family's parsed answers are a word prior when at least this share name one word.
+#: A family's parsed answers are a word (or letter) prior when at least this share name
+#: one word (or are one letter).
 WORD_PRIOR = 0.90
-#: The word-prior check passes with at most this many word-prior families out of 8.
+LETTER_PRIOR = 0.90
+#: Each prior check passes with at most this many flagged families out of 8.
 MAX_PRIOR_FAMILIES = 1
-#: "Break is composition" this many times or more closes queue AD as composition.
+#: The format guard: more than this many unparsed two-entity answers (10% of 320).
+MAX_UNPARSED = 32
+#: A reading shared by this many models or more closes queue AD as that reading.
 CLOSE_AT = 4
 
+PRIOR = "word prior"
+LETTER = "letter prior"
+FORMAT = "format"
 COMPOSES = "composes when the format is fixed"
 COMPOSITION = "break is composition"
-PRIOR = "word prior"
 UNRESOLVED = "unresolved"
+#: Every reading, in the order the rules are checked.
+READINGS = (PRIOR, LETTER, FORMAT, COMPOSES, COMPOSITION, UNRESOLVED)
+CAUSE_UNRESOLVED = "located at C, cause unresolved"
 
 
 def high_bar() -> int:
@@ -240,10 +249,20 @@ def holm_first_step(n_models: int = len(MODELS)) -> int:
     return min(k for k in range(N_TWO + 1) if dr.binom_sf(k, N_TWO) <= dr.ALPHA / n_models)
 
 
-def reading(c_high: bool, c: float, prior_passes: bool) -> str:
-    """The pre-registered per-model reading. The word-prior check is applied first."""
-    if not prior_passes:
+def _flagged(share: float, bar: float) -> bool:
+    # Rounded so that a share of exactly 10% (1 - 0.9 is 0.0999... in floating point)
+    # counts, as the rule says.
+    return round(max(share, 1 - share), 9) >= bar
+
+
+def reading(c_high: bool, c: float, word_ok: bool, letter_ok: bool, unparsed: int) -> str:
+    """The pre-registered per-model reading, rules checked in the order of READINGS."""
+    if not word_ok:
         return PRIOR
+    if not letter_ok:
+        return LETTER
+    if unparsed > MAX_UNPARSED:
+        return FORMAT
     if c_high:
         return COMPOSES
     if c < LOW:
@@ -252,12 +271,12 @@ def reading(c_high: bool, c: float, prior_passes: bool) -> str:
 
 
 def item_closes(readings: list[str]) -> str:
-    """How queue AD closes, from the six readings."""
-    if sum(r == COMPOSITION for r in readings) >= CLOSE_AT:
-        return "composition"
-    if sum(r == COMPOSES for r in readings) > len(readings) / 2:
-        return "format"
-    return "located at C, cause unresolved"
+    """How queue AD closes: a reading shared by CLOSE_AT or more of the six models, else
+    "located at C, cause unresolved". "Break is composition" closes it as composition."""
+    for r in READINGS:
+        if sum(x == r for x in readings) >= CLOSE_AT:
+            return "composition" if r == COMPOSITION else r
+    return CAUSE_UNRESOLVED
 
 
 def mh_one_sided(tables: list[tuple[int, int, int, int]]) -> tuple[float, float]:
@@ -330,6 +349,7 @@ class ForcedSummary:
     parsed_right: int
     letter_a: int  # parsed two-entity answers that are A
     family_share: dict[str, float]  # two-entity family -> speak-word share of parsed
+    family_a: dict[str, float]  # two-entity family -> share of parsed answers that are A
     family_right: dict[str, int]  # every family -> right of 40
     overall: float  # all 16 families, n = 640
     strata: list[tuple[int, int, int, int]]  # family x side, R83's R and J vs C_fc
@@ -352,15 +372,19 @@ class ForcedSummary:
 
     @property
     def word_prior_families(self) -> list[str]:
-        # Rounded so that a share of exactly 10% (1 - 0.9 is 0.0999... in floating point)
-        # counts, as the rule says.
-        return sorted(
-            f for f, v in self.family_share.items() if round(max(v, 1 - v), 9) >= WORD_PRIOR
-        )
+        return sorted(f for f, v in self.family_share.items() if _flagged(v, WORD_PRIOR))
 
     @property
-    def prior_passes(self) -> bool:
+    def letter_prior_families(self) -> list[str]:
+        return sorted(f for f, v in self.family_a.items() if _flagged(v, LETTER_PRIOR))
+
+    @property
+    def word_ok(self) -> bool:
         return len(self.word_prior_families) <= MAX_PRIOR_FAMILIES
+
+    @property
+    def letter_ok(self) -> bool:
+        return len(self.letter_prior_families) <= MAX_PRIOR_FAMILIES
 
     @property
     def mh(self) -> tuple[float, float]:
@@ -368,16 +392,25 @@ class ForcedSummary:
 
 
 def summarize(name: str, items: list[ForcedItem], chain: list[ch.ChainItem]) -> ForcedSummary:
-    rows = {r["moment_id"]: r for r in load_rows(name)}
-    answer = {f.moment_id: parse_letter(rows[f.moment_id]["response"]) for f in items}
+    responses = {r["moment_id"]: r["response"] for r in load_rows(name)}
+    return summarize_responses(name, responses, items, chain)
+
+
+def summarize_responses(
+    name: str, responses: dict[str, str], items: list[ForcedItem], chain: list[ch.ChainItem]
+) -> ForcedSummary:
+    """The summary of one model's replies (moment id -> reply text); R and J are ``name``'s
+    Round 83 answers."""
+    answer = {f.moment_id: parse_letter(responses[f.moment_id]) for f in items}
     ok = {f.moment_id: answer[f.moment_id] == f.gold for f in items}
     two = [f for f in items if f.family in TWO_ENTITY]
     parsed = [f for f in two if answer[f.moment_id] is not None]
-    share = {}
+    share, share_a = {}, {}
     for fam in sorted(TWO_ENTITY):
         fp = [f for f in parsed if f.family == fam]
         speak = sum(f.word(answer[f.moment_id]) == C_WORDS[fam][0] for f in fp)
         share[fam] = speak / len(fp) if fp else 0.5
+        share_a[fam] = sum(answer[f.moment_id] == "A" for f in fp) / len(fp) if fp else 0.5
     # Round 83's own R and J answers, as recorded.
     r83 = ch.answers(name, chain)
 
@@ -395,6 +428,7 @@ def summarize(name: str, items: list[ForcedItem], chain: list[ch.ChainItem]) -> 
         parsed_right=sum(ok[f.moment_id] for f in parsed),
         letter_a=sum(answer[f.moment_id] == "A" for f in parsed),
         family_share=share,
+        family_a=share_a,
         family_right={
             fam: sum(ok[f.moment_id] for f in items if f.family == fam)
             for fam in sorted(dr.QUESTIONS)
@@ -416,7 +450,8 @@ def readings(items: list[ForcedItem], chain: list[ch.ChainItem]) -> dict[str, tu
     out = {}
     for s in ss:
         high = s.pooled >= HIGH and above[s.model]
-        out[s.model] = (s, high, mh[s.model], reading(high, s.pooled, s.prior_passes))
+        rd = reading(high, s.pooled, s.word_ok, s.letter_ok, s.unparsed)
+        out[s.model] = (s, high, mh[s.model], rd)
     return out
 
 
@@ -424,19 +459,23 @@ def summary_table(items: list[ForcedItem], chain: list[ch.ChainItem]) -> str:
     """The pre-registered figures, pooled over the eight two-entity families."""
     lines = [
         "| model | C_fc (unparsed wrong) | unparsed | C_fc on parsed | says A (parsed) "
-        "| families ≥ 90% one word | C_fc high | MH OR (one-sided p) | MH survives Holm "
+        "| families ≥ 90% one word | families ≥ 90% one letter | C_fc high "
+        "| MH OR (one-sided p) | MH survives Holm "
         "| reading | C_fc, all 16 |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for name, (s, high, mh_ok, rd) in readings(items, chain).items():
         fams = s.word_prior_families
         listed = ", ".join(f"`{f}` {s.family_share[f]:.2f}" for f in fams) if fams else "none"
+        lfams = s.letter_prior_families
+        lettered = ", ".join(f"`{f}` {s.family_a[f]:.2f}" for f in lfams) if lfams else "none"
         odds, p = s.mh
         say_a = f"{s.letter_a / s.parsed:.0%}" if s.parsed else "—"
         lines.append(
             f"| `{name}` | {s.right}/{N_TWO} ({s.pooled:.1%}, p {dr._p(s.p)}) | {s.unparsed} "
             f"| {s.parsed_right}/{s.parsed} ({s.on_parsed:.1%}) | {say_a} "
-            f"| {len(fams)}: {listed} | {'yes' if high else 'no'} | {odds:.2f} ({p:.4f}) "
+            f"| {len(fams)}: {listed} | {len(lfams)}: {lettered} "
+            f"| {'yes' if high else 'no'} | {odds:.2f} ({p:.4f}) "
             f"| {'yes' if mh_ok else 'no'} | {rd} | {s.overall:.1%} |"
         )
     return "\n".join(lines)

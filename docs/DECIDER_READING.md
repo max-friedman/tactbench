@@ -588,7 +588,21 @@ the runs start, so the order can be checked in history.
   answers every question right says each word exactly half the time. And a word-prior
   family caps that family's accuracy at 40% to 60% when all its answers parse. With no
   lean, a family of 40 parsed answers is flagged with probability 1.9e-07. With a true
-  90% lean it is flagged 62.9% of the time, and with a true 75% lean 1.6%.
+  90% lean it is flagged 62.9% of the time, and with a true 75% lean 1.6%. Two or more
+  of 8 families flagged with no lean: probability 9.7e-13.
+- **Rule 2b: the letter-prior check.** The same check on letters. In each two-entity
+  family, take the parsed answers and find the share that are `A`. The family is a
+  *letter prior* when that share is **at least 90% or at most 10%**. A model passes when
+  **no more than 1** of its 8 two-entity families is a letter prior. This catches a
+  constant letter, which scores exactly 50% and would otherwise read as *break is
+  composition*; it is flagged in all 8 families. A model that answers every question
+  right says `A` exactly half the time in every family. With no lean, a family of 40
+  parsed answers is flagged with probability 1.9e-07, and two or more of 8 with
+  probability 9.7e-13.
+- **Rule 2c: the format guard.** A model with **more than 32 of 320** unparsed
+  two-entity answers (more than 10%) reads *format*, whatever its C_fc. This stops
+  letter-format failures from passing as *break is composition*, which was Round 83's
+  problem.
 - **Rule 3: the chain test.** Per model, on the two-entity moments: is C_fc more often
   right when Round 83's R and J answers (as recorded) were both right? This is a
   **Mantel–Haenszel** test stratified by **family × side** (16 strata), with **no
@@ -598,19 +612,24 @@ the runs start, so the order can be checked in history.
   rest, and an unstratified approximation. A 15-point difference is then detected
   81.3% of the time at 0.05, and 55.8% at Holm's first step (0.05/6). A 10-point
   difference is detected 51.2% and 23.7% of the time. Rule 3 is reported beside each
-  reading and does not change it.
+  reading and does not change it. A *break is composition* reading with a significant
+  chain test is reported as such: both stand, side by side.
 - **Readings per model**, checked in this order:
   1. The word-prior check fails: **word prior**.
-  2. C_fc high: **composes when the format is fixed**. Round 83's break was format.
-  3. C_fc below 60%: **break is composition**.
-  4. Anything else: **unresolved**, reported with its numbers.
-- **Stopping criterion for queue AD.** If **4 or more** of the six models read *break is
-  composition*, AD closes as **composition**. Otherwise it closes by the majority. If
-  more than half (4 or more) read *composes when the format is fixed*, it closes as
-  **format**. If not, it closes as **located at C, cause unresolved**. Either way, the
-  chain-probe line (Rounds 82-84) ends here unless the owner reopens it.
-- **Also reported, not decisive.** Unparsed counts. C_fc over parsed answers. The
-  share of parsed answers that are A. C_fc over all 16 families. Per-family counts.
+  2. The letter-prior check fails: **letter prior**.
+  3. More than 32 unparsed: **format**.
+  4. C_fc high: **composes when the format is fixed**. Round 83's break was format.
+  5. C_fc below 60%: **break is composition**.
+  6. Anything else: **unresolved**, reported with its numbers.
+- **Stopping criterion for queue AD.** If **4 or more** of the six models share one
+  reading, AD closes as that reading: *break is composition* closes it as
+  **composition**, *composes when the format is fixed* closes it as that, and so on for
+  *format* and either prior. If no reading is shared by 4 or more models, AD closes as
+  **located at C, cause unresolved**. *Format* and either prior count toward that unless
+  4 or more models share them. Either way, the chain-probe line (Rounds 82-84) ends here
+  unless the owner reopens it.
+- **Also reported, not decisive.** C_fc over parsed answers. The share of parsed
+  answers that are A. C_fc over all 16 families. Per-family counts.
 
 ### Results (Round 84)
 
