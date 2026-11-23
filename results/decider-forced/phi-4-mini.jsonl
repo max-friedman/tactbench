@@ -83,3 +83,8 @@
 {"moment_id": "deadline-near-0002", "family": "deadline", "options": ["backup", "main"], "gold": "A", "response": "A) backup", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.58}
 {"moment_id": "deadline-near-0003", "family": "deadline", "options": ["main", "backup"], "gold": "B", "response": "B) backup", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.5}
 {"moment_id": "deadline-near-0004", "family": "deadline", "options": ["backup", "main"], "gold": "A", "response": "A) backup", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.55}
+{"moment_id": "deadline-near-0008", "family": "deadline", "options": ["backup", "main"], "gold": "A", "response": "A) backup", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.74}
+{"moment_id": "deadline-near-0009", "family": "deadline", "options": ["main", "backup"], "gold": "B", "response": "B) backup", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.6}
+{"moment_id": "deadline-near-0010", "family": "deadline", "options": ["main", "backup"], "gold": "B", "response": "B) backup", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.53}
+{"moment_id": "deadline-near-0011", "family": "deadline", "options": ["backup", "main"], "gold": "A", "response": "A) backup", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.59}
+{"moment_id": "deadline-near-0012", "family": "deadline", "options": ["main", "backup"], "gold": "B", "response": "B) backup", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.45}
