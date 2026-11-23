@@ -493,6 +493,78 @@ def family_table(items: list[ForcedItem], chain: list[ch.ChainItem]) -> str:
     return "\n".join(lines)
 
 
+def compare(name: str, items: list[ForcedItem], chain: list[ch.ChainItem]) -> dict[str, int]:
+    """Not pre-registered: Round 83's free-text C beside C_fc, on the 320 two-entity moments.
+
+    ``same``/``both`` counts the moments where both formats gave a parsed answer and the
+    two answers name the same role word.
+    """
+    rows = {r["moment_id"]: r for r in load_rows(name)}
+    r83 = ch.raw_answers(name, chain)
+    two = [f for f in items if f.family in TWO_ENTITY]
+    both = same = 0
+    for f in two:
+        word = f.word(parse_letter(rows[f.moment_id]["response"]))
+        old = r83[(f.moment_id, "c")]["answer"]
+        if word is not None and old is not None:
+            both += 1
+            same += word == old
+    return {
+        "r83_right": sum(r83[(f.moment_id, "c")]["answer"] == f.gold_word for f in two),
+        "r83_unparsed": sum(r83[(f.moment_id, "c")]["answer"] is None for f in two),
+        "both": both,
+        "same": same,
+    }
+
+
+def compare_table(items: list[ForcedItem], chain: list[ch.ChainItem]) -> str:
+    lines = [
+        "| model | Round 83 C (free text) | Round 83 unparsed | C_fc (letters) | C_fc unparsed "
+        "| same role word, both parsed |",
+        "|---|---|---|---|---|---|",
+    ]
+    for name in models_run():
+        s = summarize(name, items, chain)
+        c = compare(name, items, chain)
+        lines.append(
+            f"| `{name}` | {c['r83_right']}/{N_TWO} ({c['r83_right'] / N_TWO:.1%}) "
+            f"| {c['r83_unparsed']} | {s.right}/{N_TWO} ({s.pooled:.1%}) | {s.unparsed} "
+            f"| {c['same']}/{c['both']} ({c['same'] / c['both']:.0%}) |"
+        )
+    return "\n".join(lines)
+
+
+def _span(values: list[float]) -> str:
+    v = sorted(values)
+    return f"{v[0]:.1%} to {v[-1]:.1%}"
+
+
+def _models(names: list[str]) -> str:
+    return ", ".join(f"`{n}`" for n in names) if names else "none"
+
+
+def findings(items: list[ForcedItem], chain: list[ch.ChainItem]) -> str:
+    """The published headline; every figure recomputed."""
+    rs = readings(items, chain)
+    ss = [v[0] for v in rs.values()]
+    by: dict[str, list[str]] = defaultdict(list)
+    for name, (_, _, _, rd) in rs.items():
+        by[rd].append(name)
+    shown = "; ".join(f"*{r}* {len(by[r])} ({_models(by[r])})" for r in READINGS if by[r])
+    mh_ok = [n for n, v in rs.items() if v[2]]
+    unp = sorted(s.unparsed for s in ss)
+    return (
+        f"Pooled over the eight two-entity families (n = {N_TWO}), the {len(ss)} models answer "
+        f"the forced-choice C at **{_span([s.pooled for s in ss])}** with unparsed replies "
+        f"scored wrong, and at {_span([s.on_parsed for s in ss])} over parsed replies. "
+        f"Unparsed: {unp[0]} to {unp[-1]} of {N_TWO}. Pre-registered readings: {shown}. "
+        f"Queue AD closes as **{item_closes([v[3] for v in rs.values()])}**. The chain test "
+        f"(C_fc more often right when Round 83's R and J were both right; Mantel–Haenszel by "
+        f"family and side, one-sided, Holm across the {len(ss)} models) holds for "
+        f"{len(mh_ok)} of {len(ss)} ({_models(mh_ok)})."
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Running
 # --------------------------------------------------------------------------- #
@@ -563,6 +635,8 @@ def main() -> None:
             chain = ch.build_items()
             print(f"## summary\n{summary_table(items, chain)}\n")
             print(f"## families\n{family_table(items, chain)}\n")
+            print(f"## compare\n{compare_table(items, chain)}\n")
+            print(findings(items, chain))
         return
     if not (args.models_dir and args.server_python):
         ap.error("--models-dir and --server-python are required to run")
