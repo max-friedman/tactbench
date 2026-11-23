@@ -246,3 +246,131 @@ many of the 320 moments that run spoke on.
   model and not by another is not evidence that the two differ.
 - **Fourteen local models of 8B and under, Q4_K_M, greedy.** Says nothing about
   frontier models (NEEDS-MAX 1).
+
+## Round 83: where does the chain break?
+
+Round 82 found partial reading (60-79% on the better models) and no link between a
+right reading and a right decision. The decision needs a chain of three steps:
+
+- **R, read:** which entity holds the decider's role. This is Round 82's question.
+- **J, join:** which entity the body makes relevant, e.g. that tonight's dinner is at
+  Marzano.
+- **C, compose:** the two together, e.g. that tonight's booking is unconfirmed.
+
+This round asks all three on **both sides of every v9 dev pair**, 640 moments and 40 per
+family. Code: `experiments/decider_chain.py`. Results: `results/decider-chain/`. Gate:
+`tests/test_decider_chain.py`, written before the probe existed (it failed at collection).
+
+### Design (Round 83)
+
+**R.** R is Round 82's question. On the side Round 82 asked, it is Round 82's own
+answer, which is not re-asked. On the other side, the same question is asked with the
+partner's option order reversed.
+
+**J.** J's options are the same two entities as R. Its gold is the family's *marker*,
+the entity the body makes relevant, on both sides of a pair. In **eight families the body
+names both entities**, drawn per pair from one pool. In those, J reads the body. In the
+other eight, the body names one entity or none: the relevant one is the user (`you`,
+`your route`, `your prescription`) or the one thing the body mentions (`checking`, the
+returnable item, the contract review). It is the same kind of entity on every item, so
+a constant answer can get J right there. **J high in those eight families is not
+evidence of reading the body**, and the pre-registered readings use the two-entity
+families only.
+
+**C.** C restates the decision as a fact about the relevant entity, with two *role
+words* as options. Example: "is the booking for tonight's dinner unconfirmed or
+confirmed?" The gold is the speak-side word on the speak side and the silent-side word on
+the silent side. The question names the entity only by what the body says about it, so
+answering it needs J and R together.
+
+This replaces the suggested "which entity, or 'neither'" form, for three reasons:
+
+- It keeps two options and a 50% chance, like R and J.
+- "Neither" would be the answer on every silent side. A model that hedges with "neither"
+  would then look like it composes.
+- Swapping the two role words exactly counterbalances position. With a third, fixed
+  "neither" option, position cannot be balanced.
+
+Both sides of a pair carry the same tokens and opposite C answers. Any rule that reads
+only the prompt's words, ignoring their order, therefore gets exactly one side of every
+pair right (tested). The role words appear only in the counterbalanced `{a} or {b}`
+slot, never in the question's own wording (tested).
+
+<!-- decider-chain-questions:start -->
+| family | entities the body names | J (body) | C (composed) | C options: speak / silent |
+|---|---|---|---|---|
+| `childcare` | one or none | According to the signals, which of the two is the user: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, for today's school pickup, is the user {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | collecting / away |
+| `commerce` | one or none | According to the signals, which item's return window is closing: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the item whose return window is closing {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | unopened / used |
+| `deadline` | one or none | According to the signals, which of the two is the user: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the user the {a} or the {b} person on call? Answer with one of the two, exactly as written, and nothing else. | main / backup |
+| `dinner_booking` | two | According to the signals, which restaurant is tonight's dinner at: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the booking for tonight's dinner {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | unconfirmed / confirmed |
+| `driving` | one or none | According to the signals, which road is the user's own: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the user's own route {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | jammed / clear |
+| `finance` | one or none | According to the signals, which account does the card autopay draw from tonight: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the account the card autopay draws from tonight {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | underfunded / covered |
+| `health` | one or none | According to the signals, which prescription is the user's own: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the user's own prescription {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | uncollected / collected |
+| `home_security` | two | According to the signals, where has the camera seen motion: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, at the place where the camera has seen motion, is a worker {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | unexpected / expected |
+| `meeting_prep` | one or none | According to the signals, which meeting is the revised vendor contract for: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the meeting the revised vendor contract is for {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | upcoming / started |
+| `pet_care` | two | According to the signals, which pet left its breakfast uneaten: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the pet that left its breakfast uneaten {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | fragile / healthy |
+| `photo_backup` | two | According to the signals, which album is deleted at midnight: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, when the album deleted at midnight goes, are its photos {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | lost / saved |
+| `quiet_hours` | one or none | According to the signals, which of the two is the user: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the user {a} or {b} from the hospital tonight? Answer with one of the two, exactly as written, and nothing else. | near / far |
+| `river_swim` | two | According to the signals, where is the sewage overflow: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the sewage overflow {a} or {b} of the club's swim? Answer with one of the two, exactly as written, and nothing else. | upstream / downstream |
+| `street_cleaning` | two | According to the signals, which street is swept at 7am tomorrow: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the street swept at 7am tomorrow the car's {a} or {b} spot? Answer with one of the two, exactly as written, and nothing else. | current / previous |
+| `travel` | two | According to the signals, which gate did the flight's gate change move away from: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the passenger right now at the {a} or the {b} gate? Answer with one of the two, exactly as written, and nothing else. | old / new |
+| `water_notice` | two | According to the signals, which district is under the boil-water notice: {a} or {b}? Answer with one of the two, exactly as written, and nothing else. | According to the signals, is the district under the boil-water notice the user's {a} or {b} home? Answer with one of the two, exactly as written, and nothing else. | current / former |
+<!-- decider-chain-questions:end -->
+
+Each question follows the moment's full rendered context and Round 82's preamble.
+Decoding is the same: greedy, 16 tokens, a single user turn, and an answer that names
+neither option or both is unparsed and scored wrong. Option order alternates in
+`hashlib` order within each (family, clause order) stratum, and a pair's two sides take
+opposite orders. So in every family the first option and the entity (or role word) named
+first in the decider each answer exactly 20 of the 40 questions of each kind (tested).
+*First-named in body* is not controlled. The body's own phrasings place the entities, and
+`travel` always names the old gate first.
+
+<!-- decider-chain-baselines:start -->
+| question | baseline | overall | lowest family | highest family |
+|---|---|---|---|---|
+| R | always first option | 50.0% | 50% | 50% |
+| R | first-named in decider | 50.0% | 50% | 50% |
+| J | always first option | 50.0% | 50% | 50% |
+| J | first-named in decider | 50.0% | 50% | 50% |
+| J | first-named in body | 60.3% | 30% | 100% |
+| C | always first option | 50.0% | 50% | 50% |
+| C | first-named in decider | 50.0% | 50% | 50% |
+| C | always the speak word | 50.0% | 50% | 50% |
+<!-- decider-chain-baselines:end -->
+
+### Pre-registration (Round 83)
+
+These rules were written before any Round 83 model call, and this file is committed
+before the runs start, so the order can be checked in history.
+
+- **Models.** These are the six with Round 82 accuracy of at least 69%: `llama-3.1-8b`,
+  `qwen2.5-7b`, `mistral-7b`, `gemma-3-4b`, `phi-4-mini` and `granite-3.3-2b`. They run
+  largest first. If the timing of the first model puts the total far past about 6 hours,
+  the smallest are dropped and named.
+- **Power.** Each model is tested per family on each of R, J and C, with n = 40, a
+  one-sided exact binomial and Holm across 16 families. The first Holm step needs
+  **30 of 40** (p = 0.0011), and a family read at a true 75% reaches it
+  58.4% of the time. A later step at p ≤ 0.05/8 needs **29 of 40**, which a true 75%
+  reaches 71.5% of the time. Per-family counts are reported but do not decide the
+  readings. The pooled figures below do.
+- **Pooled accuracy.** Each model's R, J and C accuracy is pooled over the **eight
+  two-entity families** (n = 320 per question). A step is *high* at **at least
+  70%** and *low* **below 60%**. The readings are checked in this
+  order:
+  1. J low: a **break in finding the relevant entity**.
+  2. Otherwise R low: a **break in reading the decider**.
+  3. R and J high but C low: a **break in composition**.
+  4. R, J and C all high: **no break before the decision**. The failure is in using the
+     composed fact to decide.
+  5. Anything else is **unresolved** and reported with its numbers.
+- **Per-item chain test.** On the two-entity items, compare
+  P(C right | R right and J right) against P(C right | otherwise) with a one-sided
+  **Fisher** exact test, p < 0.05 per model. If composition uses the two steps, C should
+  be right more often when both are right.
+- **Also reported, not decisive.** R, J and C over all 16 families; per-family counts
+  with the Holm marks; unparsed counts.
+
+### Results (Round 83)
+
+Not yet run.
