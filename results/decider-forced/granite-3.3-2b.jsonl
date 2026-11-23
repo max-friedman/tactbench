@@ -345,3 +345,12 @@
 {"moment_id": "meeting_prep-pos-0004", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B) upcoming", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.87}
 {"moment_id": "meeting_prep-pos-0008", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B) upcoming", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.74}
 {"moment_id": "meeting_prep-pos-0009", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.46}
+{"moment_id": "meeting_prep-pos-0010", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.43}
+{"moment_id": "meeting_prep-pos-0011", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A) upcoming", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.9}
+{"moment_id": "meeting_prep-pos-0012", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.26}
+{"moment_id": "meeting_prep-pos-0016", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.2}
+{"moment_id": "meeting_prep-pos-0017", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B) upcoming", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.73}
+{"moment_id": "meeting_prep-pos-0018", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B) upcoming", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.6}
+{"moment_id": "meeting_prep-pos-0019", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A) upcoming", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.73}
+{"moment_id": "meeting_prep-pos-0020", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B) upcoming", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 1.62}
+{"moment_id": "meeting_prep-pos-0024", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A) upcoming", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.58}
