@@ -161,3 +161,12 @@
 {"moment_id": "driving-near-0000", "family": "driving", "options": ["jammed", "clear"], "gold": "B", "response": "B\n", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.03}
 {"moment_id": "driving-near-0001", "family": "driving", "options": ["clear", "jammed"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.99}
 {"moment_id": "driving-near-0002", "family": "driving", "options": ["clear", "jammed"], "gold": "A", "response": "B\n", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.33}
+{"moment_id": "driving-near-0003", "family": "driving", "options": ["jammed", "clear"], "gold": "B", "response": "B\n", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.26}
+{"moment_id": "driving-near-0004", "family": "driving", "options": ["clear", "jammed"], "gold": "A", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.27}
+{"moment_id": "driving-near-0008", "family": "driving", "options": ["clear", "jammed"], "gold": "A", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.08}
+{"moment_id": "driving-near-0009", "family": "driving", "options": ["jammed", "clear"], "gold": "B", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.21}
+{"moment_id": "driving-near-0010", "family": "driving", "options": ["jammed", "clear"], "gold": "B", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.12}
+{"moment_id": "driving-near-0011", "family": "driving", "options": ["clear", "jammed"], "gold": "A", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.11}
+{"moment_id": "driving-near-0012", "family": "driving", "options": ["jammed", "clear"], "gold": "B", "response": "B\n", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.39}
+{"moment_id": "driving-near-0016", "family": "driving", "options": ["jammed", "clear"], "gold": "B", "response": "B\n", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.14}
+{"moment_id": "driving-near-0017", "family": "driving", "options": ["clear", "jammed"], "gold": "A", "response": "A\n", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.04}
