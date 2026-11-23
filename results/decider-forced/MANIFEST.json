@@ -10,5 +10,17 @@
     "sha256": "7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c",
     "temperature": 0,
     "threads": 4
+  },
+  "qwen2.5-7b": {
+    "call_seconds": 2736.7,
+    "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+    "hf_repo": "bartowski/Qwen2.5-7B-Instruct-GGUF",
+    "max_tokens": 16,
+    "n_ctx": 2048,
+    "prompt_version": "2026-11-23.2",
+    "runtime": "llama-cpp-python 0.3.37",
+    "sha256": "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+    "temperature": 0,
+    "threads": 4
   }
 }
