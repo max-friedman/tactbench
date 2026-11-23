@@ -289,3 +289,8 @@
 {"moment_id": "home_security-near-0011", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.8}
 {"moment_id": "home_security-near-0012", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.08}
 {"moment_id": "home_security-near-0016", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.84}
+{"moment_id": "home_security-near-0017", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.93}
+{"moment_id": "home_security-near-0018", "family": "home_security", "options": ["unexpected", "expected"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.72}
+{"moment_id": "home_security-near-0019", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.25}
+{"moment_id": "home_security-near-0020", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.0}
+{"moment_id": "home_security-near-0024", "family": "home_security", "options": ["expected", "unexpected"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.84}
