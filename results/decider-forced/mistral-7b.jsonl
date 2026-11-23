@@ -358,3 +358,6 @@
 {"moment_id": "meeting_prep-pos-0026", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.23}
 {"moment_id": "meeting_prep-pos-0027", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": " B) upcoming", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.62}
 {"moment_id": "meeting_prep-pos-0028", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": " B) upcoming", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.04}
+{"moment_id": "pet_care-near-0000", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.38}
+{"moment_id": "pet_care-near-0001", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": " B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.75}
+{"moment_id": "pet_care-near-0002", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": " A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 4.86}
