@@ -340,3 +340,118 @@
 {"moment_id": "meeting_prep-near-0028", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.08}
 {"moment_id": "meeting_prep-pos-0000", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.11}
 {"moment_id": "meeting_prep-pos-0001", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.17}
+{"moment_id": "meeting_prep-pos-0002", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.38}
+{"moment_id": "meeting_prep-pos-0003", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.45}
+{"moment_id": "meeting_prep-pos-0004", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.3}
+{"moment_id": "meeting_prep-pos-0008", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.16}
+{"moment_id": "meeting_prep-pos-0009", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.32}
+{"moment_id": "meeting_prep-pos-0010", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.33}
+{"moment_id": "meeting_prep-pos-0011", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.09}
+{"moment_id": "meeting_prep-pos-0012", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.88}
+{"moment_id": "meeting_prep-pos-0016", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.97}
+{"moment_id": "meeting_prep-pos-0017", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.04}
+{"moment_id": "meeting_prep-pos-0018", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.14}
+{"moment_id": "meeting_prep-pos-0019", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.52}
+{"moment_id": "meeting_prep-pos-0020", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.32}
+{"moment_id": "meeting_prep-pos-0024", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.35}
+{"moment_id": "meeting_prep-pos-0025", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.32}
+{"moment_id": "meeting_prep-pos-0026", "family": "meeting_prep", "options": ["upcoming", "started"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.12}
+{"moment_id": "meeting_prep-pos-0027", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.18}
+{"moment_id": "meeting_prep-pos-0028", "family": "meeting_prep", "options": ["started", "upcoming"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.31}
+{"moment_id": "pet_care-near-0000", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.92}
+{"moment_id": "pet_care-near-0001", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.06}
+{"moment_id": "pet_care-near-0002", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.36}
+{"moment_id": "pet_care-near-0003", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.19}
+{"moment_id": "pet_care-near-0004", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.52}
+{"moment_id": "pet_care-near-0008", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.78}
+{"moment_id": "pet_care-near-0009", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.25}
+{"moment_id": "pet_care-near-0010", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.52}
+{"moment_id": "pet_care-near-0011", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.26}
+{"moment_id": "pet_care-near-0012", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.52}
+{"moment_id": "pet_care-near-0016", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.19}
+{"moment_id": "pet_care-near-0017", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.22}
+{"moment_id": "pet_care-near-0018", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.22}
+{"moment_id": "pet_care-near-0019", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.66}
+{"moment_id": "pet_care-near-0020", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.55}
+{"moment_id": "pet_care-near-0024", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.12}
+{"moment_id": "pet_care-near-0025", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "A) healthy", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.55}
+{"moment_id": "pet_care-near-0026", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "B", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.34}
+{"moment_id": "pet_care-near-0027", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.16}
+{"moment_id": "pet_care-near-0028", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.12}
+{"moment_id": "pet_care-pos-0000", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.24}
+{"moment_id": "pet_care-pos-0001", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.4}
+{"moment_id": "pet_care-pos-0002", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.2}
+{"moment_id": "pet_care-pos-0003", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.18}
+{"moment_id": "pet_care-pos-0004", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.25}
+{"moment_id": "pet_care-pos-0008", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.8}
+{"moment_id": "pet_care-pos-0009", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 1.94}
+{"moment_id": "pet_care-pos-0010", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.21}
+{"moment_id": "pet_care-pos-0011", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.32}
+{"moment_id": "pet_care-pos-0012", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.56}
+{"moment_id": "pet_care-pos-0016", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.18}
+{"moment_id": "pet_care-pos-0017", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.25}
+{"moment_id": "pet_care-pos-0018", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.07}
+{"moment_id": "pet_care-pos-0019", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.22}
+{"moment_id": "pet_care-pos-0020", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.38}
+{"moment_id": "pet_care-pos-0024", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.09}
+{"moment_id": "pet_care-pos-0025", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.19}
+{"moment_id": "pet_care-pos-0026", "family": "pet_care", "options": ["fragile", "healthy"], "gold": "A", "response": "A) fragile", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.81}
+{"moment_id": "pet_care-pos-0027", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.29}
+{"moment_id": "pet_care-pos-0028", "family": "pet_care", "options": ["healthy", "fragile"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.3}
+{"moment_id": "photo_backup-near-0000", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.06}
+{"moment_id": "photo_backup-near-0001", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.24}
+{"moment_id": "photo_backup-near-0002", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.32}
+{"moment_id": "photo_backup-near-0003", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.08}
+{"moment_id": "photo_backup-near-0004", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.26}
+{"moment_id": "photo_backup-near-0008", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.11}
+{"moment_id": "photo_backup-near-0009", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.36}
+{"moment_id": "photo_backup-near-0010", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.33}
+{"moment_id": "photo_backup-near-0011", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.9}
+{"moment_id": "photo_backup-near-0012", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.12}
+{"moment_id": "photo_backup-near-0016", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.37}
+{"moment_id": "photo_backup-near-0017", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.34}
+{"moment_id": "photo_backup-near-0018", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.73}
+{"moment_id": "photo_backup-near-0019", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.79}
+{"moment_id": "photo_backup-near-0020", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.2}
+{"moment_id": "photo_backup-near-0024", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "A) saved", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.56}
+{"moment_id": "photo_backup-near-0025", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.18}
+{"moment_id": "photo_backup-near-0026", "family": "photo_backup", "options": ["lost", "saved"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.22}
+{"moment_id": "photo_backup-near-0027", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.3}
+{"moment_id": "photo_backup-near-0028", "family": "photo_backup", "options": ["saved", "lost"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.87}
+{"moment_id": "photo_backup-pos-0000", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.25}
+{"moment_id": "photo_backup-pos-0001", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.24}
+{"moment_id": "photo_backup-pos-0002", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.29}
+{"moment_id": "photo_backup-pos-0003", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.2}
+{"moment_id": "photo_backup-pos-0004", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.49}
+{"moment_id": "photo_backup-pos-0008", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "A) saved", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.79}
+{"moment_id": "photo_backup-pos-0009", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "A) saved", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.71}
+{"moment_id": "photo_backup-pos-0010", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.78}
+{"moment_id": "photo_backup-pos-0011", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.93}
+{"moment_id": "photo_backup-pos-0012", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.55}
+{"moment_id": "photo_backup-pos-0016", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.59}
+{"moment_id": "photo_backup-pos-0017", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.42}
+{"moment_id": "photo_backup-pos-0018", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.57}
+{"moment_id": "photo_backup-pos-0019", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.8}
+{"moment_id": "photo_backup-pos-0020", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.31}
+{"moment_id": "photo_backup-pos-0024", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "A) saved", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.91}
+{"moment_id": "photo_backup-pos-0025", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.53}
+{"moment_id": "photo_backup-pos-0026", "family": "photo_backup", "options": ["lost", "saved"], "gold": "A", "response": "A) lost", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.56}
+{"moment_id": "photo_backup-pos-0027", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.27}
+{"moment_id": "photo_backup-pos-0028", "family": "photo_backup", "options": ["saved", "lost"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.69}
+{"moment_id": "quiet_hours-near-0000", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.35}
+{"moment_id": "quiet_hours-near-0001", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.82}
+{"moment_id": "quiet_hours-near-0002", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A) near", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.22}
+{"moment_id": "quiet_hours-near-0003", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.14}
+{"moment_id": "quiet_hours-near-0004", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.93}
+{"moment_id": "quiet_hours-near-0008", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A) near", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.41}
+{"moment_id": "quiet_hours-near-0009", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A) near", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.12}
+{"moment_id": "quiet_hours-near-0010", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.98}
+{"moment_id": "quiet_hours-near-0011", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 3.02}
+{"moment_id": "quiet_hours-near-0012", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A) near", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.5}
+{"moment_id": "quiet_hours-near-0016", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A) near", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.32}
+{"moment_id": "quiet_hours-near-0017", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "A) far", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.34}
+{"moment_id": "quiet_hours-near-0018", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A) near", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 3.25}
+{"moment_id": "quiet_hours-near-0019", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.85}
+{"moment_id": "quiet_hours-near-0020", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 2.93}
+{"moment_id": "quiet_hours-near-0024", "family": "quiet_hours", "options": ["near", "far"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.95}
+{"moment_id": "quiet_hours-near-0025", "family": "quiet_hours", "options": ["far", "near"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 2.97}
