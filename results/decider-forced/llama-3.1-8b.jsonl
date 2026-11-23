@@ -520,3 +520,5 @@
 {"moment_id": "river_swim-pos-0028", "family": "river_swim", "options": ["upstream", "downstream"], "gold": "A", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.73}
 {"moment_id": "street_cleaning-near-0000", "family": "street_cleaning", "options": ["current", "previous"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 4.56}
 {"moment_id": "street_cleaning-near-0001", "family": "street_cleaning", "options": ["current", "previous"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.43}
+{"moment_id": "street_cleaning-near-0002", "family": "street_cleaning", "options": ["previous", "current"], "gold": "A", "response": "A", "answer": "A", "prompt_version": "2026-11-23.2", "seconds": 5.11}
+{"moment_id": "street_cleaning-near-0003", "family": "street_cleaning", "options": ["current", "previous"], "gold": "B", "response": "B", "answer": "B", "prompt_version": "2026-11-23.2", "seconds": 5.12}
